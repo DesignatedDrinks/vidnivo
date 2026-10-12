@@ -12,4 +12,5 @@ Pod::Spec.new do |s|
   s.dependency 'ExpoModulesCore'
   s.source_files   = '**/*.{h,m,mm,swift}'
   s.swift_version  = '5.9'
+  s.frameworks     = 'Speech', 'AVFoundation'
 end

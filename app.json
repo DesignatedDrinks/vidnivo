@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "VIDNIVO uses videos and photos you choose for editing.",
-        "NSPhotoLibraryAddUsageDescription": "VIDNIVO saves completed videos to your library."
+        "NSPhotoLibraryAddUsageDescription": "VIDNIVO saves completed videos to your library.",
+        "NSSpeechRecognitionUsageDescription": "VIDNIVO transcribes spoken words from the video you select to create editable captions on this device."
       }
     },
     "android": {

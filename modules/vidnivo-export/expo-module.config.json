@@ -1,5 +1,17 @@
 {
-  "platforms": ["ios", "android"],
-  "apple": { "modules": ["VidnivoExportModule"] },
-  "android": { "modules": ["com.vidnivo.export.VidnivoExportModule"] }
+  "platforms": [
+    "ios",
+    "android"
+  ],
+  "apple": {
+    "modules": [
+      "VidnivoExportModule",
+      "VidnivoSpeechModule"
+    ]
+  },
+  "android": {
+    "modules": [
+      "com.vidnivo.export.VidnivoExportModule"
+    ]
+  }
 }

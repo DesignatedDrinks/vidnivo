@@ -75,3 +75,44 @@ export function captionsFromProject(p: Project): CaptionCue[] {
   return p.texts.map(t => ({ startMs:t.startMs, endMs:t.endMs, text:t.text }))
     .sort((a,b)=>a.startMs-b.startMs);
 }
+
+export interface RecognizedWord { startMs: number; endMs: number; text: string }
+/** Segment automatic recognition into readable short-form caption groups. */
+export function groupRecognizedWords(words: RecognizedWord[], maxWords = 5): CaptionCue[] {
+  const ordered = words.filter(w => w.text.trim() &&
+    Number.isFinite(w.startMs) && Number.isFinite(w.endMs) &&
+    w.startMs >= 0 && w.endMs > w.startMs)
+    .sort((a,b)=>a.startMs-b.startMs);
+  const cues: CaptionCue[] = [];
+  let group: RecognizedWord[] = [];
+  const flush = () => {
+    if (!group.length) return;
+    cues.push({ startMs: group[0].startMs, endMs: group[group.length-1].endMs,
+      text: group.map(w=>w.text.trim()).join(' ').replace(/\s+([,.!?;:])/g,'$1') });
+    group = [];
+  };
+  for (const word of ordered) {
+    const previous = group[group.length-1];
+    if (previous && (word.startMs - previous.endMs >= 650 ||
+      group.length >= maxWords || word.endMs - group[0].startMs > 2800 ||
+      group.reduce((n,w)=>n+w.text.length+1,0) + word.text.length > 44)) flush();
+    group.push(word);
+    if (/[.!?]$/.test(word.text.trim())) flush();
+  }
+  flush();
+  return cues;
+}
+/** Map source word timestamps through trim and speed onto a placed timeline clip. */
+export function mapWordsToTimeline(words: RecognizedWord[],
+  clip: Pick<import('./timeline.ts').Clip, 'startMs'|'inMs'|'outMs'|'speed'>): RecognizedWord[] {
+  if (!Number.isFinite(clip.speed) || clip.speed <= 0) throw new Error('Invalid clip speed.');
+  return words.filter(w => w.endMs > clip.inMs && w.startMs < clip.outMs)
+    .map(w => {
+      const from = Math.max(clip.inMs, w.startMs);
+      const to = Math.min(clip.outMs, w.endMs);
+      return { text: w.text,
+        startMs: Math.round(clip.startMs + (from - clip.inMs) / clip.speed),
+        endMs: Math.round(clip.startMs + (to - clip.inMs) / clip.speed) };
+    })
+    .filter(w => w.endMs > w.startMs);
+}
