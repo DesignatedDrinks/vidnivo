@@ -25,32 +25,44 @@ function safeName(original:string){
  const clean=original.replace(/[^A-Za-z0-9_.-]/g,'_').slice(-120);
  return clean||'source.bin';
 }
-async function mediaIsRegistered(asset:Asset,size:number):Promise<boolean>{
+async function mediaChecksum(uri:string):Promise<string>{
+ const info=await LegacyFS.getInfoAsync(uri,{md5:true});
+ if(!info.exists||typeof info.md5!=='string'||!/^[a-f0-9]{32}$/i.test(info.md5))
+  throw Error('Could not calculate the source file integrity checksum.');
+ return info.md5.toLowerCase();
+}
+async function mediaIsRegistered(asset:Asset,size:number,md5Hex:string):Promise<boolean>{
  const {base,token}=await cloudTransferAuthorization();
  const reply=await fetch(base+'/api/v1/media/'+encodeURIComponent(asset.id),
   {headers:{Authorization:'Bearer '+token}});
  if(reply.status===404)return false;
  const json=await reply.json().catch(()=>({}));
  if(!reply.ok)throw Error('Media registry check failed (HTTP '+reply.status+').');
- if(json.size!==size)throw Error(
-  'Cloud media identifier already belongs to a different file size. Restore or duplicate the project first.');
+ if(json.size!==size||json.md5Hex!==md5Hex)
+  throw Error('Cloud media differs from the original file. Restore or duplicate the project first.');
  return true;
 }
 async function sendMedia(asset:Asset):Promise<void>{
  const file=new File(asset.uri);
  if(!file.exists||file.size<=0||file.size>MAX_CLOUD_FILE_BYTES)
   throw Error('Cannot back up missing or oversized media: '+asset.filename+' (200 MB limit).');
- if(await mediaIsRegistered(asset,file.size))return;
+ const sourceMd5=await mediaChecksum(asset.uri);
+ if(await mediaIsRegistered(asset,file.size,sourceMd5))return;
  const {base,token}=await cloudTransferAuthorization();
  const result=await LegacyFS.uploadAsync(
   base+'/api/v1/media/'+encodeURIComponent(asset.id)+'/upload',asset.uri,{
    httpMethod:'PUT',uploadType:LegacyFS.FileSystemUploadType.BINARY_CONTENT,
    mimeType:mediaMime(asset),headers:{
-    Authorization:'Bearer '+token,'X-VIDNIVO-FILENAME':safeName(asset.filename)
+    Authorization:'Bearer '+token,'X-VIDNIVO-FILENAME':safeName(asset.filename),
+    'X-VIDNIVO-SIZE':String(file.size)
    }
   });
  if(result.status!==200&&result.status!==201)
   throw Error('Cloud media upload failed (HTTP '+result.status+'). Retry safely.');
+ let stored:any;
+ try{stored=JSON.parse(result.body);}catch{throw Error('Cloud upload did not confirm its checksum.');}
+ if(stored.md5Hex!==sourceMd5||stored.size!==file.size)
+  throw Error('Cloud media integrity verification failed. The original file is still on this phone.');
 }
 export async function backUpCloudProject(project:Project):Promise<number>{
  const portable=toPortableProject(project);
@@ -80,6 +92,10 @@ export async function restoreProjectFromCloud(id:string):Promise<Project>{
  try{
   for(const asset of portable.assets){
    const registry=await cloudRequest('/api/v1/media/'+encodeURIComponent(asset.id));
+   if(!Number.isSafeInteger(registry.size)||registry.size<1||
+      registry.size>MAX_CLOUD_FILE_BYTES||
+      !/^[a-f0-9]{32}$/.test(registry.md5Hex||''))
+    throw Error('This cloud media has no verifiable checksum: '+asset.filename);
    const {base,token}=await cloudTransferAuthorization();
    const ext=asset.filename.match(/\.[A-Za-z0-9]{1,10}$/)?.[0]||'.bin';
    const target=new File(folder,makeId()+ext);
@@ -89,7 +105,8 @@ export async function restoreProjectFromCloud(id:string):Promise<Project>{
     target.uri,{headers:{Authorization:'Bearer '+token}});
    const file=new File(target.uri);
    if(download.status!==200||!file.exists||file.size!==registry.size||
-      file.size<=0||file.size>MAX_CLOUD_FILE_BYTES)
+      file.size<=0||file.size>MAX_CLOUD_FILE_BYTES||
+      await mediaChecksum(file.uri)!==registry.md5Hex)
     throw Error('Incomplete or corrupt cloud media download: '+asset.filename);
    uris[asset.id]=file.uri;
   }
