@@ -4,6 +4,7 @@ import {
  getRedirectResult,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut
 } from 'firebase/auth';
 import {getStorage,ref,uploadBytesResumable,deleteObject,getBlob} from 'firebase/storage';
+import {ownedMediaPath} from './mediaPaths.js';
 import './style.css';
 
 const config={
@@ -101,12 +102,6 @@ async function callApi(path,options={}) {
  }
  if(!reply.ok)throw Error(body?.error||('Cloud API error '+reply.status));
  return body;
-}
-function ownedMediaPath(file,uid){
- return typeof file?.assetId==='string'&&/^[A-Za-z0-9_-]{8,80}$/.test(file.assetId)&&
-  typeof file?.objectPath==='string'&&
-  file.objectPath.startsWith('users/'+uid+'/media/'+file.assetId+'/')&&
-  /^users\/[A-Za-z0-9_-]{1,128}\/media\/[A-Za-z0-9_-]{8,80}\/[A-Za-z0-9_.-]{1,120}$/.test(file.objectPath);
 }
 async function downloadCloudFile(file,button){
  const uid=currentUser?.uid;
