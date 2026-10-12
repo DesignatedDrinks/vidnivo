@@ -79,7 +79,7 @@ jobs:
             --cpu 1 \
             --memory 512Mi \
             --concurrency 40 \
-            --timeout 25s \
+            --timeout 300s \
             --env-vars-file "$RUNNER_TEMP/vidnivo-env.yaml" \
             --quiet
           # Cloud Run uses public ingress only for the health endpoint;
