@@ -7,6 +7,7 @@ import {getStorage} from 'firebase-admin/storage';
 import {createHandler,MAX_MEDIA_BYTES} from './core.mjs';
 import {writeBoundedMedia} from './mediaStream.mjs';
 import {diagnoseWithOpenAI} from './supportCore.mjs';
+import {rankMomentsWithAI} from './momentRankCore.mjs';
 
 const port=Number(process.env.PORT||8080);
 const bucketName=(process.env.FIREBASE_STORAGE_BUCKET||'').trim();
@@ -59,18 +60,24 @@ async function releaseMediaReservation(uid,id){
 // cannot submit unbounded paid model requests.
 async function reserveSupportRequest(uid){
  const now=Date.now(),period=Math.floor(now/3600000);
- const ref=users(uid).collection('_system').doc('supportLimit');
+ const ref=users(uid).collection('_system').doc('aiRateLimit');
  await db.runTransaction(async tx=>{
   const found=await tx.get(ref);
   const previous=found.exists?found.data():{};
   const count=previous.period===period?previous.count||0:0;
-  if(count>=12)throw Object.assign(Error('AI help limit reached. Try again later.'),{status:429});
+  if(count>=12)throw Object.assign(Error('AI request limit reached. Try again later.'),{status:429});
   tx.set(ref,{period,count:count+1,updatedAt:FieldValue.serverTimestamp()});
  });
 }
 const handler=createHandler({
  allowedOrigins:origins,
  storageReady:!!bucket,
+ resolveStoryRank:async(uid,input)=>{
+  await reserveSupportRequest(uid);
+  const key=(process.env.OPENAI_CREATOR_API_KEY||process.env.OPENAI_SUPPORT_API_KEY||'').trim();
+  return rankMomentsWithAI(input,{apiKey:key,
+   model:process.env.OPENAI_CREATOR_MODEL||'gpt-5-mini'});
+ },
  resolveSupport:async(uid,input)=>{
   // Bound even fallback support calls: authenticated traffic must not cause
   // unlimited Firestore writes or model charges.
