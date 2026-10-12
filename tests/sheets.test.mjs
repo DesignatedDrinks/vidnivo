@@ -112,3 +112,26 @@ test('look selection round trips in Google Sheets without hiding soft deleted pr
  await softDeleteProjectFromSheets('test',p.id);
  assert.equal((await loadRemoteProjects('test')).length,0);
 });
+
+test('removing a subtitle marks deleted flag, never overwrites the role column',async t=>{
+ const prior=globalThis.fetch, fake=fakeSheets();
+ globalThis.fetch=fake.fetchStub;
+ t.after(()=>{globalThis.fetch=prior;});
+ let p=addText(createProject('Subtitle cleanup'),'Hello',0);
+ await saveProjectToSheets('token',p);
+ assert.equal(fake.sheets.get('TextLayers')[1][10],'FALSE');
+ assert.equal(fake.sheets.get('TextLayers')[1][11],'title');
+ p={...p,texts:[],revision:p.revision+1,updatedAt:new Date(Date.now()+1000).toISOString()};
+ await saveProjectToSheets('token',p);
+ assert.equal(fake.sheets.get('TextLayers')[1][10],'TRUE');
+ assert.equal(fake.sheets.get('TextLayers')[1][11],'title');
+ assert.equal((await loadRemoteProjects('token'))[0].texts.length,0);
+});
+test('malformed cloud projects fail visibly rather than disappearing from the project list',async t=>{
+ const prior=globalThis.fetch, fake=fakeSheets();
+ globalThis.fetch=fake.fetchStub;
+ t.after(()=>{globalThis.fetch=prior;});
+ fake.sheets.get('Projects').push(['damaged','My video','9:16','2026','2026','1','','FALSE','']);
+ fake.sheets.get('Clips').push(['broken','damaged','missing','video','0','0','3000','1','1','false','2026','FALSE']);
+ await assert.rejects(()=>loadRemoteProjects('token'),/contains invalid data/);
+});

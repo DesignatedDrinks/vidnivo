@@ -84,10 +84,23 @@ export async function loadRemoteProjects(token: string): Promise<Project[]> {
     p.texts.push({ id: r[0], text: r[2] || '', startMs: n(r, 3), endMs: n(r, 4),
       x: n(r, 5, .5), y: n(r, 6, .75), fontSize: n(r, 7, 32), color: r[8] || '#FFFFFF', role: r[11] === 'title' ? 'title' : 'caption' });
   }
-  return projects.filter(p => { try { validateProject(p); return true; } catch { return false; } });
+  // A malformed remote project must be visible as a sync error, never quietly
+  // omitted: otherwise the next upload could silently overwrite its rows.
+  for (const p of projects) {
+    try { validateProject(p); }
+    catch (error) {
+      throw new Error('Cloud project "' + p.name + '" (' + p.id +
+        ') contains invalid data; nothing was imported. Repair it before syncing. ' +
+        (error instanceof Error ? error.message : String(error)));
+    }
+  }
+  return projects;
 }
 async function upsert(token: string, sheet: Table, projectId: string, desired: Rows): Promise<void> {
-  const rows = await readTable(token, sheet), width = rows[0]?.length || desired[0]?.length || 8;
+  const rows = await readTable(token, sheet);
+  const deletedIndex = rows[0]?.indexOf('deleted') ?? -1;
+  if (deletedIndex < 0)
+    throw new Error('Missing deleted column on ' + sheet + '. Verify the database schema.');
   const own = new Map<string, number>();
   rows.slice(1).forEach((r, idx) => {
     const projectColumn = sheet === 'Projects' ? 0 : 1;
@@ -103,7 +116,7 @@ async function upsert(token: string, sheet: Table, projectId: string, desired: R
   }
   for (const [key, index] of own) {
     if (!current.has(key)) {
-      const col = columnName(width);
+      const col = columnName(deletedIndex + 1);
       updates.push({ range: `${sheet}!${col}${index}`, values: [['TRUE']] });
     }
   }

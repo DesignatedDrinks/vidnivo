@@ -59,7 +59,13 @@ export const createProject = (name = 'Untitled project', aspectRatio: AspectRati
   return { id: makeId(), name, aspectRatio, createdAt: now, updatedAt: now, revision: 1, assets: [], clips: [], texts: [] };
 };
 export function addAsset(p: Project, asset: Asset, track: Track = asset.kind === 'audio' ? 'audio' : 'video', startAtMs?: number): Project {
-  if (!asset.uri || !Number.isFinite(asset.durationMs) || asset.durationMs <= 0) throw new Error('Invalid media');
+  if (!asset.uri || !Number.isFinite(asset.durationMs) || asset.durationMs <= 0 ||
+      !Number.isFinite(asset.width) || !Number.isFinite(asset.height) ||
+      !['video','image','audio'].includes(asset.kind) ||
+      (track === 'video' && asset.kind === 'audio') ||
+      (track === 'audio' && asset.kind !== 'audio') ||
+      (startAtMs !== undefined && (!Number.isFinite(startAtMs) || startAtMs < 0)))
+    throw new Error('Invalid media');
   if (p.assets.some(a => a.id === asset.id)) throw new Error('Duplicate asset ID');
   const clip: Clip = {
     id: makeId(), assetId: asset.id, track, startMs: startAtMs === undefined ? trackEndMs(p, track) : Math.max(0, startAtMs),
@@ -68,6 +74,7 @@ export function addAsset(p: Project, asset: Asset, track: Track = asset.kind ===
   return touch({ ...p, assets: [...p.assets, asset], clips: [...p.clips, clip] });
 }
 export function splitClip(p: Project, id: string, positionMs: number): Project {
+  if (!Number.isFinite(positionMs)) throw new Error('Invalid split position');
   const clip = p.clips.find(c => c.id === id);
   if (!clip) return p;
   const relativeMs = positionMs - clip.startMs;
@@ -77,6 +84,8 @@ export function splitClip(p: Project, id: string, positionMs: number): Project {
   return touch({ ...p, clips: p.clips.flatMap(c => c.id === id ? [{ ...c, outMs: cut }, next] : [c]) });
 }
 export function trimClip(p: Project, id: string, edge: 'left' | 'right', deltaMs: number): Project {
+  if (!Number.isFinite(deltaMs) || (edge !== 'left' && edge !== 'right'))
+    throw new Error('Invalid trim');
   const clip = p.clips.find(c => c.id === id);
   if (!clip) return p;
   const minSourceMs = 250 * clip.speed;
@@ -92,6 +101,8 @@ export function trimClip(p: Project, id: string, edge: 'left' | 'right', deltaMs
   return touch({ ...p, clips: p.clips.map(c => c.id === id ? replacement : c) });
 }
 export function moveClip(p: Project, id: string, deltaMs: number): Project {
+  if (!Number.isFinite(deltaMs)) throw new Error('Invalid clip movement');
+  if (!p.clips.some(c => c.id === id) || deltaMs === 0) return p;
   return touch({ ...p, clips: p.clips.map(c => c.id === id ? { ...c, startMs: Math.max(0, Math.round(c.startMs + deltaMs)) } : c) });
 }
 export function reorderClip(p: Project, id: string, direction: -1 | 1): Project {
@@ -107,6 +118,13 @@ export function reorderClip(p: Project, id: string, direction: -1 | 1): Project 
   return touch({ ...p, clips: p.clips.map(c => packed.get(c.id) ?? c) });
 }
 export function editClip(p: Project, id: string, changes: Partial<Pick<Clip, 'speed' | 'volume' | 'muted'>>): Project {
+  if (changes.speed !== undefined && !Number.isFinite(changes.speed))
+    throw new Error('Invalid clip speed');
+  if (changes.volume !== undefined && !Number.isFinite(changes.volume))
+    throw new Error('Invalid clip volume');
+  if (changes.muted !== undefined && typeof changes.muted !== 'boolean')
+    throw new Error('Invalid mute state');
+  if (!p.clips.some(c => c.id === id)) return p;
   return touch({ ...p, clips: p.clips.map(c => c.id !== id ? c : {
     ...c,
     speed: changes.speed === undefined ? c.speed : bound(changes.speed, 0.25, 4),
@@ -119,6 +137,8 @@ export function removeClip(p: Project, id: string): Project {
   return touch({ ...p, clips: p.clips.filter(c => c.id !== id) });
 }
 export function addText(p: Project, text: string, startMs: number, lengthMs = 3000): Project {
+  if (!Number.isFinite(startMs) || !Number.isFinite(lengthMs))
+    throw new Error('Invalid text timing');
   if (!text.trim()) return p;
   const layer: TextLayer = { id: makeId(), text: text.trim(), startMs: Math.max(0, startMs), endMs: Math.max(0, startMs) + Math.max(500, lengthMs), x: 0.5, y: 0.75, fontSize: 32, color: '#FFFFFF', role: 'title' };
   return touch({ ...p, texts: [...p.texts, layer] });
@@ -131,11 +151,55 @@ export function activeClip(p: Project, t: number, track: Track = 'video'): Clip 
     .sort((a, b) => b.startMs - a.startMs)[0];
 }
 export function validateProject(p: Project): void {
+  // Validation is also the safety boundary for app restart, cloud sync and export.
+  // Reject non-finite values before JSON serialization can replace NaN with null.
+  if (!p || typeof p !== 'object' || !p.id || typeof p.id !== 'string' ||
+      typeof p.name !== 'string' || !['9:16','16:9','1:1'].includes(p.aspectRatio) ||
+      !Number.isInteger(p.revision) || p.revision < 1 ||
+      !Array.isArray(p.assets) || !Array.isArray(p.clips) || !Array.isArray(p.texts))
+    throw new Error('Invalid project metadata');
   if (p.look) resolveLook(p.look);
-  const ids = new Set(p.assets.map(a => a.id));
-  if (ids.size !== p.assets.length) throw new Error('Duplicate assets');
-  if (p.clips.some(c => !ids.has(c.assetId) || c.startMs < 0 || c.inMs < 0 || c.outMs <= c.inMs || c.speed <= 0 || !Number.isFinite(c.speed) || !Number.isFinite(c.startMs))) throw new Error('Invalid clip timeline');
-  if (p.texts.some(t => t.endMs <= t.startMs || t.startMs < 0 || (t.role !== undefined && t.role !== 'caption' && t.role !== 'title'))) throw new Error('Invalid text timeline');
+  const assetIds = new Set(p.assets.map(a => a.id));
+  if (assetIds.size !== p.assets.length) throw new Error('Duplicate assets');
+  if (p.assets.some(a =>
+    typeof a.id !== 'string' || !a.id.trim() ||
+    !['video','audio','image'].includes(a.kind) ||
+    typeof a.uri !== 'string' || !a.uri ||
+    typeof a.filename !== 'string' ||
+    !Number.isFinite(a.durationMs) || a.durationMs <= 0 ||
+    !Number.isFinite(a.width) || a.width < 0 ||
+    !Number.isFinite(a.height) || a.height < 0))
+    throw new Error('Invalid media asset');
+  const byId = new Map(p.assets.map(a => [a.id,a]));
+  const clipIds = new Set(p.clips.map(c => c.id));
+  if (clipIds.size !== p.clips.length) throw new Error('Duplicate clips');
+  if (p.clips.some(c => {
+    const asset = byId.get(c.assetId);
+    return !asset || typeof c.id !== 'string' || !c.id ||
+      (c.track !== 'video' && c.track !== 'audio') ||
+      (c.track === 'video' && asset.kind === 'audio') ||
+      (c.track === 'audio' && asset.kind !== 'audio') ||
+      !Number.isFinite(c.startMs) || c.startMs < 0 ||
+      !Number.isFinite(c.inMs) || c.inMs < 0 ||
+      !Number.isFinite(c.outMs) || c.outMs <= c.inMs ||
+      c.outMs > asset.durationMs + 50 ||
+      !Number.isFinite(c.speed) || c.speed < .25 || c.speed > 4 ||
+      !Number.isFinite(c.volume) || c.volume < 0 || c.volume > 1 ||
+      typeof c.muted !== 'boolean';
+  })) throw new Error('Invalid clip timeline');
+  const textIds = new Set(p.texts.map(t => t.id));
+  if (textIds.size !== p.texts.length) throw new Error('Duplicate text layers');
+  if (p.texts.some(t =>
+    typeof t.id !== 'string' || !t.id ||
+    typeof t.text !== 'string' || !t.text.trim() ||
+    !Number.isFinite(t.startMs) || t.startMs < 0 ||
+    !Number.isFinite(t.endMs) || t.endMs <= t.startMs ||
+    !Number.isFinite(t.x) || t.x < 0 || t.x > 1 ||
+    !Number.isFinite(t.y) || t.y < 0 || t.y > 1 ||
+    !Number.isFinite(t.fontSize) || t.fontSize < 1 || t.fontSize > 200 ||
+    typeof t.color !== 'string' || !/^#[a-fA-F0-9]{6}$/.test(t.color) ||
+    (t.role !== undefined && t.role !== 'caption' && t.role !== 'title')))
+    throw new Error('Invalid text timeline');
 }
 
 /**
@@ -251,7 +315,8 @@ export function duplicateProject(p: Project): Project {
   return {...copy,
     assets,
     clips:p.clips.map(c=>({...c,id:makeId(),assetId:remap.get(c.assetId)!})),
-    texts:p.texts.map(t=>({...t,id:makeId()}))
+    texts:p.texts.map(t=>({...t,id:makeId()})),
+    look:p.look ? {...p.look} : undefined
   };
 }
 

@@ -18,3 +18,12 @@ test('copy saves a reusable project without shared identities',()=>{
  assert.equal(copy.assets[0].uri,base.assets[0].uri);
  validateProject(copy);
 });
+
+test('copy retains colour grading independently from original',()=>{
+ const original={...createProject(),look:{preset:'sunset',intensity:65}};
+ const duplicate=duplicateProject(original);
+ assert.deepEqual(duplicate.look,original.look);
+ assert.notEqual(duplicate.look,original.look);
+ duplicate.look.intensity=25;
+ assert.equal(original.look.intensity,65);
+});
