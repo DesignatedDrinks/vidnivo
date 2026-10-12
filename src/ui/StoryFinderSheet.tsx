@@ -5,12 +5,14 @@ import {Ionicons} from '@expo/vector-icons';
 import type {StoryMoment} from '../domain/storyMoments';
 
 type Props={visible:boolean;moments:StoryMoment[];
- onClose:()=>void;onPreview:(m:StoryMoment)=>void;onCreate:(m:StoryMoment)=>void};
+ onClose:()=>void;onPreview:(m:StoryMoment)=>void;onCreate:(m:StoryMoment)=>void;
+ canRankWithAI:boolean;rankingBusy:boolean;onRankWithAI:()=>void};
 const time=(ms:number):string=>{
  const s=Math.max(0,Math.floor(ms/1000));
  return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
 };
-export function StoryFinderSheet({visible,moments,onClose,onPreview,onCreate}:Props){
+export function StoryFinderSheet({visible,moments,onClose,onPreview,onCreate,
+ canRankWithAI,rankingBusy,onRankWithAI}:Props){
  const insets=useSafeAreaInsets();
  return <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
   <View style={styles.backdrop}>
@@ -21,16 +23,25 @@ export function StoryFinderSheet({visible,moments,onClose,onPreview,onCreate}:Pr
      <Pressable accessibilityLabel="Close story finder" onPress={onClose}>
       <Ionicons name="close" color="#FFFFFF" size={26}/></Pressable>
     </View>
-    <Text style={styles.warning}>VIDNIVO suggests sentence-bounded moments using your existing captions.
-      It doesn't claim to judge emotion, virality or what your audience will like.
-      Watch each suggestion before using it.</Text>
+    <Text style={styles.warning}>Story Finder first finds complete, editable moments locally.
+      Optional AI ranking assesses short caption excerpts—not the actual video, emotional delivery
+      or predicted virality. Always preview before publishing.</Text>
+    <Pressable accessibilityRole="button" accessibilityLabel="AI rank caption moments"
+      disabled={!canRankWithAI||rankingBusy||moments.length===0}
+      onPress={onRankWithAI} style={[styles.primary,
+        (!canRankWithAI||rankingBusy||moments.length===0)&&{opacity:0.4}]}>
+      <Ionicons name="sparkles-outline" color="#07262B" size={17}/>
+      <Text style={styles.primaryText}>{rankingBusy?'Ranking moments…':
+        canRankWithAI?'AI rank my best moments':'Sign into VIDNIVO Cloud for AI ranking'}</Text>
+    </Pressable>
     <ScrollView style={{maxHeight:420}} contentContainerStyle={{gap:10,paddingVertical:5}}>
      {moments.length===0?<View style={styles.card}>
       <Text style={styles.detail}>No complete moments detected. Import or generate captions with sentence punctuation,
         and use at least 12 seconds of uninterrupted footage.</Text>
      </View>:null}
      {moments.map((m,i)=><View key={m.id} style={styles.card}>
-      <Text style={styles.time}>MOMENT {i+1} · {time(m.startMs)}–{time(m.endMs)} · {Math.round((m.endMs-m.startMs)/1000)}s</Text>
+      <Text style={styles.time}>MOMENT {i+1} · {time(m.startMs)}–{time(m.endMs)} · {Math.round((m.endMs-m.startMs)/1000)}s
+        {typeof m.aiScore==='number'?' · EDITORIAL '+m.aiScore+'/100':''}</Text>
       <Text style={styles.excerpt}>{m.preview}</Text>
       <Text style={styles.detail}>{m.explanation}</Text>
       <View style={styles.actions}>
