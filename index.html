@@ -563,64 +563,143 @@ const waitRecorderStop=recorder=>new Promise((resolve,reject)=>{
 let exportTimer=null;
 async function startExport(){
  if(!state.clips.length||state.exporting||state.captioning||state.faceLoading)return;
- if(state.faceRetouch>0&&!faceTracker.supported){toast('Face Retouch is still loading. Turn it off or retry after the model loads.',true);return;}
- if(!canvas.captureStream||!window.MediaRecorder){toast('This browser cannot record the editing canvas. Try recent Safari or Chrome.',true);return}
- const mime=preferredMime();if(!mime){toast('This browser does not have a supported video recording format.',true);return}
+ if(state.faceRetouch>0&&!faceTracker.supported){
+  toast('Face Retouch is still loading. Turn it off or retry after the model loads.',true);return;
+ }
+ const plan=planContinuousExport(state.clips);
+ if(!plan.ok){
+  $('syncStatus').textContent='Export blocked to protect lip sync: '+plan.reason;
+  toast(plan.reason,true);setTab('export');return;
+ }
+ if(!canvas.captureStream||!window.MediaRecorder){
+  toast('Audio-safe export is not supported in this browser. Use a native build.',true);return;
+ }
+ if(!('AudioContext'in window)&&!('webkitAudioContext'in window)){
+  toast('Browser audio capture is unavailable; export withheld.',true);return;
+ }
+ const mime=preferredMime();
+ if(!mime){toast('Your browser cannot record an audio/video format; export withheld.',true);return}
  const originalQuality=$('quality').value;
- if(total()>600){toast('For this browser beta, export is limited to 10 minutes of footage.',true);return}
- state.exporting=true;pause();ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();
- const outputW=state.ratio==='16:9'?Number(originalQuality)*16/9:state.ratio==='1:1'?Number(originalQuality):Number(originalQuality);
- const outputH=state.ratio==='16:9'?Number(originalQuality):state.ratio==='1:1'?Number(originalQuality):Number(originalQuality)*16/9;
- canvas.width=Math.round(outputW);canvas.height=Math.round(outputH);
- let recorder=null,stream=null,renderStart=0,completed=false;
+ const savedClips=state.clips,savedSelected=state.selected,savedPosition=state.position;
+ let recorder=null,stream=null,exportTimer=null,frameRequest=null;
+ let recorderFailure=null,firstFrame=null,lastFrame=null;
  const chunks=[];
  try{
+  // Flatten only a mathematically contiguous series of original-speed clips.
+  // Recorder never remains running over seek gaps, so audio cannot slide
+  // behind an artificially frozen face/video frame.
+  state.clips=[plan.clip];state.selected=plan.clip.id;
+  state.exporting=true;pause();
+  ui.download.hidden=true;ui.progress.style.width='0';
+  $('syncStatus').textContent='Preparing synchronized video and soundtrack…';
+  renderTimeline();
+  const quality=Number(originalQuality);
+  canvas.width=state.ratio==='16:9'?Math.round(quality*16/9):quality;
+  canvas.height=state.ratio==='16:9'?quality:state.ratio==='1:1'?quality:Math.round(quality*16/9);
   await seekTimeline(0);
-  setupAudio();if(state.audioContext&&state.audioContext.state!=='running')await state.audioContext.resume();
-  drawFrame();stream=canvas.captureStream(30);
-  if(state.audioDestination){const audioTrack=state.audioDestination.stream.getAudioTracks()[0];if(audioTrack)stream.addTrack(audioTrack)}
-  recorder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:Number(originalQuality)===1080?8_000_000:4_000_000});
-  recorder.addEventListener('dataavailable',event=>{if(event.data.size>0)chunks.push(event.data)});
-  const stopped=waitRecorderStop(recorder);
-  recorder.start(250);
-  const playbackDuration=total();
-  await play();
-  if(!state.playing)throw new Error('Could not start playback for recording. Tap Play once before exporting.');
-  renderStart=performance.now();
-  toast('Rendering in real time. Keep this page open and the screen awake.');
-  const monitor=new Promise((resolve,reject)=>{
-   let stallSince=performance.now();let lastAt=state.position;
-   exportTimer=setInterval(()=>{
-    if(document.visibilityState==='hidden'){reject(new Error('Browser went into the background during export. Keep VIDNIVO visible.'));return}
-    ui.progress.style.width=(100*clamp(state.position/playbackDuration,0,1)).toFixed(1)+'%';
-    if(state.position>=playbackDuration-.03||(!state.playing&&state.position>=playbackDuration-.5)){resolve();return}
-    if(Math.abs(state.position-lastAt)>.03){lastAt=state.position;stallSince=performance.now()}
-    if(performance.now()-stallSince>8000)reject(new Error('Playback stopped during export. Check the video format and retry.'));
-   },140);
+  setupAudio();
+  if(!state.audioContext||!state.audioDestination)
+   throw Error('Audio capture could not be initialized. Export withheld.');
+  if(state.audioContext.state!=='running')await state.audioContext.resume();
+  if(state.audioContext.state!=='running')throw Error('Audio playback is suspended by the browser.');
+  drawFrame();
+  stream=canvas.captureStream(30);
+  const audioTrack=state.audioDestination.stream.getAudioTracks()[0];
+  if(!audioTrack||audioTrack.readyState!=='live')
+   throw Error('No live audio track is available. Export withheld.');
+  stream.addTrack(audioTrack);
+  if(stream.getVideoTracks().length!==1||stream.getAudioTracks().length!==1)
+   throw Error('The browser could not create both synchronized video and audio tracks.');
+  recorder=new MediaRecorder(stream,{
+   mimeType:mime,videoBitsPerSecond:quality===1080?8_000_000:4_000_000
   });
-  await monitor;
-  completed=true;
-  // Ensure the encoder flushes its last video and audio chunks.
-  await sleep(250);
+  recorder.addEventListener('dataavailable',event=>{if(event.data.size>0)chunks.push(event.data)});
+  // Start video first, then start capture immediately; previously capture
+  // started before video.play(), creating leading recorded silence/black.
+  await play();
+  if(!state.playing||video.paused)throw Error('Playback was blocked by the browser; tap Play once and retry.');
+  if(Math.abs(video.currentTime-plan.start)>.13)
+   throw Error('The video advanced before capture could begin; lip-sync start was not reliable.');
+  drawFrame();
+  const guard=new PlaybackSyncGuard({start:plan.start,expectedDuration:plan.duration});
+  if(typeof video.requestVideoFrameCallback==='function'){
+   const onVideoFrame=(now,meta)=>{
+    if(!state.exporting)return;
+    firstFrame??={now:performance.now(),mediaTime:meta.mediaTime};
+    lastFrame={now:performance.now(),mediaTime:meta.mediaTime};
+    frameRequest=video.requestVideoFrameCallback(onVideoFrame);
+   };
+   frameRequest=video.requestVideoFrameCallback(onVideoFrame);
+  }
+  const stopped=waitRecorderStop(recorder).catch(error=>{recorderFailure=error});
+  recorder.start(100);
+  const startedAt=performance.now();
+  $('syncStatus').textContent='Recording audio and video together. Monitoring playback drift…';
+  toast('Exporting with audio/video sync monitoring. Keep VIDNIVO open.');
+  await new Promise((resolve,reject)=>{
+   exportTimer=setInterval(()=>{
+    try{
+     const now=performance.now();
+     if(document.visibilityState==='hidden')
+      throw Error('The editor was backgrounded; export stopped to protect lip sync.');
+     if(recorderFailure)throw recorderFailure;
+     if(recorder.state==='inactive'&&state.position<plan.duration-.08)
+      throw Error('Recording stopped before the video ended.');
+     const reachedEnd=state.position>=plan.duration-.055||video.currentTime>=plan.end-.05;
+     if(reachedEnd){resolve();return}
+     // The source video's decoded currentTime is also the clock for its
+     // WebAudio media element source. No performance.now() frame guessing.
+     const check=guard.sample({now,mediaTime:video.currentTime,paused:video.paused});
+     if(firstFrame&&lastFrame&&now-startedAt>500){
+      if(now-lastFrame.now>420)
+       throw Error('Video frames stopped updating while audio playback continued. Export rejected.');
+      if(video.currentTime-lastFrame.mediaTime>.27)
+       throw Error('Video frames are behind audio by over 270 ms. Export rejected.');
+     }
+     const progress=Math.min(99,100*(video.currentTime-plan.start)/plan.duration);
+     ui.progress.style.width=progress.toFixed(1)+'%';
+     $('syncStatus').textContent='Checking sync · maximum source-clock drift '+Math.round(check.maxDriftMs)+' ms';
+    }catch(error){reject(error)}
+   },85);
+  });
+  clearInterval(exportTimer);exportTimer=null;
+  const summary=guard.complete({now:performance.now(),mediaTime:video.currentTime});
+  pause();
   if(recorder.state!=='inactive')recorder.stop();
   await stopped;
+  if(recorderFailure)throw recorderFailure;
   const blob=new Blob(chunks,{type:mime});
-  if(blob.size<2048)throw Error('The browser produced an empty video. Please retry with a shorter clip.');
+  if(blob.size<2048)throw Error('The browser produced an empty recording.');
+  $('syncStatus').textContent='Inspecting recorded audio/video tracks and file duration…';
+  const tracks=await inspectRecordedTracks(blob,mime);
+  const verified=await probeRecordedDuration(blob,plan.duration);
+  if(!tracks.audio||!tracks.video)throw Error('Export is missing an audio or video stream.');
   if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);
   state.objectUrl=URL.createObjectURL(blob);
-  const extension=mime.includes('mp4')?'mp4':'webm';
-  ui.download.href=state.objectUrl;ui.download.download=`vidnivo-edit-${Date.now()}.${extension}`;
-  ui.download.textContent=`↓ Download ${extension.toUpperCase()} · ${(blob.size/(1024*1024)).toFixed(1)} MB`;
+  const ext=mime.includes('mp4')?'mp4':'webm';
+  ui.download.href=state.objectUrl;
+  ui.download.download='vidnivo-sync-checked-'+Date.now()+'.'+ext;
+  ui.download.textContent='↓ Download '+ext.toUpperCase()+' · '+(blob.size/1048576).toFixed(1)+' MB';
   ui.download.hidden=false;ui.progress.style.width='100%';
-  toast(`Export ready: ${extension.toUpperCase()}. Tap Download to save or share your finished video.`);
+  $('syncStatus').textContent='Timing checks passed · audio and video tracks confirmed · max playback drift '+
+    Math.round(summary.maxDriftMs)+' ms · output duration difference '+
+    Math.round(verified.durationErrorMs)+' ms. Review the finished video for visual lip sync.';
+  toast('Export ready after audio/video integrity checks. Review the downloaded video.');
  }catch(error){
-  toast('Export failed: '+(error.message||String(error)),true);
+  const message=error?.message||String(error);
+  $('syncStatus').textContent='Export rejected: '+message;
+  toast('Export blocked to protect audio/video sync: '+message,true);
   if(recorder&&recorder.state!=='inactive'){try{recorder.stop()}catch{}}
  }finally{
-  clearInterval(exportTimer);exportTimer=null;
-  if(stream)stream.getTracks().forEach(t=>t.stop());
-  pause();state.exporting=false;
-  renderTimeline();drawFrame();
+  if(exportTimer)clearInterval(exportTimer);
+  if(frameRequest!==null&&typeof video.cancelVideoFrameCallback==='function')
+   video.cancelVideoFrameCallback(frameRequest);
+  if(stream)stream.getVideoTracks().forEach(track=>track.stop());
+  pause();
+  state.exporting=false;state.clips=savedClips;state.selected=savedSelected;
+  renderTimeline();renderEditor();renderCaptions();
+  await seekTimeline(Math.min(savedPosition,total()));
+  drawFrame();
  }
 }
 function setTab(tab){state.selectedTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));document.querySelectorAll('.tab-content').forEach(e=>e.hidden=e.id!=='tab-'+tab)}
