@@ -76,7 +76,7 @@ test('refuses cloud overwrite when stored revision is newer', async t => {
   t.after(()=>{globalThis.fetch=oldFetch;});
   const p=createProject('Conflict');
   fake.sheets.get('Projects').push([p.id,p.name,'9:16',p.createdAt,p.updatedAt,'999','','FALSE']);
-  await assert.rejects(()=>saveProjectToSheets('fake-test-token',p),/newer version exists/);
+  await assert.rejects(()=>saveProjectToSheets('fake-test-token',p),/changed in Google Sheets/);
 });
 
 test('detects divergent same-revision cloud save', async t => {
