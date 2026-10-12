@@ -1343,33 +1343,53 @@ function canvasGesturePoint(event){
   y:clamp((event.clientY-rect.top)/rect.height*canvas.height,0,canvas.height)
  };
 }
+function measureGroupGestureArea(){
+ return subtitleSafeArea(ctx,state.captions.map(c=>isSubtitleCaption(c)?{...c,fontId:c.fontId||state.captionFontId}:c),canvas.width,canvas.height);
+}
 function startOneFingerDrag(cap,point){
- const layout=captionLayout(ctx,cap,canvas.width,canvas.height);
+ const layout=captionLayout(ctx,{...cap,fontId:cap.fontId||state.captionFontId},canvas.width,canvas.height);
  dragAnchor={offsetX:layout.x-point.x,offsetY:layout.y-point.y};
+ subtitleGestureArea=isSubtitleCaption(cap)?measureGroupGestureArea():null;
  pinchOrigin=null;
 }
 function startTwoFingerPinch(cap){
  const points=[...touchPointers.values()];
  if(points.length<2)return;
  const center=midpoint(points[0],points[1]);
- const layout=captionLayout(ctx,cap,canvas.width,canvas.height);
+ const layout=captionLayout(ctx,{...cap,fontId:cap.fontId||state.captionFontId},canvas.width,canvas.height);
+ subtitleGestureArea=isSubtitleCaption(cap)?measureGroupGestureArea():null;
  pinchOrigin={
   initialDistance:Math.max(5,gestureDistance(points[0],points[1])),
   initialScale:fontScale(cap.fontScale),
+  lastBoundSize:fontScale(cap.fontScale),
   startAnchor:{x:layout.x,y:layout.y},
   startCenter:center
  };
  dragAnchor=null;
 }
+function positionCaptionGesture(cap,pixelX,pixelY){
+ const W=canvas.width,H=canvas.height;
+ const layout=captionLayout(ctx,{...cap,fontId:cap.fontId||state.captionFontId},W,H);
+ let anchor=clampedCaptionAnchor(pixelX,pixelY,layout,W,H);
+ if(isSubtitleCaption(cap)){
+  anchor=clampSubtitleAnchor(anchor,subtitleGestureArea||measureGroupGestureArea());
+  state.captionGroupAnchor=setSubtitleAnchor(state.captions,anchor);
+  $('captionTouchStatus').textContent='Moving all subtitles…';
+ }else{
+  Object.assign(cap,anchor);
+  cap.position='custom';
+  $('captionTouchStatus').textContent='Moving title…';
+ }
+ $('captionPosition').value='custom';
+}
 canvas.addEventListener('pointerdown',event=>{
  if(state.exporting||state.captioning||state.faceLoading||!state.clips.length)return;
- const point=canvasGesturePoint(event);
- if(!point)return;
+ const point=canvasGesturePoint(event);if(!point)return;
  const active=activeCaption();
  const hit=[...captionHitBoxes].reverse().find(box=>
   pointInCaption(point,box.bounds,44*canvas.width/Math.max(1,canvas.getBoundingClientRect().width)));
  let cap=hit?state.captions.find(c=>c.id===hit.id):null;
- if(!cap&&touchPointers.size>0&&active)cap=active; // second finger can land anywhere on preview
+ if(!cap&&touchPointers.size>0&&active)cap=active;
  if(!cap)return;
  if(touchPointers.size===0){
   pause();
@@ -1385,8 +1405,7 @@ canvas.addEventListener('pointerdown',event=>{
 });
 canvas.addEventListener('pointermove',event=>{
  if(!touchPointers.has(event.pointerId))return;
- const point=canvasGesturePoint(event);
- if(!point)return;
+ const point=canvasGesturePoint(event);if(!point)return;
  touchPointers.set(event.pointerId,point);
  const cap=activeCaption();
  if(!cap||state.exporting||state.captioning)return;
@@ -1396,23 +1415,23 @@ canvas.addEventListener('pointermove',event=>{
   const center=midpoint(points[0],points[1]);
   const ratio=gestureDistance(points[0],points[1])/pinchOrigin.initialDistance;
   const value=fontScale(pinchOrigin.initialScale*ratio);
-  cap.fontScale=value;
-  // A two-finger translation moves the caption at the same time as scaling.
-  const layout=captionLayout(ctx,cap,canvas.width,canvas.height);
+  if(isSubtitleCaption(cap)){
+   for(const caption of state.captions)if(isSubtitleCaption(caption))caption.fontScale=value;
+   if(Math.abs(value-pinchOrigin.lastBoundSize)>.12){
+    subtitleGestureArea=measureGroupGestureArea();
+    pinchOrigin.lastBoundSize=value;
+   }
+  }else cap.fontScale=value;
   const desiredX=pinchOrigin.startAnchor.x+center.x-pinchOrigin.startCenter.x;
   const desiredY=pinchOrigin.startAnchor.y+center.y-pinchOrigin.startCenter.y;
-  Object.assign(cap,clampedCaptionAnchor(desiredX,desiredY,layout,canvas.width,canvas.height));
-  cap.position='custom';
-  $('captionPosition').value='custom';
+  positionCaptionGesture(cap,desiredX,desiredY);
   syncCaptionSizeControls(cap);
-  $('captionTouchStatus').textContent='Size '+Math.round(value*100)+'%';
+  $('captionTouchStatus').textContent=isSubtitleCaption(cap)?
+   'Moving and resizing all subtitles · '+Math.round(value*100)+'%':
+   'Resizing title · '+Math.round(value*100)+'%';
   touchWasEdited=true;
  }else if(touchPointers.size===1&&dragAnchor){
-  const layout=captionLayout(ctx,cap,canvas.width,canvas.height);
-  Object.assign(cap,clampedCaptionAnchor(point.x+dragAnchor.offsetX,point.y+dragAnchor.offsetY,layout,canvas.width,canvas.height));
-  cap.position='custom';
-  $('captionPosition').value='custom';
-  $('captionTouchStatus').textContent='Moving…';
+  positionCaptionGesture(cap,point.x+dragAnchor.offsetX,point.y+dragAnchor.offsetY);
   touchWasEdited=true;
  }
  requestDraw();
@@ -1427,10 +1446,15 @@ function finishCaptionPointer(event){
  }else if(touchPointers.size<1){
   dragAnchor=null;pinchOrigin=null;
   if(touchWasEdited){
+   if(state.captionGroupAnchor){
+    const safe=measureGroupGestureArea();
+    state.captionGroupAnchor=setSubtitleAnchor(state.captions,clampSubtitleAnchor(state.captionGroupAnchor,safe));
+   }
    renderCaptions();
-   $('captionTouchStatus').textContent='Caption updated';
-   requestDraw();
+   $('captionTouchStatus').textContent='Caption placement saved for all subtitles.';
+   rbSave();requestDraw();
   }
+  subtitleGestureArea=null;
   touchWasEdited=false;
  }
 }
