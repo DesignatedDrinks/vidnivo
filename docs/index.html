@@ -374,7 +374,7 @@ ui.videoInput.addEventListener('change',e=>{const file=e.target.files?.[0];e.tar
 ui.play.onclick=()=>{if(state.playing)pause();else void play()};
 $('back5').onclick=()=>{pause();void seekTimeline(state.position-5)};
 $('forward5').onclick=()=>{pause();void seekTimeline(state.position+5)};
-ui.scrubber.addEventListener('input',e=>{pause();void seekTimeline(Number(e.target.value))});
+ui.scrubber.addEventListener('input',e=>{const target=Number(e.target.value);pause();void seekTimeline(target)});
 $('split').onclick=()=>{
  if(state.exporting)return;
  const located=locate(state.position);if(!located)return;
