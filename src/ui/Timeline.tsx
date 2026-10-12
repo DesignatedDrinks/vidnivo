@@ -1,69 +1,173 @@
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Clip, Project, clipDurationMs, durationMs } from '../domain/timeline';
-import { theme } from './theme';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Project, clipDurationMs, durationMs, trackEndMs } from '../domain/timeline';
+import { ClipFilmstrip } from './ClipFilmstrip';
 
-function lane({ project, track, selectedId, onSelect, pxPerSecond }:
-  { project: Project; track: 'video' | 'audio'; selectedId: string | null; onSelect: (id: string, start: number) => void; pxPerSecond: number }) {
-  const clips = project.clips.filter(c => c.track === track);
-  return clips.map((c: Clip) => {
-    const item = project.assets.find(a => a.id === c.assetId);
-    const left = c.startMs / 1000 * pxPerSecond;
-    const width = Math.max(30, clipDurationMs(c) / 1000 * pxPerSecond);
-    return <Pressable key={c.id} onPress={() => onSelect(c.id, c.startMs)}
-      style={[styles.clip, { left, width, backgroundColor: track === 'video' ? '#335E76' : '#5B4782' },
-        selectedId === c.id && styles.selected]}>
-      <Text numberOfLines={2} style={styles.clipLabel}>{track === 'audio' ? '♫ ' : '▣ '}{item?.filename || 'Missing file'}</Text>
-    </Pressable>;
-  });
-}
-export function Timeline({ project, selectedId, selectedTextId, playheadMs, onSelect, onSelectText, onSeek, zoom = 1 }:
-  { project: Project; selectedId: string | null; selectedTextId: string | null; playheadMs: number; onSelect: (id: string, start: number) => void; onSelectText: (id: string, start: number) => void; onSeek: (ms: number) => void; zoom?: number }) {
-  const pxPerSecond = 31 * zoom;
-  const length = Math.max(600, durationMs(project) / 1000 * pxPerSecond + 90);
-  return <View style={styles.wrap}>
-    <View style={styles.header}><Text style={styles.title}>TIMELINE</Text><Text style={styles.scale}>Tap a clip to edit · tap the ruler to seek</Text></View>
-    <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={{ width: length }}>
-      <View style={{ width: length }}>
+type Props = {
+  project: Project;
+  selectedId: string | null;
+  selectedTextId: string | null;
+  playheadMs: number;
+  onSelect: (id: string, atMs: number) => void;
+  onSelectText: (id: string, atMs: number) => void;
+  onSeek: (ms: number) => void;
+  onScrubStart?: () => void;
+  onAddVideo?: () => void;
+  onAddAudio?: () => void;
+  zoom?: number;
+};
+const CYAN = '#27D3E7';
+const TRACK_BG = '#222326';
+const ROW_VIDEO = 59;
+const ROW_AUDIO = 43;
+const ROW_TEXT = 38;
+const RULER = 25;
+const DURATION_MIN = 2000;
+
+export function Timeline({ project, selectedId, selectedTextId, playheadMs,
+  onSelect, onSelectText, onSeek, onScrubStart, onAddVideo, onAddAudio, zoom = 1 }: Props) {
+  const pixelsPerSecond = 57 * zoom;
+  const [width, setWidth] = useState(360);
+  const dragRef = useRef(false);
+  const scroll = useRef<ScrollView>(null);
+  const lastSyncMs = useRef(0);
+  const endMs = Math.max(DURATION_MIN, durationMs(project));
+  const contentWidth = Math.max(width + 8, endMs / 1000 * pixelsPerSecond + 85);
+  const side = width / 2;
+  const scrollOffset = Math.max(0, Math.min(endMs, playheadMs)) / 1000 * pixelsPerSecond;
+
+  useEffect(() => {
+    if (!dragRef.current && Math.abs(lastSyncMs.current - scrollOffset) > 0.4) {
+      scroll.current?.scrollTo({ x: scrollOffset, animated: false });
+      lastSyncMs.current = scrollOffset;
+    }
+  }, [scrollOffset, pixelsPerSecond, width]);
+
+  const seekToOffset = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!dragRef.current) return;
+    const x = Math.max(0, event.nativeEvent.contentOffset.x);
+    lastSyncMs.current = x;
+    onSeek(Math.min(endMs, x / pixelsPerSecond * 1000));
+  };
+
+  const clipRows = useMemo(() =>
+    project.clips.filter(c => c.track === 'video').sort((a,b) => a.startMs - b.startMs),
+    [project.clips]);
+  const soundRows = useMemo(() =>
+    project.clips.filter(c => c.track === 'audio').sort((a,b) => a.startMs - b.startMs),
+    [project.clips]);
+  const trackWidth = Math.max(contentWidth, width);
+  const place = (timeMs: number) => timeMs / 1000 * pixelsPerSecond;
+
+  return <View style={styles.container} onLayout={e => setWidth(Math.max(200, e.nativeEvent.layout.width))}>
+    <View style={styles.counter}>
+      <Text style={styles.counterText}>{new Date(playheadMs).toISOString().slice(14,19)}
+        <Text style={styles.total}> / {new Date(durationMs(project)).toISOString().slice(14,19)}</Text>
+      </Text>
+      <Text style={styles.scaleText}>Timeline  ·  {zoom.toFixed(1)}×</Text>
+    </View>
+    <ScrollView horizontal ref={scroll} showsHorizontalScrollIndicator={false}
+      scrollEventThrottle={16}
+      onScrollBeginDrag={() => { dragRef.current = true; onScrubStart?.(); }}
+      onScroll={seekToOffset}
+      onScrollEndDrag={event => {
+        seekToOffset(event);
+        dragRef.current = false;
+      }}
+      onMomentumScrollEnd={event => {
+        seekToOffset(event);
+        dragRef.current = false;
+      }}
+      contentContainerStyle={{ paddingHorizontal: side }}>
+      <View style={{ width: trackWidth }}>
         <View style={styles.ruler}>
-          {Array.from({ length: Math.ceil(length / (pxPerSecond * 2)) }, (_, i) =>
-            <Pressable key={i} onPress={() => onSeek(i * 2000)} style={[styles.tick, { left: i * pxPerSecond * 2 }]}>
-              <Text style={styles.time}>{i * 2}s</Text>
-            </Pressable>)}
+          {Array.from({ length: Math.ceil(endMs / 2000) + 3 }, (_, i) => (
+            <Pressable key={i} onPress={() => onSeek(i * 2000)}
+              style={[styles.tick, { left: place(i * 2000) }]}>
+              <Text style={styles.tickText}>{String(i * 2).padStart(2,'0')}s</Text>
+              <View style={styles.tickLine} />
+            </Pressable>
+          ))}
         </View>
-        <View style={styles.lane}>
-          <Text style={styles.laneMark}>V1</Text>
-          {lane({ project, track: 'video', selectedId, onSelect, pxPerSecond })}
+
+        <View style={[styles.lane, { height: ROW_VIDEO }]}>
+          {clipRows.map(c => {
+            const asset = project.assets.find(a => a.id === c.assetId);
+            const w = Math.max(25, place(clipDurationMs(c)));
+            return <Pressable key={c.id} onPress={() => onSelect(c.id, c.startMs)}
+              style={[styles.videoClip, { left: place(c.startMs), width: w },
+                selectedId === c.id && styles.selectedClip]}>
+              {asset ? <ClipFilmstrip uri={asset.uri} kind={asset.kind} width={w} sourceMs={c.inMs} /> : null}
+            </Pressable>;
+          })}
+          {onAddVideo ? <Pressable accessibilityLabel="Import more videos"
+            onPress={onAddVideo} style={[styles.addClip, { left: place(trackEndMs(project, 'video')) + 7 }]}>
+            <Ionicons name="add" color="#101518" size={27} />
+          </Pressable> : null}
         </View>
-        <View style={styles.lane}>
-          <Text style={styles.laneMark}>A1</Text>
-          {lane({ project, track: 'audio', selectedId, onSelect, pxPerSecond })}
+
+        <View style={[styles.lane, { height: ROW_AUDIO, backgroundColor: '#202124' }]}>
+          {soundRows.length === 0 && onAddAudio ?
+            <Pressable onPress={onAddAudio} style={styles.emptyAudio}>
+              <Ionicons name="musical-notes-outline" color="#8C8E94" size={18} />
+              <Text style={styles.emptyAudioText}>+ Add audio</Text>
+            </Pressable> : null}
+          {soundRows.map(c => {
+            const w = Math.max(32, place(clipDurationMs(c)));
+            const asset = project.assets.find(a => a.id === c.assetId);
+            return <Pressable key={c.id} onPress={() => onSelect(c.id, c.startMs)}
+              style={[styles.audioClip, { left: place(c.startMs), width: w },
+                selectedId === c.id && styles.selectedClip]}>
+              {asset ? <ClipFilmstrip uri={asset.uri} kind="audio" width={w} /> : null}
+            </Pressable>;
+          })}
         </View>
-        <View style={styles.lane}>
-          <Text style={styles.laneMark}>T</Text>
-          {project.texts.map(t => <Pressable key={t.id} onPress={() => onSelectText(t.id, t.startMs)} style={[styles.titleClip, selectedTextId === t.id && styles.selected, {
-            left: t.startMs / 1000 * pxPerSecond,
-            width: Math.max(28, (t.endMs - t.startMs) / 1000 * pxPerSecond)
-          }]}><Text style={styles.clipLabel} numberOfLines={1}>{t.text}</Text></Pressable>)}
+        <View style={[styles.lane, { height: ROW_TEXT, backgroundColor: '#202124' }]}>
+          {project.texts.map(t => <Pressable key={t.id}
+            onPress={() => onSelectText(t.id, t.startMs)}
+            style={[styles.textClip, { left: place(t.startMs),
+              width: Math.max(30,place(t.endMs - t.startMs)) },
+              selectedTextId === t.id && styles.selectedClip]}>
+            <Text style={styles.captionText} numberOfLines={1}>{t.text}</Text>
+          </Pressable>)}
         </View>
-        <View pointerEvents="none" style={[styles.playhead, { left: playheadMs / 1000 * pxPerSecond }]} />
       </View>
     </ScrollView>
+    <View pointerEvents="none" style={styles.fixedPlayhead}>
+      <View style={styles.playheadKnob} />
+      <View style={styles.playheadLine} />
+    </View>
   </View>;
 }
+
 const styles = StyleSheet.create({
-  wrap: { backgroundColor: theme.surface, borderRadius: 12, marginTop: 12, paddingVertical: 9 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, paddingBottom: 9 },
-  title: { color: theme.text, fontWeight: '800', fontSize: 11, letterSpacing: 1 },
-  scale: { color: theme.muted, fontSize: 10 },
-  ruler: { height: 29, backgroundColor: '#191F29' },
-  tick: { position: 'absolute', borderLeftColor: theme.border, borderLeftWidth: 1, height: 29, paddingLeft: 5, paddingTop: 7 },
-  time: { color: theme.muted, fontSize: 10 },
-  lane: { height: 53, borderBottomColor: theme.border, borderBottomWidth: 1, position: 'relative' },
-  laneMark: { color: '#737B87', fontSize: 10, position: 'absolute', right: 5, bottom: 2, zIndex: 1 },
-  clip: { position: 'absolute', top: 6, height: 42, borderRadius: 6, paddingHorizontal: 5, justifyContent: 'center' },
-  selected: { borderColor: theme.accent, borderWidth: 2 },
-  clipLabel: { fontSize: 10, fontWeight: '700', color: '#F3F6FC' },
-  titleClip: { position: 'absolute', top: 7, height: 36, backgroundColor: '#7E6539', justifyContent: 'center', paddingHorizontal: 5, borderRadius: 5 },
-  playhead: { width: 2, backgroundColor: theme.accent, top: 0, bottom: 0, position: 'absolute', zIndex: 8 }
+  container: { backgroundColor: '#18191B', height: 193, borderTopWidth: 1, borderColor: '#26272A' },
+  counter: { paddingHorizontal: 14, paddingTop: 3, height: 29,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  counterText: { color: '#F4F4F6', fontSize: 12, fontVariant: ['tabular-nums'] },
+  total: { color: '#96989B' },
+  scaleText: { fontSize: 10, color: '#76787D' },
+  ruler: { height: RULER, position: 'relative' },
+  tick: { position: 'absolute', top: 0, height: RULER, width: 30, alignItems: 'flex-start' },
+  tickText: { fontSize: 10, color: '#929397' },
+  tickLine: { width: 1, height: 8, backgroundColor: '#595B61', marginTop: 3 },
+  lane: { position: 'relative', borderBottomWidth: 3, borderBottomColor: '#151619', backgroundColor: TRACK_BG },
+  videoClip: { position: 'absolute', height: ROW_VIDEO-4, top: 0,
+    borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: '#45484A' },
+  audioClip: { position: 'absolute', height: ROW_AUDIO-4, top: 0,
+    backgroundColor: '#285550', borderRadius: 5, overflow: 'hidden', justifyContent: 'center' },
+  textClip: { position: 'absolute', height: ROW_TEXT-5, top: 0,
+    backgroundColor: '#EB7B0B', borderRadius: 4, justifyContent: 'center', paddingHorizontal: 6 },
+  captionText: { color: '#FFF7EC', fontSize: 12, fontWeight: '600' },
+  selectedClip: { borderWidth: 2.5, borderColor: CYAN },
+  emptyAudio: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 7, marginLeft: 12 },
+  emptyAudioText: { color: '#919295', fontSize: 13 },
+  addClip: { position: 'absolute', top: 9, width: 39, height: 39,
+    borderRadius: 7, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center' },
+  fixedPlayhead: { position: 'absolute', top: 29, height: RULER + ROW_VIDEO + ROW_AUDIO + ROW_TEXT,
+    width: 2, alignSelf: 'center', alignItems: 'center', zIndex: 10 },
+  playheadKnob: { width: 9, height: 9, backgroundColor: '#FFFFFF', borderRadius: 5,
+    marginTop: RULER - 3 },
+  playheadLine: { width: 2, flex: 1, backgroundColor: '#FFFFFF' }
 });
