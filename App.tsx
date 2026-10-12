@@ -32,6 +32,7 @@ import { canExportNatively, exportMp4, shareExport } from './src/export/native';
 import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot, editTextLayer, rippleSpeedClip, duplicateProject, duplicateClip, setClipSourceEdge } from './src/domain/timeline';
 import { loadLocalProjects, saveLocalProjects } from './src/data/storage';
 import { loadRemoteProjects, saveProjectToSheets, softDeleteProjectFromSheets } from './src/data/sheets';
+import { reconcileCloudProjects } from './src/data/cloudReconcile';
 import { VideoStage } from './src/ui/VideoStage';
 import { Timeline } from './src/ui/Timeline';
 import { theme } from './src/ui/theme';
@@ -517,15 +518,18 @@ function EditorApp() {
     try {
       setBusy(true);
       const remote = await loadRemoteProjects(token);
-      setProjects(existing => {
-        const merged = new Map(existing.map(p => [p.id, p]));
-        for (const r of remote) {
-          const local = merged.get(r.id);
-          if (!local || r.revision > local.revision) merged.set(r.id, r);
-        }
-        return [...merged.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      // Google Sheets saves project metadata only. A newer remote revision
+      // must not replace a good local project with another phone's dead URIs.
+      const reconciliation = reconcileCloudProjects(projects,remote,uri=>{
+        try { return uri.startsWith('file://') && new File(uri).exists; }
+        catch { return false; }
       });
-      Alert.alert('Google Sheets synced', `${remote.length} cloud projects found. Remote edits with newer revisions were imported.`);
+      setProjects(reconciliation.projects);
+      const skipped = reconciliation.skipped.length
+        ? '\\n' + reconciliation.skipped.length +
+          ' cloud project(s) skipped: media files are not on this device. Local projects were kept. Use the original phone or re-import media.'
+        : '';
+      Alert.alert('Google Sheets synced',`${remote.length} cloud projects found. ${reconciliation.applied} newer or missing projects were imported.`+skipped);
     } catch (e) { Alert.alert('Cloud sync failed', String(e)); }
     finally { setBusy(false); }
   };
