@@ -108,7 +108,7 @@ class VidnivoExportModule : Module() {
           }
           val sequence = EditedMediaItemSequence.withAudioAndVideoFrom(items)
           val composition = Composition.Builder(sequence).build()
-          val file = File(context.cacheDir, "vidnivo-\${UUID.randomUUID()}.mp4")
+          val file = File(context.cacheDir, "vidnivo-${UUID.randomUUID()}.mp4")
           val transformer = Transformer.Builder(context)
             .setVideoMimeType(MimeTypes.VIDEO_H264)
             .setAudioMimeType(MimeTypes.AUDIO_AAC)
