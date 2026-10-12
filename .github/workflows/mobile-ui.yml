@@ -1,0 +1,44 @@
+name: Mobile editor browser smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/index.html'
+      - 'docs/rollblink-editor-shell.css'
+      - 'docs/rollblink-mobile-shell.js'
+      - 'docs/rollblink-mobile-timeline.js'
+      - 'tests/mobile-ui.smoke.mjs'
+      - '.github/workflows/mobile-ui.yml'
+  pull_request:
+    paths:
+      - 'docs/index.html'
+      - 'docs/rollblink-editor-shell.css'
+      - 'docs/rollblink-mobile-shell.js'
+      - 'docs/rollblink-mobile-timeline.js'
+      - 'tests/mobile-ui.smoke.mjs'
+      - '.github/workflows/mobile-ui.yml'
+  workflow_dispatch:
+jobs:
+  mobile-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test dependencies
+        run: npm install --no-audit --no-fund --no-save playwright@1.56.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Unit tests
+        run: npm test
+      - name: Mobile editor Chromium smoke
+        run: node tests/mobile-ui.smoke.mjs
+      - name: Upload mobile screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rollblink-mobile-editor-screenshot
+          path: /tmp/rollblink-mobile-smoke.png
+          if-no-files-found: ignore
