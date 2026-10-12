@@ -724,6 +724,8 @@ function EditorApp() {
               else setCaptionPanelOpen(false);
             }}><Ionicons name="close" color="#F3F4F6" size={25}/></Pressable>
           </View>
+          <ScrollView style={{maxHeight:500}} keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={true}>
           {captionStylesOpen ?
             (['classic','punch','minimal','neon','documentary'] as CaptionPreset[]).map(preset =>
               <Pressable key={preset} style={styles.captionChoice} onPress={() => applyCaptionStyle(preset)}>
@@ -739,7 +741,7 @@ function EditorApp() {
                   primary={lang.code===speechLanguage}
                   onPress={()=>setSpeechLanguage(lang.code)}/>)}
               </ScrollView>
-              <Text style={styles.trimHint}>Captions · {scriptWords===1?'One highlighted word at a time':scriptWords+' words per phrase'}</Text>
+              <Text style={styles.trimHint}>Captions · {scriptWords===1?'One word at a time':scriptWords+' words per phrase'}</Text>
               <View style={styles.trimRow}>
                 {[1,3,5,7].map(n=><Tool key={n} label={n===1?'1 word':n+' words'} primary={scriptWords===n}
                   onPress={()=>setScriptWords(n)}/>)}
@@ -808,6 +810,7 @@ function EditorApp() {
                 <Text style={styles.captionChoiceLabel}>Share subtitle file (.srt)</Text>
               </Pressable>
             </>}
+          </ScrollView>
         </View>
       </View>
     </Modal>
