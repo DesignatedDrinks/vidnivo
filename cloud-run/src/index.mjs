@@ -6,6 +6,7 @@ import {getFirestore,FieldValue,FieldPath} from 'firebase-admin/firestore';
 import {getStorage} from 'firebase-admin/storage';
 import {createHandler,MAX_MEDIA_BYTES} from './core.mjs';
 import {writeBoundedMedia} from './mediaStream.mjs';
+import {diagnoseWithOpenAI} from './supportCore.mjs';
 
 const port=Number(process.env.PORT||8080);
 const bucketName=(process.env.FIREBASE_STORAGE_BUCKET||'').trim();
@@ -54,9 +55,28 @@ async function releaseMediaReservation(uid,id){
    updatedAt:FieldValue.serverTimestamp()});
  });
 }
+// Per-owner, transactional cost budget; an authenticated mobile client
+// cannot submit unbounded paid model requests.
+async function reserveSupportRequest(uid){
+ const now=Date.now(),period=Math.floor(now/3600000);
+ const ref=users(uid).collection('_system').doc('supportLimit');
+ await db.runTransaction(async tx=>{
+  const found=await tx.get(ref);
+  const previous=found.exists?found.data():{};
+  const count=previous.period===period?previous.count||0:0;
+  if(count>=12)throw Object.assign(Error('AI help limit reached. Try again later.'),{status:429});
+  tx.set(ref,{period,count:count+1,updatedAt:FieldValue.serverTimestamp()});
+ });
+}
 const handler=createHandler({
  allowedOrigins:origins,
  storageReady:!!bucket,
+ resolveSupport:async(uid,input)=>{
+  const key=(process.env.OPENAI_SUPPORT_API_KEY||'').trim();
+  // Without a configured model, return deterministic help for free.
+  if(key)await reserveSupportRequest(uid);
+  return diagnoseWithOpenAI(input,{apiKey:key,model:process.env.OPENAI_SUPPORT_MODEL||'gpt-5-mini'});
+ },
  verifyToken:token=>getAuth().verifyIdToken(token,true),
  getProfile:async uid=>{
   const doc=await users(uid).get();
