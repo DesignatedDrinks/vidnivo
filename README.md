@@ -1,5 +1,20 @@
 # VIDNIVO — mobile-first video editor
 
+## Open the working browser editor
+
+**[▶ Launch VIDNIVO Studio — tap here to edit a video](https://designateddrinks.github.io/vidnivo/)**
+
+This is the **browser-based preview**: import videos from your device, trim/split,
+change speed, add timed captions, and export where your browser supports MP4
+recording. It runs without installing software or signing in. Your footage
+stays on your device.
+
+**Important:** The web preview is separate from the more extensive
+Expo/React Native iPhone and Android editor described below. The native
+app is still under development; a README page is not an app.
+
+---
+
 VIDNIVO is an independently built short-form video editor for iPhone and Android, developed in Expo / React Native.
 
 ## Status
