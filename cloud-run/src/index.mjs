@@ -18,6 +18,42 @@ initializeApp({
 const db=getFirestore();
 const bucket=bucketName?getStorage().bucket(bucketName):null;
 const users=uid=>db.collection('users').doc(uid);
+const quotaRef=uid=>users(uid).collection('_system').doc('storageQuota');
+const MAX_ACCOUNT_BYTES=2*1024*1024*1024;
+const MAX_ACCOUNT_ASSETS=400;
+async function reserveMedia(uid,id,media){
+ const fileRef=users(uid).collection('media').doc(id),counter=quotaRef(uid);
+ await db.runTransaction(async tx=>{
+  const [existing,usage]=await Promise.all([tx.get(fileRef),tx.get(counter)]);
+  if(existing.exists)throw Object.assign(Error('Media identifier is already in use.'),{status:409});
+  const bytes=usage.exists?usage.data().bytes:0;
+  const assets=usage.exists?usage.data().assets:0;
+  if(!Number.isSafeInteger(bytes)||!Number.isSafeInteger(assets)||bytes<0||assets<0)
+   throw Object.assign(Error('Cloud quota accounting needs administrator repair.'),{status:503});
+  if(bytes+media.size>MAX_ACCOUNT_BYTES||assets+1>MAX_ACCOUNT_ASSETS)
+   throw Object.assign(Error('Cloud storage quota reached. Remove unused uploads before adding more media.'),{status:413});
+  tx.create(fileRef,{...media,state:'uploading',quotaTracked:true,
+   reservedAt:FieldValue.serverTimestamp()});
+  tx.set(counter,{bytes:bytes+media.size,assets:assets+1,
+   updatedAt:FieldValue.serverTimestamp()},{merge:true});
+ });
+ return fileRef;
+}
+async function releaseMediaReservation(uid,id){
+ const fileRef=users(uid).collection('media').doc(id),counter=quotaRef(uid);
+ await db.runTransaction(async tx=>{
+  const [registered,usage]=await Promise.all([tx.get(fileRef),tx.get(counter)]);
+  if(!registered.exists||registered.data().state!=='uploading')return;
+  const size=registered.data().size;
+  const old=usage.exists?usage.data():{};
+  if(!Number.isSafeInteger(size)||!Number.isSafeInteger(old.bytes)||
+    !Number.isSafeInteger(old.assets)||old.bytes<size||old.assets<1)
+   throw Object.assign(Error('Cloud quota accounting needs administrator repair.'),{status:503});
+  tx.delete(fileRef);
+  tx.update(counter,{bytes:old.bytes-size,assets:old.assets-1,
+   updatedAt:FieldValue.serverTimestamp()});
+ });
+}
 const handler=createHandler({
  allowedOrigins:origins,
  storageReady:!!bucket,
@@ -38,14 +74,15 @@ const handler=createHandler({
    media:page.map(d=>{
     const f=d.data();
     return {assetId:d.id,objectPath:f.objectPath||'',name:f.name||'',
-     contentType:f.contentType||'',size:f.size||0};
+     contentType:f.contentType||'',size:f.size||0,md5Hex:f.md5Hex||null,
+     state:f.state||'ready'};
    }),
    nextCursor:snap.docs.length>pageSize?page[page.length-1].id:null
   };
  },
  getMedia:async(uid,id)=>{
   const doc=await users(uid).collection('media').doc(id).get();
-  return doc.exists?doc.data():null;
+  return doc.exists&&doc.data()?.state!=='uploading'?doc.data():null;
  },
  checkObject:async path=>{
   if(!bucket)throw Error('Media storage unavailable.');
@@ -59,7 +96,22 @@ const handler=createHandler({
   if(!bucket)throw Error('Media storage unavailable.');
   await bucket.file(path).delete({ignoreNotFound:true});
  },
- deleteMedia:async(uid,id)=>users(uid).collection('media').doc(id).delete(),
+ deleteMedia:async(uid,id)=>{
+  const mediaRef=users(uid).collection('media').doc(id),counter=quotaRef(uid);
+  await db.runTransaction(async tx=>{
+   const [media,usage]=await Promise.all([tx.get(mediaRef),tx.get(counter)]);
+   if(!media.exists)return;
+   if(media.data().quotaTracked){
+    const old=usage.exists?usage.data():{},size=media.data().size;
+    if(!Number.isSafeInteger(old.bytes)||!Number.isSafeInteger(old.assets)||
+      !Number.isSafeInteger(size)||old.bytes<size||old.assets<1)
+     throw Object.assign(Error('Cloud quota accounting needs administrator repair.'),{status:503});
+    tx.update(counter,{bytes:old.bytes-size,assets:old.assets-1,
+     updatedAt:FieldValue.serverTimestamp()});
+   }
+   tx.delete(mediaRef);
+  });
+ },
  listProjects:async uid=>{
   const snapshot=await users(uid).collection('projects')
    .orderBy('updatedAt','desc').limit(100).get();
@@ -93,20 +145,33 @@ const handler=createHandler({
   const safeName=name.replace(/[^A-Za-z0-9_.-]/g,'_').slice(-120)||'media.bin';
   const objectPath='users/'+uid+'/media/'+id+'/'+safeName;
   const file=bucket.file(objectPath);
-  let uploaded=false;
+  const doc=await reserveMedia(uid,id,{assetId:id,objectPath,name,contentType,size:expectedSize});
+  let uploaded=false,cleanupAllowed=true;
   try{
    const seen=await writeBoundedMedia(request,file.createWriteStream({
     resumable:false,
     preconditionOpts:{ifGenerationMatch:0},
     metadata:{contentType}
    }),expectedSize,MAX_MEDIA_BYTES,()=>{uploaded=true;});
-   const media={assetId:id,objectPath,name,contentType,size:seen};
-   await users(uid).collection('media').doc(id).create({
-    ...media,registeredAt:FieldValue.serverTimestamp()
-   });
-   return media;
+   const [metadata]=await file.getMetadata();
+   const hash=metadata.md5Hash;
+   if(!hash||!Number.isSafeInteger(Number(metadata.size))||Number(metadata.size)!==seen)
+    throw Object.assign(Error('Media storage checksum or length is unavailable.'),{status:503});
+   const md5Hex=Buffer.from(hash,'base64').toString('hex');
+   if(!/^[a-f0-9]{32}$/.test(md5Hex))
+    throw Object.assign(Error('Invalid media storage checksum.'),{status:503});
+   await doc.update({state:'ready',md5Hex,registeredAt:FieldValue.serverTimestamp()});
+   return {size:seen,md5Hex};
   }catch(error){
-   if(uploaded)await file.delete({ignoreNotFound:true}).catch(()=>{});
+   try{
+    // Only release reserved bytes when the object has been successfully
+    // cleaned up. Leaked reservations fail closed rather than overspend.
+    // A failed create with precondition 412 may indicate another owned object;
+    // do not delete an object the current request did not create.
+    if(uploaded)await file.delete({ignoreNotFound:true});
+    else cleanupAllowed=false;
+    if(cleanupAllowed)await releaseMediaReservation(uid,id);
+   }catch{/* Reserve quota for administrator recovery rather than undercount bytes. */}
    throw error;
   }
  },
