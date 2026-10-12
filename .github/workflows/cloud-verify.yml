@@ -9,7 +9,8 @@ on:
       - 'storage.rules'
       - 'web/**'
       - 'deploy/**'
-      - 'tests/cloud-configuration.test.mjs'
+      - 'docs/CLOUD_*'
+      - 'tests/cloud-*.test.mjs'
       - '.github/workflows/cloud-verify.yml'
   pull_request:
     paths:
@@ -19,7 +20,8 @@ on:
       - 'storage.rules'
       - 'web/**'
       - 'deploy/**'
-      - 'tests/cloud-configuration.test.mjs'
+      - 'docs/CLOUD_*'
+      - 'tests/cloud-*.test.mjs'
       - '.github/workflows/cloud-verify.yml'
 permissions:
   contents: read
@@ -31,14 +33,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Cloud API test suite
+      - name: Cloud API security suite
         run: node --test cloudrun/api/test/*.test.mjs
-      - name: Static config and permissions checks
-        run: node --test tests/cloud-configuration.test.mjs
-      - name: Validate Node source syntax
+      - name: Static config, privacy and hosting checks
+        run: node --test tests/cloud-configuration.test.mjs tests/cloud-web.test.mjs tests/cloud-media-policy.test.mjs
+      - name: Check JavaScript syntax
         run: |
           node --check cloudrun/api/src/main.mjs
           node --check cloudrun/api/src/handler.mjs
           node --check web/site.js
-      - name: Build a production Cloud Run container
+      - name: Build Cloud Run container
         run: docker build -t vidnivo-cloud-api:verify cloudrun/api
