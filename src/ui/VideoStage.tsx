@@ -23,14 +23,14 @@ function VideoClip({ uri, clip, sourceSeconds, playing, seekVersion }:
   }, [player, playing]);
   return <VideoView player={player} nativeControls={false} contentFit="contain" style={StyleSheet.absoluteFill} />;
 }
-export function VideoStage({ project, playheadMs, playing, seekVersion }:
-  { project: Project; playheadMs: number; playing: boolean; seekVersion: number }) {
+export function VideoStage({ project, playheadMs, playing, seekVersion, maxHeight = 355 }:
+  { project: Project; playheadMs: number; playing: boolean; seekVersion: number; maxHeight?: number }) {
   const clip = activeClip(project, playheadMs);
   const asset = project.assets.find(a => a.id === clip?.assetId);
   const seconds = clip ? (clip.inMs + (playheadMs - clip.startMs) * clip.speed) / 1000 : 0;
   const visible = project.texts.filter(t => playheadMs >= t.startMs && playheadMs < t.endMs);
   const aspectRatio = project.aspectRatio === '9:16' ? 9 / 16 : project.aspectRatio === '16:9' ? 16 / 9 : 1;
-  const previewWidth = Math.min(Dimensions.get('window').width - 28, 355 * aspectRatio);
+  const previewWidth = Math.max(70, Math.min(Dimensions.get('window').width - 28, maxHeight * aspectRatio));
   return <View style={[styles.frame, { aspectRatio, width: previewWidth }]}>
     {!asset ? <View style={styles.placeholder}><Text style={styles.mark}>V</Text><Text style={styles.placeholderLabel}>Import video to begin</Text></View> : null}
     {asset?.kind === 'image' ? <Image source={{ uri: asset.uri }} resizeMode="contain" style={styles.full} /> : null}

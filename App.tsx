@@ -53,6 +53,7 @@ function EditorApp() {
   const [busy, setBusy] = useState(false);
   const [lastExport, setLastExport] = useState<string | null>(null);
   const [timelineZoom, setTimelineZoom] = useState(1);
+  const [canvasHeight, setCanvasHeight] = useState(355);
   const [exportQuality, setExportQuality] = useState<720 | 1080>(1080);
   const [fullPreview, setFullPreview] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -390,9 +391,9 @@ function EditorApp() {
       </Pressable>
     </View>
 
-    <View style={styles.mobileCanvas}>
+    <View style={styles.mobileCanvas} onLayout={e => setCanvasHeight(e.nativeEvent.layout.height)}>
       <View style={styles.canvasCenter}>
-        <VideoStage project={project} playheadMs={positionMs} playing={playing} seekVersion={seekVersion} />
+        <VideoStage project={project} playheadMs={positionMs} playing={playing} seekVersion={seekVersion} maxHeight={Math.max(110, canvasHeight - 8)} />
         <AudioStage project={project} playheadMs={positionMs} playing={playing} seekVersion={seekVersion} />
       </View>
     </View>
@@ -452,7 +453,7 @@ function EditorApp() {
         <Pressable accessibilityLabel="Close fullscreen preview" onPress={() => setFullPreview(false)} style={{ alignSelf: 'flex-end', padding: 12 }}>
           <Ionicons name="close" color="white" size={30} /></Pressable>
         <View style={{ flex: 1, justifyContent: 'center' }}>
-          <VideoStage project={project} playheadMs={positionMs} playing={false} seekVersion={seekVersion} />
+          <VideoStage project={project} playheadMs={positionMs} playing={false} seekVersion={seekVersion} maxHeight={620} />
         </View>
       </View>
     </Modal>

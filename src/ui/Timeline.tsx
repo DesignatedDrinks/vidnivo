@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, 
 import { Ionicons } from '@expo/vector-icons';
 import { Project, clipDurationMs, durationMs, trackEndMs } from '../domain/timeline';
 import { ClipFilmstrip } from './ClipFilmstrip';
+import { pixelsToTimeMs, timeMsToPixels } from '../domain/timelineCoordinates';
 
 type Props = {
   project: Project;
@@ -35,7 +36,7 @@ export function Timeline({ project, selectedId, selectedTextId, playheadMs,
   const endMs = Math.max(DURATION_MIN, durationMs(project));
   const contentWidth = Math.max(width + 8, endMs / 1000 * pixelsPerSecond + 85);
   const side = width / 2;
-  const scrollOffset = Math.max(0, Math.min(endMs, playheadMs)) / 1000 * pixelsPerSecond;
+  const scrollOffset = timeMsToPixels(playheadMs, pixelsPerSecond, endMs);
 
   useEffect(() => {
     if (!dragRef.current && Math.abs(lastSyncMs.current - scrollOffset) > 0.4) {
@@ -48,7 +49,7 @@ export function Timeline({ project, selectedId, selectedTextId, playheadMs,
     if (!dragRef.current) return;
     const x = Math.max(0, event.nativeEvent.contentOffset.x);
     lastSyncMs.current = x;
-    onSeek(Math.min(endMs, x / pixelsPerSecond * 1000));
+    onSeek(pixelsToTimeMs(x, pixelsPerSecond, endMs));
   };
 
   const clipRows = useMemo(() =>
@@ -58,7 +59,7 @@ export function Timeline({ project, selectedId, selectedTextId, playheadMs,
     project.clips.filter(c => c.track === 'audio').sort((a,b) => a.startMs - b.startMs),
     [project.clips]);
   const trackWidth = Math.max(contentWidth, width);
-  const place = (timeMs: number) => timeMs / 1000 * pixelsPerSecond;
+  const place = (timeMs: number) => timeMsToPixels(timeMs, pixelsPerSecond, endMs);
 
   return <View style={styles.container} onLayout={e => setWidth(Math.max(200, e.nativeEvent.layout.width))}>
     <View style={styles.counter}>
@@ -75,6 +76,7 @@ export function Timeline({ project, selectedId, selectedTextId, playheadMs,
         seekToOffset(event);
         dragRef.current = false;
       }}
+      onMomentumScrollBegin={() => { dragRef.current = true; }}
       onMomentumScrollEnd={event => {
         seekToOffset(event);
         dragRef.current = false;
