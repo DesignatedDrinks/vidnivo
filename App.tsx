@@ -45,6 +45,7 @@ import {CloudWorkspace} from './src/ui/CloudWorkspace';
 import {HelpDesk} from './src/ui/HelpDesk';
 import {restoreCloudSession,type CloudSession} from './src/cloud/account';
 import {backUpCloudProject} from './src/cloud/transfer';
+import {VideoView,useVideoPlayer} from 'expo-video';
 import {cloudRequest} from './src/cloud/account';
 import {applyAiMomentRanking} from './src/domain/aiMomentRanking';
 import {listSavedVideos,deleteSavedVideo,formatExportSize,saveVideoDetails,type SavedVideo} from './src/export/library';
@@ -63,6 +64,28 @@ function Tool({ label, onPress, disabled = false, primary = false }: { label: st
     style={[styles.tool, primary && styles.primaryTool, disabled && { opacity: .35 }]}>
     <Text style={[styles.toolText, primary && { color: theme.accentText }]}>{label}</Text>
   </Pressable>;
+}
+function SavedExportPreview({uri,onClose}:{uri:string;onClose:()=>void}){
+  const player=useVideoPlayer(uri);
+  useEffect(()=>{
+    player.play();
+    return ()=>{player.pause();};
+  },[player]);
+  return <Modal visible animationType="slide" onRequestClose={onClose}>
+    <View style={{flex:1,backgroundColor:'#08090D',paddingTop:55,paddingBottom:26,paddingHorizontal:12}}>
+      <View style={{flexDirection:'row',justifyContent:'space-between',
+        alignItems:'center',paddingHorizontal:8,paddingBottom:12}}>
+        <Text style={{color:'#FFFFFF',fontSize:20,fontWeight:'800'}}>Finished video</Text>
+        <Tool label="Close" onPress={onClose}/>
+      </View>
+      <VideoView player={player} nativeControls contentFit="contain"
+        surfaceType={Platform.OS==='android'?'textureView':undefined}
+        style={{flex:1,borderRadius:10,backgroundColor:'#000'}}/>
+      <Tool primary label="Share MP4" onPress={()=>{
+        void shareExport(uri).catch(error=>Alert.alert('Unable to share',String(error)));
+      }}/>
+    </View>
+  </Modal>;
 }
 function EditorApp() {
   const insets = useSafeAreaInsets();
@@ -87,6 +110,7 @@ function EditorApp() {
   const [lastExport, setLastExport] = useState<string | null>(null);
   const [savedVideos,setSavedVideos]=useState<SavedVideo[]>([]);
   const [showAllExports,setShowAllExports]=useState(false);
+  const [previewSavedUri,setPreviewSavedUri]=useState<string|null>(null);
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [canvasHeight, setCanvasHeight] = useState(355);
   const [exportQuality, setExportQuality] = useState<720 | 1080>(1080);
@@ -673,6 +697,7 @@ function EditorApp() {
               <Text style={styles.meta}>{video.updatedAt?
                 new Date(video.updatedAt).toLocaleDateString():'Saved on device'}</Text>
             </View>
+            <Tool label="Play" disabled={busy} onPress={()=>setPreviewSavedUri(video.uri)}/>
             <Tool label="Share" disabled={busy} onPress={()=>{
               void shareExport(video.uri).catch(e=>Alert.alert('Cannot share video',String(e)));
             }}/>
@@ -683,6 +708,8 @@ function EditorApp() {
           <Tool label={showAllExports?'Show fewer videos':'Show all '+savedVideos.length+' videos'}
             onPress={()=>setShowAllExports(value=>!value)}/>:null}
       </View>
+      {previewSavedUri?<SavedExportPreview uri={previewSavedUri}
+        onClose={()=>setPreviewSavedUri(null)}/>:null}
       <CloudWorkspace session={cloudSession} setSession={setCloudSession}
         setProjects={setProjects}/>
     </ScrollView>
