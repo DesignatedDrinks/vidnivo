@@ -15,7 +15,7 @@ test('video-first editor and published site are identical',()=>{
  const timeline=body.indexOf('<div class="timeline-card">');
  assert.ok(viewer>=0&&autopilot>viewer&&timeline>autopilot,
   'Video must precede the compact finishing controls and timeline');
- assert.match(body,/<h1>Studio<span class="studio-dot">\.<\/span><\/h1>/);
+ assert.doesNotMatch(body,/class="stage-top"/);
  assert.match(body,/id="preview"/);
 });
 test('interface removes AI-marketing prose, microcopy and gratuitous status paragraphs',()=>{
@@ -24,7 +24,7 @@ test('interface removes AI-marketing prose, microcopy and gratuitous status para
  assert.doesNotMatch(body,/class="tag"/);
  assert.doesNotMatch(body,/PRIVATE BETA|CREATOR WORKSPACE|ONE-TAP FILTERS|LIP SYNC · AUDIO SAFETY/);
  assert.doesNotMatch(body,/A real editor you can use in your browser|Finish the repetitive edits/);
- assert.match(body,/Make the cut\./);
+ assert.doesNotMatch(body,/>Create<span class="studio-dot">/);
  assert.match(body,/Auto-finish/);
  assert.match(body,/Your next great cut/);
 });
