@@ -58,8 +58,7 @@ The Android native export implementation remains a separate milestone.
 Native MP4 export now has a Media3 Transformer implementation in
 `modules/vidnivo-export/android`. It supports consecutive video clips,
 source trimming, constant speed, mute, and fitted output aspect ratio.
-The Android implementation **explicitly rejects text layers, separate
-soundtracks and custom volume** rather than silently dropping those edits.
+The Android implementation supports timed text overlays. It **explicitly rejects separately imported soundtracks and custom volume** rather than silently dropping those edits.
 Build an Android development APK (not Expo Go) to access native export.
 
 This implementation needs a full Gradle CI build and phone-level export tests

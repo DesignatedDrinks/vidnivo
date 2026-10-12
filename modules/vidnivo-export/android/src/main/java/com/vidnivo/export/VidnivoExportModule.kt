@@ -1,6 +1,10 @@
 package com.vidnivo.export
 
 import android.net.Uri
+import android.graphics.Color
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.OptIn
@@ -10,6 +14,11 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.audio.SpeedProvider
 import androidx.media3.effect.Presentation
+import androidx.media3.effect.TextOverlay
+import androidx.media3.effect.OverlaySettings
+import androidx.media3.effect.StaticOverlaySettings
+import androidx.media3.effect.TextureOverlay
+import androidx.media3.effect.OverlayEffect
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
@@ -47,9 +56,6 @@ class VidnivoExportModule : Module() {
         try {
           val plan = JSONObject(payload)
           val texts = plan.getJSONArray("texts")
-          if (texts.length() > 0) {
-            throw IllegalArgumentException("Android text-overlay export is not implemented yet. Export a video without titles.")
-          }
           val clips = plan.getJSONArray("clips")
           val width = plan.getInt("width")
           val height = plan.getInt("height")
@@ -107,7 +113,45 @@ class VidnivoExportModule : Module() {
             throw IllegalArgumentException("A 1–15 minute video sequence is required.")
           }
           val sequence = EditedMediaItemSequence.withAudioAndVideoFrom(items)
-          val composition = Composition.Builder(sequence).build()
+
+          val overlays=ArrayList<TextureOverlay>()
+          for (index in 0 until texts.length()) {
+            val label=texts.getJSONObject(index)
+            val fromMs=label.getDouble("startMs")
+            val toMs=label.getDouble("endMs")
+            val phrase=label.optString("text").trim()
+            if (phrase.isEmpty() || toMs <= fromMs) continue
+            val styled=SpannableString(phrase)
+            val captionColor=try { Color.parseColor(label.optString("color","#FFFFFF")) }
+              catch (e: IllegalArgumentException) { Color.WHITE }
+            styled.setSpan(ForegroundColorSpan(captionColor),0,styled.length,
+              Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            val positionX=label.optDouble("x",0.5).toFloat().coerceIn(0f,1f)
+            val positionY=label.optDouble("y",0.75).toFloat().coerceIn(0f,1f)
+            val fontSize=label.optDouble("fontSize",32.0).toFloat().coerceIn(14f,96f)
+            // Overlay base glyph height is 100 pixels. Scale to match the phone preview.
+            val scale=((max(width,height).toFloat()/355f)*fontSize/100f)
+              .coerceIn(.2f,4f)
+            val overlaySettings=StaticOverlaySettings.Builder()
+              .setBackgroundFrameAnchor(2f*positionX-1f,1f-2f*positionY)
+              .setOverlayFrameAnchor(0f,0f)
+              .setScale(scale,scale)
+              .build()
+            overlays.add(object : TextOverlay() {
+              override fun getText(presentationTimeUs: Long): SpannableString {
+                val ms=presentationTimeUs/1000.0
+                return if (ms>=fromMs && ms<toMs) styled else SpannableString("")
+              }
+              override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
+                return overlaySettings
+              }
+            })
+          }
+          val compositionBuilder=Composition.Builder(sequence)
+          if (overlays.isNotEmpty()) {
+            compositionBuilder.setEffects(Effects(emptyList(),listOf(OverlayEffect(overlays))))
+          }
+          val composition=compositionBuilder.build()
           val file = File(context.cacheDir, "vidnivo-${UUID.randomUUID()}.mp4")
           val transformer = Transformer.Builder(context)
             .setVideoMimeType(MimeTypes.VIDEO_H264)
