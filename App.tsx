@@ -23,6 +23,8 @@ import {proposeSpeechGaps,applyReviewedSpeechGaps,type SpeechGap} from './src/do
 import {analyzeCreatorProject} from './src/domain/creatorReview';
 import {CreatorReviewSheet} from './src/ui/CreatorReviewSheet';
 import {SpeechGapReviewSheet} from './src/ui/SpeechGapReviewSheet';
+import {StoryFinderSheet} from './src/ui/StoryFinderSheet';
+import {proposeStoryMoments,createStoryShort,type StoryMoment} from './src/domain/storyMoments';
 import { splitCaption, mergeCaptionWithNext, nudgeCaption, shiftAllCaptions,
   fixSentenceCase } from './src/domain/captionEditing';
 import { canExportNatively, exportMp4, shareExport } from './src/export/native';
@@ -77,6 +79,9 @@ function EditorApp() {
   const [fullPreview, setFullPreview] = useState(false);
   const [captionPanelOpen, setCaptionPanelOpen] = useState(false);
   const [creatorReviewOpen,setCreatorReviewOpen]=useState(false);
+  const [storyFinderOpen,setStoryFinderOpen]=useState(false);
+  const [storySuggestions,setStorySuggestions]=useState<StoryMoment[]>([]);
+  const [storySourceRevision,setStorySourceRevision]=useState<number|null>(null);
   const [advancedToolsOpen,setAdvancedToolsOpen]=useState(false);
   const [speechReviewVisible,setSpeechReviewVisible]=useState(false);
   const [speechReview,setSpeechReview]=useState<{
@@ -441,6 +446,32 @@ function EditorApp() {
       Alert.alert('Export unavailable', e instanceof Error ? e.message : String(e));
     } finally { setBusy(false); }
   };
+  const showStoryFinder=()=>{
+    if(!project)return;
+    try{
+      const found=proposeStoryMoments(project);
+      setStorySuggestions(found);
+      setStorySourceRevision(project.revision);
+      setPlaying(false);
+      setStoryFinderOpen(true);
+    }catch(e){Alert.alert('Story Finder',e instanceof Error?e.message:String(e));}
+  };
+  const createShortFromMoment=(moment:StoryMoment)=>{
+    if(!project)return;
+    if(storySourceRevision!==project.revision){
+      Alert.alert('Review again','The project changed since these moments were proposed. Scan it again.');
+      setStoryFinderOpen(false);
+      return;
+    }
+    try{
+      const draft=createStoryShort(project,moment);
+      setProjects(items=>[draft,...items]);
+      setStoryFinderOpen(false);
+      openProject(draft);
+      Alert.alert('Editable short created',
+        'Your source project was preserved. Check the cuts, captions and audio before exporting.');
+    }catch(e){Alert.alert('Could not create short',e instanceof Error?e.message:String(e));}
+  };
   const duplicateSavedProject = (source: Project) => {
     const copy=duplicateProject(source);
     setProjects(items=>[copy,...items]);
@@ -613,7 +644,8 @@ function EditorApp() {
     {id:'save',label:'Save to Google Sheets',icon:'cloud-upload-outline',
       disabled:!token,onPress:cloudSave},
     {id:'speech',label:'Review talking-head cuts',icon:'cut-outline',
-      onPress:()=>{void removeLongPauses();}}
+      onPress:()=>{void removeLongPauses();}},
+    {id:'story',label:'Story Finder',icon:'sparkles-outline',onPress:showStoryFinder}
   ];
   const baseActions: EditorAction[]=[
     {id:'edit',label:'Edit',icon:'cut-outline',onPress:()=>{
@@ -727,6 +759,13 @@ function EditorApp() {
     {lastExport ? <Pressable accessibilityRole="button" onPress={() => shareExport(lastExport).catch(e => Alert.alert('Sharing failed', String(e)))}
       style={styles.shareResult}><Text style={styles.shareResultText}>✓ MP4 ready — Share</Text></Pressable> : null}
 
+    <StoryFinderSheet visible={storyFinderOpen} moments={storySuggestions}
+      onClose={()=>setStoryFinderOpen(false)}
+      onPreview={m=>{
+        setStoryFinderOpen(false);
+        seek(m.startMs);
+      }}
+      onCreate={createShortFromMoment} />
     <CreatorReviewSheet visible={creatorReviewOpen} report={creatorReport!}
       busy={busy} onClose={()=>setCreatorReviewOpen(false)}
       onJump={(ms)=>seek(ms)}
