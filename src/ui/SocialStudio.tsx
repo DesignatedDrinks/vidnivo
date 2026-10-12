@@ -245,7 +245,7 @@ const styles=StyleSheet.create({
  close:{padding:10},closeText:{color:'#EEEEEE',fontSize:24},
  content:{padding:14,gap:12,paddingBottom:50},
  card:{backgroundColor:'#20242B',borderRadius:16,padding:16,gap:10},
- heading:{color:'#FFFFFF',fontSize:17,fontWeight:'750'},
+ heading:{color:'#FFFFFF',fontSize:17,fontWeight:'700'},
  muted:{color:'#B9C2CD',fontSize:12,lineHeight:18},
  fine:{color:'#8C98A5',fontSize:11,lineHeight:16},
  warning:{color:'#FFD39D',fontSize:12,marginTop:8},
