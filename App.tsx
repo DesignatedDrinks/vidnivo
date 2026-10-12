@@ -27,6 +27,7 @@ import {StoryFinderSheet} from './src/ui/StoryFinderSheet';
 import {proposeStoryMoments,createStoryShort,type StoryMoment} from './src/domain/storyMoments';
 import { splitCaption, mergeCaptionWithNext, nudgeCaption, shiftAllCaptions,
   fixSentenceCase } from './src/domain/captionEditing';
+import { replaceCaptionPhrase } from './src/domain/captionReplace';
 import { canExportNatively, exportMp4, shareExport } from './src/export/native';
 import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot, editTextLayer, rippleSpeedClip, duplicateProject, duplicateClip, setClipSourceEdge } from './src/domain/timeline';
 import { loadLocalProjects, saveLocalProjects } from './src/data/storage';
@@ -78,6 +79,9 @@ function EditorApp() {
   const [exportQuality, setExportQuality] = useState<720 | 1080>(1080);
   const [fullPreview, setFullPreview] = useState(false);
   const [captionPanelOpen, setCaptionPanelOpen] = useState(false);
+  const [captionFindOpen,setCaptionFindOpen]=useState(false);
+  const [captionFind,setCaptionFind]=useState('');
+  const [captionReplace,setCaptionReplace]=useState('');
   const [creatorReviewOpen,setCreatorReviewOpen]=useState(false);
   const [storyFinderOpen,setStoryFinderOpen]=useState(false);
   const [storySuggestions,setStorySuggestions]=useState<StoryMoment[]>([]);
@@ -344,6 +348,17 @@ function EditorApp() {
       setSpeechReviewVisible(false);setSpeechReview(null);
       Alert.alert('Approved cuts applied','Your cut choices were added as one reversible edit. Use Undo to restore the original.');
     }catch(e){Alert.alert('Cannot apply cuts',e instanceof Error?e.message:String(e));}
+  };
+  const replaceCaptionWords=()=>{
+    if(!project)return;
+    try{
+      const result=replaceCaptionPhrase(project,captionFind,captionReplace);
+      if(!result.count){Alert.alert('No matches','This text was not found in spoken captions.');return;}
+      apply(()=>result.project);
+      setCaptionFindOpen(false);
+      Alert.alert('Transcript updated',result.count+
+        ' occurrence(s) corrected. Original timing and text styles were kept. Undo restores the original.');
+    }catch(e){Alert.alert('Replace failed',e instanceof Error?e.message:String(e));}
   };
   const generateFromScript = () => {
     if(!project)return;
@@ -920,6 +935,31 @@ function EditorApp() {
         </View>
       </View>
     </Modal>
+    <Modal visible={captionFindOpen} animationType="slide" transparent
+      onRequestClose={()=>setCaptionFindOpen(false)}>
+      <KeyboardAvoidingView behavior={Platform.OS==='ios'?'padding':undefined}
+        style={styles.captionBackdrop}>
+        <View style={styles.captionSheet}>
+          <View style={styles.row}>
+            <Text style={styles.captionSheetTitle}>Find & replace captions</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Close caption correction"
+              onPress={()=>setCaptionFindOpen(false)}>
+              <Ionicons name="close" color="#F3F4F6" size={25}/>
+            </Pressable>
+          </View>
+          <Text style={styles.trimHint}>
+            Correct repeated names and phrases. Subtitle timing, formatting and title text are preserved.
+          </Text>
+          <TextInput style={styles.field} placeholder="Search subtitles" maxLength={100}
+            placeholderTextColor="#8B96A1" value={captionFind} onChangeText={setCaptionFind}/>
+          <TextInput style={styles.field} placeholder="Replace with..." maxLength={200}
+            placeholderTextColor="#8B96A1" value={captionReplace} onChangeText={setCaptionReplace}/>
+          <Pressable style={styles.trimDone} accessibilityRole="button" onPress={replaceCaptionWords}>
+            <Text style={styles.trimDoneText}>Replace in all subtitles</Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
     <Modal visible={captionPanelOpen} animationType="slide" transparent
       onRequestClose={() => { setCaptionPanelOpen(false); setCaptionStylesOpen(false); }}>
       <View style={styles.captionBackdrop}>
@@ -993,6 +1033,12 @@ function EditorApp() {
               <Pressable style={styles.captionChoice} onPress={() => setCaptionStylesOpen(true)}>
                 <Ionicons name="color-palette-outline" size={24} color="#23D4E9" />
                 <Text style={styles.captionChoiceLabel}>Caption appearance</Text>
+              </Pressable>
+              <Pressable style={styles.captionChoice} onPress={()=>{
+                setCaptionPanelOpen(false);setCaptionFind('');setCaptionReplace('');setCaptionFindOpen(true);
+              }}>
+                <Ionicons name="search-outline" size={24} color="#23D4E9"/>
+                <Text style={styles.captionChoiceLabel}>Find & replace subtitles</Text>
               </Pressable>
               <Pressable style={styles.captionChoice} onPress={() => {
                 apply(p => fixSentenceCase(p)); setCaptionPanelOpen(false);
