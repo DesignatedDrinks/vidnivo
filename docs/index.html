@@ -205,7 +205,7 @@ function drawFrame(){
   }
  }
  canvas.classList.toggle('caption-touch-ready',
-  !state.exporting&&!state.captioning&&state.selectedTab==='captions'&&captions.length>0);
+  !state.exporting&&!state.captioning&&captions.length>0);
 }
 function requestDraw(){if(drawQueued)return;drawQueued=true;requestAnimationFrame(()=>{drawQueued=false;drawFrame()})}
 function locate(time){
@@ -384,7 +384,7 @@ function activeCaption(){
  return state.captions.find(c=>c.id===state.editCaptionId)||null;
 }
 function syncCaptionSizeControls(cap){
- const percent=Math.round(fontScale(cap?.fontScale||Number($('captionFontSize').value)/100)*100);
+ const percent=Math.round((cap?fontScale(cap.fontScale):fontScale(Number($('captionFontSize').value)/100))*100);
  $('captionFontSize').value=String(percent);
  $('captionFontSizeLabel').textContent=percent+'%';
 }
