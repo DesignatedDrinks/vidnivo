@@ -136,5 +136,5 @@ const handler=createHandler({
 });
 const server=createServer(handler);
 server.headersTimeout=15000;
-server.requestTimeout=330000;
+server.requestTimeout=305000;
 server.listen(port,'0.0.0.0',()=>console.log('VIDNIVO API listening on port '+port));
