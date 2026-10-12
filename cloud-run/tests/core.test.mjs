@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {once} from 'node:events';
 import {createHandler,validateRegistration} from '../src/core.mjs';
+import {validateCloudProject} from '../src/projectCore.mjs';
 const user='test_user-42';
 const path='users/'+user+'/media/0123456789ABCDEF/example.mp4';
 const allow=['https://vidnivo-demo.web.app'];
@@ -22,6 +23,11 @@ function fakeDeps(overrides={}){
   getMedia:async(id,assetId)=>existing.get(assetId)||null,
   checkObject:async()=>({size:1024,contentType:'video/mp4'}),
   registerMedia:async(id,media)=>{existing.set(media.assetId,media);},
+  listProjects:async()=>[],
+  getProject:async()=>null,
+  saveProject:async()=>1,
+  uploadMedia:async()=>({size:1024}),
+  downloadMedia:async()=>{},
   deleteObject:async()=>{},
   deleteMedia:async(id,assetId)=>{existing.delete(assetId);},
   ...overrides
@@ -187,4 +193,76 @@ test('a library larger than 50 files is retrievable without duplicates',async t=
  assert.equal(secondPage.nextCursor,null);
  const ids=[...firstPage.media,...secondPage.media].map(item=>item.assetId);
  assert.equal(new Set(ids).size,53);
+});
+
+const portable={
+ id:'project_001',name:'My edit',aspectRatio:'9:16',
+ createdAt:'2026-10-12T13:00:00.000Z',updatedAt:'2026-10-12T14:00:00.000Z',revision:3,
+ assets:[{id:'0123456789ABCDEF',kind:'video',uri:'cloud://0123456789ABCDEF',
+  filename:'example.mp4',durationMs:10000,width:720,height:1280}],
+ clips:[{id:'clip_0001',assetId:'0123456789ABCDEF',track:'video',startMs:0,
+  inMs:0,outMs:10000,speed:1,volume:1,muted:false}],texts:[]
+};
+test('only cloud:// media refs can be stored as portable project edits',()=>{
+ assert.equal(validateCloudProject(portable,'project_001').assets[0].uri,'cloud://0123456789ABCDEF');
+ assert.throws(()=>validateCloudProject({...portable,assets:[
+  {...portable.assets[0],uri:'file:///private/phone/video.mp4'}]},'project_001'));
+ assert.throws(()=>validateCloudProject(portable,'another_project'));
+ assert.throws(()=>validateCloudProject({...portable,clips:[
+  {...portable.clips[0],assetId:'missing_000'}]},'project_001'));
+});
+test('authorized cloud backup requires registered media and conditional version',async t=>{
+ let saved=0,version=0;
+ const deps=fakeDeps({
+  saveProject:async(uid,id,p,baseVersion)=>{
+   assert.equal(uid,user);
+   assert.equal(id,p.id);
+   if(baseVersion!==version)throw Object.assign(Error('Version conflict'),{status:409});
+   saved++;return ++version;
+  },
+  getProject:async()=>version?{project:portable,version}:null,
+  listProjects:async()=>version?[{id:portable.id,name:portable.name,version}]:[]
+ });
+ const base=await fixture(t,deps);
+ const put=body=>fetch(base+'/api/v1/projects/project_001',{
+  method:'PUT',headers,body:JSON.stringify(body)});
+ let resp=await put({baseVersion:0,project:portable});
+ assert.equal(resp.status,409);
+ await deps.registerMedia(user,{assetId:'0123456789ABCDEF',objectPath:path,
+  name:'example.mp4'});
+ resp=await put({baseVersion:0,project:portable});
+ assert.equal(resp.status,200);
+ assert.equal((await resp.json()).version,1);
+ resp=await put({baseVersion:0,project:portable});
+ assert.equal(resp.status,409);
+ assert.equal(saved,1);
+ const found=await fetch(base+'/api/v1/projects/project_001',{headers});
+ assert.equal((await found.json()).project.id,'project_001');
+ const listed=await fetch(base+'/api/v1/projects',{headers});
+ assert.equal((await listed.json()).projects.length,1);
+});
+test('mobile file transfer routes reject unauthorized users and bad uploads',async t=>{
+ let streamed=0;
+ const deps=fakeDeps({
+  uploadMedia:async()=>{streamed++;return {size:4};},
+  downloadMedia:async(media,res)=>{
+   res.statusCode=200;res.end('okay');
+  }
+ });
+ await deps.registerMedia(user,{assetId:'0123456789ABCDEF',objectPath:path,
+  name:'example.mp4',size:4,contentType:'video/mp4'});
+ const base=await fixture(t,deps);
+ const unauthorized=await fetch(base+'/api/v1/media/0123456789ABCDEF/download');
+ assert.equal(unauthorized.status,401);
+ const okay=await fetch(base+'/api/v1/media/0123456789ABCDEF/download',{headers});
+ assert.equal(await okay.text(),'okay');
+ const bad=await fetch(base+'/api/v1/media/unused_009/upload',{
+  method:'PUT',headers:{...headers,'Content-Type':'video/mp4','X-VIDNIVO-FILENAME':'../../bad.mp4'},
+  body:'abcd'});
+ assert.equal(bad.status,400);
+ assert.equal(streamed,0);
+ const collision=await fetch(base+'/api/v1/media/0123456789ABCDEF/upload',{
+  method:'PUT',headers:{...headers,'Content-Type':'video/mp4','X-VIDNIVO-FILENAME':'another.mp4'},
+  body:'abcd'});
+ assert.equal(collision.status,409);
 });
