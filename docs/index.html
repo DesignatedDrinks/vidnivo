@@ -333,12 +333,12 @@ function renderTimeline(){
  });
  $('clipCount').textContent=state.clips.length+' clip'+(state.clips.length===1?'':'s');
  ['back5','forward5','split','play','scrubber','export'].forEach(id=>$(id).disabled=!state.clips.length||state.exporting||state.captioning||state.creatorBusy);
-  $('autoCaptions').disabled=!state.clips.length||state.exporting||state.captioning;
-  $('quickCaptions').disabled=!state.clips.length||state.exporting||state.captioning;
-  $('quickEnhance').disabled=!state.clips.length||state.exporting||state.captioning;
+  $('autoCaptions').disabled=!state.clips.length||state.exporting||state.captioning||state.creatorBusy;
+  $('quickCaptions').disabled=!state.clips.length||state.exporting||state.captioning||state.creatorBusy;
+  $('quickEnhance').disabled=!state.clips.length||state.exporting||state.captioning||state.creatorBusy;
   $('autoEnhance').disabled=!state.clips.length||state.exporting||state.captioning;
-  $('faceRetouch').disabled=!state.clips.length||state.exporting||state.captioning||state.faceLoading;
-  $('faceRetouchPreset').disabled=!state.clips.length||state.exporting||state.captioning||state.faceLoading;
+  $('faceRetouch').disabled=!state.clips.length||state.exporting||state.captioning||state.faceLoading||state.creatorBusy;
+  $('faceRetouchPreset').disabled=!state.clips.length||state.exporting||state.captioning||state.faceLoading||state.creatorBusy;
   $('export').disabled=!state.clips.length||state.exporting||state.captioning||state.faceLoading;
  $('creatorRun').disabled=!state.clips.length||state.exporting||state.captioning||state.creatorBusy||state.faceLoading;
  $('exportSummary').textContent=state.clips.length?`${fmt(total())} edited runtime · ${state.clips.length} clip${state.clips.length===1?'':'s'} · ${state.captions.length} caption${state.captions.length===1?'':'s'} · ${state.ratio}`:'Import a video to calculate the edited runtime.';
@@ -385,7 +385,7 @@ function setRatio(r){if(!['9:16','1:1','16:9'].includes(r))return;state.ratio=r;
 const safeFileName=(name)=>name.replace(/[^a-z0-9_.-]+/gi,'-').slice(0,75)||'untitled';
 async function importFile(file){
  if(!file)return;
- if(state.captioning){toast('Finish auto captions before importing another video.',true);return}
+ if(state.captioning||state.creatorBusy||state.exporting){toast('Finish the current operation before importing more footage.',true);return}
   if(!file.type.startsWith('video/')){toast('Choose an MP4, MOV, or another playable video file.',true);return}
  const url=URL.createObjectURL(file),probe=document.createElement('video');probe.preload='metadata';probe.playsInline=true;probe.src=url;
  try{
@@ -839,7 +839,7 @@ async function startExport(){
 }
 function setTab(tab){state.selectedTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));document.querySelectorAll('.tab-content').forEach(e=>e.hidden=e.id!=='tab-'+tab)}
 function reset(){
- if(state.exporting||state.captioning){toast('Finish exporting or auto captions before starting a new project.',true);return}
+ if(state.exporting||state.captioning||state.creatorBusy){toast('Finish the current edit before starting a new project.',true);return}
  if(state.clips.length&&!confirm('Start a new project? This removes the current timeline and captions (not the original files).'))return;
  pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];$('creatorHookPanel').hidden=true;state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.faceRetouch=0;state.voicePolish=false;applyVoicePolish();faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;touchPointers.clear();dragAnchor=null;pinchOrigin=null;$('captionFontSize').value='100';$('captionFontSizeLabel').textContent='100%';$('captionTouchStatus').textContent='Select a caption and drag or pinch to edit it.';$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
  video.removeAttribute('src');video.load();ui.empty.hidden=false;ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();renderEditor();renderCaptions();toast('Ready for a new project.');
@@ -1008,7 +1008,7 @@ function creatorSelectedStyle(){
  return getStyle($('creatorStyle').value,state.creatorCustom);
 }
 function configureCreatorStyle(style){
- const preset=getStyle('talking')&&style;
+ const preset=style;
  if(state.playing)pause();
  setRatio(preset.ratio);
  state.look=preset.look;
@@ -1027,6 +1027,7 @@ async function runCreatorAutopilot(){
  let style;
  try{style=creatorSelectedStyle()}catch(e){creatorStatus(e.message,0,true);return}
  state.creatorBusy=true;renderTimeline();
+ const startedAt=performance.now();
  const restorePosition=state.position;
  let captionResult=null;
  let steps=['format, colour and finishing style'];
@@ -1058,7 +1059,7 @@ async function runCreatorAutopilot(){
    steps.push('manual captions kept');
   }
   renderTimeline();renderEditor();renderCaptions();renderCreatorHooks();
-  creatorStatus('✓ '+style.name+' finished: '+steps.join(' · ')+'. Review captions and export.',100);
+  creatorStatus('✓ '+style.name+' finished in '+Math.round((performance.now()-startedAt)/1000)+'s: '+steps.join(' · ')+'. Review captions and export.',100);
   toast('One-tap finish completed. Review the preview and export.');
   setTab(captionResult?.captions?.length?'captions':'export');
  }catch(e){
