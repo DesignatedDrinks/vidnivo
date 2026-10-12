@@ -397,6 +397,8 @@ input[type=range]{accent-color:#afc0ff}
         <div class="rb-banner" id="rb-recover" hidden><strong>Previous edit available</strong><p class="rb-note" id="rb-recover-note"></p>
           <div class="rb-row"><button id="rb-restore" class="rb-p" type="button">Restore</button><button id="rb-discard" class="rb-s" type="button">Discard</button></div></div>
         <div class="rb-row rb-directions"><button class="rb-s" data-rb-direction="clean" aria-pressed="false">Clean</button><button class="rb-s" data-rb-direction="punchy" aria-pressed="false">Punchy</button><button class="rb-s" data-rb-direction="editorial" aria-pressed="false">Editorial</button></div>
+        <div class="rb-row"><button class="rb-p" id="rb-highlight" type="button">Find strongest 30s</button><button class="rb-s" id="rb-undo-highlight" type="button" hidden>Undo trim</button></div>
+        <div class="rb-layout"><label>Camera motion<select id="rb-camera"><option value="off">Off</option><option value="subtle">Subtle</option><option value="dynamic">Dynamic</option></select></label></div>
         <div class="rb-layout"><label>Caption font<select id="rb-font"></select></label>
           <label>Post platform<select id="rb-platform"><option>Instagram</option><option>TikTok</option><option>YouTube Shorts</option><option>LinkedIn</option></select></label></div>
         <div class="rb-row"><button id="rb-undo-look" class="rb-s" type="button" hidden>Undo style</button><button id="rb-undo-words" class="rb-s" type="button" hidden>Undo word fix</button></div>
@@ -506,7 +508,7 @@ import {planContinuousExport,PlaybackSyncGuard,inspectRecordedTracks,probeRecord
 import {fontScale,captionAnchor,captionLayout,clampedCaptionAnchor,pointInCaption,gestureDistance,midpoint} from './rollblink-caption-touch.js';
 import {STYLES,getStyle,loadStyle,saveStyle,styleCaptions,planSpeechEdgeTrim,shiftTimedCaptions,suggestOpeningHooks} from './rollblink-autopilot.js';
 import {drawBrandWatermark,normalizeWatermark} from './rollblink-branding.js';
-import {FONT_CHOICES,fontById,transcriptText,draftSocialCopy,EDIT_DIRECTIONS,applyDirection,inspectEdit,projectSnapshot,canRestoreSnapshot,hydrateSnapshot} from './rollblink-creator-kit.js';
+import {FONT_CHOICES,fontById,transcriptText,draftSocialCopy,EDIT_DIRECTIONS,applyDirection,inspectEdit,projectSnapshot,canRestoreSnapshot,hydrateSnapshot,selectContinuousHighlight} from './rollblink-creator-kit.js';
 // ROLLBLINK Browser Studio — all source media remains in local object URLs.
 // Exports use the browser's own MediaRecorder; no video is sent to a server.
 const $ = id => document.getElementById(id);
@@ -516,7 +518,7 @@ const canvas = $('preview');
 const ctx = canvas.getContext('2d', {alpha: false});
 const ui = {videoInput:$('videoInput'),play:$('play'),scrubber:$('scrubber'),timeline:$('timeline'),empty:$('emptyState'),trimStart:$('trimStart'),trimEnd:$('trimEnd'),speed:$('speed'),export:$('export'),status:$('exportStatus'),progress:$('exportProgress'),download:$('download')};
 const state = {
- sources:[], clips:[], captions:[], captionFontId:'inter', selected:null, position:0,
+ sources:[], clips:[], captions:[], captionFontId:'inter', cameraMotion:'off', selected:null, position:0,
  ratio:'9:16', playing:false, exporting:false, captioning:false, selectedTab:'edit',
   look:'original', enhancement:null, editCaptionId:null, faceRetouch:0, faceLoading:false,
   voicePolish:false, creatorBusy:false, creatorStyle:null, creatorCustom:null,
@@ -610,7 +612,10 @@ function drawFrame(){
  ctx.fillStyle='#080a0d';ctx.fillRect(0,0,W,H);
  if(video.readyState>=2&&video.videoWidth>0){
   const factor=Math.min(W/video.videoWidth,H/video.videoHeight);
-  const w=video.videoWidth*factor,h=video.videoHeight*factor;
+  // Smooth, optional digital reframing; never changes source timeline or audio clock.
+  const strength=state.cameraMotion==='dynamic'?.075:state.cameraMotion==='subtle'?.035:0;
+  const zoom=1+strength*(.5+.5*Math.sin(state.position*.43));
+  const w=video.videoWidth*factor*zoom,h=video.videoHeight*factor*zoom;
   drawGradedVideo(ctx,video,(W-w)/2,(H-h)/2,w,h,LOOKS[state.look]||LOOKS.original,state.enhancement);
   if(state.faceRetouch>0&&faceTracker.supported)
    faceTracker.draw(ctx,video,{x:(W-w)/2,y:(H-h)/2,w,h},state.faceRetouch,state.sourceId);
@@ -1300,7 +1305,7 @@ function setTab(tab){state.selectedTab=tab;document.querySelectorAll('[data-tab]
 function reset(){
  if(state.exporting||state.captioning||state.creatorBusy){toast('Finish the current edit before starting a new project.',true);return}
  if(state.clips.length&&!confirm('Start a new project? This removes the current timeline and captions (not the original files).'))return;
- pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];$('creatorHookPanel').hidden=true;state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.faceRetouch=0;state.voicePolish=false;applyVoicePolish();faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;touchPointers.clear();dragAnchor=null;pinchOrigin=null;$('captionFontSize').value='100';$('captionFontSizeLabel').textContent='100%';$('captionTouchStatus').textContent='';$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
+ pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];$('creatorHookPanel').hidden=true;state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.cameraMotion='off';$('rb-camera').value='off';state.faceRetouch=0;state.voicePolish=false;applyVoicePolish();faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;touchPointers.clear();dragAnchor=null;pinchOrigin=null;$('captionFontSize').value='100';$('captionFontSizeLabel').textContent='100%';$('captionTouchStatus').textContent='';$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
  video.removeAttribute('src');video.load();ui.empty.hidden=false;ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();renderEditor();renderCaptions();rbDiscard(false);toast('Ready for a new project.');
 }
 function canvasGesturePoint(event){
@@ -1740,7 +1745,7 @@ $('rb-restore').onclick=()=>{
  try{
   const d=hydrateSnapshot(rbPending,state.sources,key);pause();
   state.clips=d.clips;state.captions=d.captions;state.selected=d.clips[0].id;state.position=0;
-  state.ratio=d.ratio;state.look=d.look;state.voicePolish=d.voicePolish;state.captionFontId=d.fontId;
+  state.ratio=d.ratio;state.look=d.look;state.voicePolish=d.voicePolish;state.enhancement=d.enhancement;state.cameraMotion=d.cameraMotion;state.captionFontId=d.fontId;$('rb-camera').value=d.cameraMotion;
   $('rb-font').value=d.fontId;applyVoicePolish();
   document.querySelectorAll('[data-look]').forEach(b=>b.classList.toggle('active',b.dataset.look===d.look));
   document.querySelectorAll('[data-ratio]').forEach(b=>b.classList.toggle('active',b.dataset.ratio===d.ratio));
@@ -1809,6 +1814,37 @@ $('rb-generate').onclick=async()=>{
 $('rb-copy').onclick=async()=>{
  try{await navigator.clipboard.writeText($('rb-post').value);$('rb-message').textContent='Copied.'}
  catch{$('rb-post').select();$('rb-message').textContent='Select and copy the text.'}
+};
+
+
+let rbTrimUndo=null;
+$('rb-camera').onchange=()=>{
+ if(state.exporting||state.captioning){$('rb-camera').value=state.cameraMotion;return}
+ state.cameraMotion=$('rb-camera').value;requestDraw();rbSave();
+ $('rb-message').textContent='Camera movement is a gentle central crop. Check edges before export.';
+};
+$('rb-highlight').onclick=()=>{
+ if(state.exporting||state.captioning||!state.clips.length)return;
+ if(state.clips.length!==1||state.clips[0].speed!==1){
+  $('rb-message').textContent='Highlight selection requires one continuous clip at 1× speed.';return;
+ }
+ const chosen=selectContinuousHighlight(state.captions,total(),30);
+ if(!chosen){$('rb-message').textContent='Need at least 35 seconds with spoken captions to choose a highlight.';return}
+ rbTrimUndo={clips:state.clips.map(c=>({...c})),captions:state.captions.map(c=>({...c})),position:state.position};
+ const c=state.clips[0],original=c.start;
+ c.start=original+chosen.start;c.end=original+chosen.end;
+ state.captions=state.captions.map(cap=>cap.origin==='title'?{...cap,start:0,end:Math.min(2.5,chosen.end-chosen.start)}:
+  {...cap,start:Math.max(0,cap.start-chosen.start),end:Math.min(chosen.end-chosen.start,cap.end-chosen.start)})
+  .filter(cap=>cap.end>cap.start+.08);
+ state.position=0;$('rb-undo-highlight').hidden=false;
+ pause();renderTimeline();renderEditor();renderCaptions();void seekTimeline(0);rbSave();
+ $('rb-message').textContent='Selected a continuous 30-second spoken highlight. No internal cuts or audio desync. Review before exporting.';
+};
+$('rb-undo-highlight').onclick=()=>{
+ if(!rbTrimUndo)return;
+ state.clips=rbTrimUndo.clips;state.captions=rbTrimUndo.captions;state.position=rbTrimUndo.position;
+ rbTrimUndo=null;$('rb-undo-highlight').hidden=true;
+ pause();renderTimeline();renderEditor();renderCaptions();void seekTimeline(state.position);rbSave();
 };
 
 </script>
