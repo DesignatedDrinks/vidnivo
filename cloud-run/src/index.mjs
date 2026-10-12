@@ -1,7 +1,7 @@
 import {createServer} from 'node:http';
 import {initializeApp,applicationDefault} from 'firebase-admin/app';
 import {getAuth} from 'firebase-admin/auth';
-import {getFirestore,FieldValue} from 'firebase-admin/firestore';
+import {getFirestore,FieldValue,FieldPath} from 'firebase-admin/firestore';
 import {getStorage} from 'firebase-admin/storage';
 import {createHandler} from './core.mjs';
 
@@ -27,12 +27,19 @@ const handler=createHandler({
  saveProfile:async(uid,profile)=>users(uid).set({
   ...profile,updatedAt:FieldValue.serverTimestamp()
  },{merge:true}),
- listMedia:async uid=>{
-  const snap=await users(uid).collection('media').limit(100).get();
-  return snap.docs.map(d=>{
-   const f=d.data();
-   return {assetId:d.id,objectPath:f.objectPath||'',name:f.name||'',contentType:f.contentType||'',size:f.size||0};
-  });
+ listMedia:async(uid,after=null,pageSize=50)=>{
+  let query=users(uid).collection('media').orderBy(FieldPath.documentId());
+  if(after)query=query.startAfter(after);
+  const snap=await query.limit(pageSize+1).get();
+  const page=snap.docs.slice(0,pageSize);
+  return {
+   media:page.map(d=>{
+    const f=d.data();
+    return {assetId:d.id,objectPath:f.objectPath||'',name:f.name||'',
+     contentType:f.contentType||'',size:f.size||0};
+   }),
+   nextCursor:snap.docs.length>pageSize?page[page.length-1].id:null
+  };
  },
  getMedia:async(uid,id)=>{
   const doc=await users(uid).collection('media').doc(id).get();
