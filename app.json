@@ -17,9 +17,25 @@
     },
     "android": {
       "package": "com.vidnivo.editor",
-      "permissions": ["READ_MEDIA_VIDEO", "READ_MEDIA_IMAGES"]
+      "permissions": [
+        "READ_MEDIA_VIDEO",
+        "READ_MEDIA_IMAGES"
+      ]
     },
-    "plugins": ["expo-image-picker", "expo-document-picker", "expo-video", "expo-web-browser"],
+    "plugins": [
+      "expo-image-picker",
+      "expo-document-picker",
+      "expo-video",
+      "expo-web-browser",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow VIDNIVO to record voiceovers for your videos.",
+          "enableBackgroundRecording": false,
+          "enableBackgroundPlayback": false
+        }
+      ]
+    ],
     "extra": {
       "sheetId": "1MclQpsLuNcq4hv28m-UByxImcqLcv1BqO3vcMsIWfYM"
     }

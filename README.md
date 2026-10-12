@@ -64,3 +64,13 @@ Build an Android development APK (not Expo Go) to access native export.
 
 This implementation needs a full Gradle CI build and phone-level export tests
 before being considered ready. Media3 is pinned to 1.9.4. 
+
+## Voiceover recording
+
+Tap **Voiceover** to record from the microphone at the current playhead position.
+Tap **Stop voiceover** to import the recorded M4A to the audio timeline. The
+recording is stored in the app's document directory and its actual duration is
+probed before it is added. Microphone permission is requested when recording
+begins. iOS exports can mix voiceovers; the Android exporter currently refuses
+extra audio tracks until native mixing is implemented. Actual device recording
+and sync must be checked before shipping.

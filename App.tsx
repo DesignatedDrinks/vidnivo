@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import Slider from '@react-native-community/slider';
+import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import { probeAudioDurationMs } from './src/media/audioProbe';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Google from 'expo-auth-session/providers/google';
@@ -50,6 +51,10 @@ function EditorApp() {
   const [busy, setBusy] = useState(false);
   const [lastExport, setLastExport] = useState<string | null>(null);
   const [timelineZoom, setTimelineZoom] = useState(1);
+  const voiceRecorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, directory: 'document' });
+  const recordingState = useAudioRecorderState(voiceRecorder, 250);
+  const voiceoverStart = useRef(0);
+  const recordingLock = useRef(false);
   const [token, setToken] = useState<string | null>(null);
   const undo = useRef<Project[]>([]);
   const redo = useRef<Project[]>([]);
@@ -150,6 +155,33 @@ function EditorApp() {
     } catch (error) { Alert.alert('Import failed', String(error)); }
     finally { setBusy(false); }
   };
+  const toggleVoiceover = async () => {
+    if (!project || recordingLock.current) return;
+    recordingLock.current = true;
+    try {
+      if (!recordingState.isRecording) {
+        setPlaying(false);
+        const permission = await AudioModule.requestRecordingPermissionsAsync();
+        if (!permission.granted) throw new Error('Microphone permission was not granted.');
+        await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
+        voiceoverStart.current = positionMs;
+        await voiceRecorder.prepareToRecordAsync();
+        voiceRecorder.record();
+      } else {
+        await voiceRecorder.stop();
+        const uri = voiceRecorder.uri;
+        await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false });
+        if (!uri) throw new Error('Microphone recorded no audio file.');
+        const recordedUri = await savedMedia(uri, 'voiceover.m4a');
+        const duration = await probeAudioDurationMs(recordedUri);
+        const asset = { id: makeId(), uri: recordedUri, kind: 'audio' as const,
+          filename: 'Voiceover.m4a', durationMs: duration, width: 0, height: 0 };
+        apply(p => addAsset(p, asset, 'audio', voiceoverStart.current));
+      }
+    } catch (e) {
+      Alert.alert('Voiceover', e instanceof Error ? e.message : String(e));
+    } finally { recordingLock.current = false; }
+  };
   const importAudio = async () => {
     if (!project) return;
     try {
@@ -229,7 +261,7 @@ function EditorApp() {
 
   return <View style={[styles.screen, { paddingTop: insets.top + 4, paddingBottom: insets.bottom + 7 }]}>
     <View style={styles.editorBar}>
-      <Tool label="← Projects" onPress={() => { setEditingId(null); setPlaying(false); }} />
+      <Tool label="← Projects" disabled={recordingState.isRecording} onPress={() => { setEditingId(null); setPlaying(false); }} />
       <View style={{ flex: 1, alignItems: 'center' }}><Text style={styles.projectName} numberOfLines={1}>{project.name}</Text><Text style={styles.meta}>Autosaved locally</Text></View>
       <Tool label="Save" disabled={!token || busy} onPress={cloudSave} />
     </View>
@@ -271,8 +303,10 @@ function EditorApp() {
         onSelectText={(id, start) => { setSelectedTextId(id); setSelectedId(null); seek(start); }}
         onSeek={seek} />
       <View style={[styles.controls, { marginTop: 10, paddingHorizontal: 4 }]}>
-        <Tool label="+ Video" onPress={importVisual} disabled={busy} />
-        <Tool label="+ Audio" onPress={importAudio} disabled={busy} />
+        <Tool label="+ Video" onPress={importVisual} disabled={busy || recordingState.isRecording} />
+        <Tool label="+ Audio" onPress={importAudio} disabled={busy || recordingState.isRecording} />
+        <Tool label={recordingState.isRecording ? "■ Stop voiceover" : "● Voiceover"}
+          onPress={toggleVoiceover} disabled={busy} />
         <Tool label="+ Text" onPress={() => setTextPrompt(true)} />
         <Tool label="Undo" onPress={undoAction} disabled={!undo.current.length} />
         <Tool label="Redo" onPress={redoAction} disabled={!redo.current.length} />

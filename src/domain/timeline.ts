@@ -54,11 +54,11 @@ export const createProject = (name = 'Untitled project', aspectRatio: AspectRati
   const now = stamp();
   return { id: makeId(), name, aspectRatio, createdAt: now, updatedAt: now, revision: 1, assets: [], clips: [], texts: [] };
 };
-export function addAsset(p: Project, asset: Asset, track: Track = asset.kind === 'audio' ? 'audio' : 'video'): Project {
+export function addAsset(p: Project, asset: Asset, track: Track = asset.kind === 'audio' ? 'audio' : 'video', startAtMs?: number): Project {
   if (!asset.uri || !Number.isFinite(asset.durationMs) || asset.durationMs <= 0) throw new Error('Invalid media');
   if (p.assets.some(a => a.id === asset.id)) throw new Error('Duplicate asset ID');
   const clip: Clip = {
-    id: makeId(), assetId: asset.id, track, startMs: trackEndMs(p, track),
+    id: makeId(), assetId: asset.id, track, startMs: startAtMs === undefined ? trackEndMs(p, track) : Math.max(0, startAtMs),
     inMs: 0, outMs: asset.durationMs, speed: 1, volume: 1, muted: false
   };
   return touch({ ...p, assets: [...p.assets, asset], clips: [...p.clips, clip] });
