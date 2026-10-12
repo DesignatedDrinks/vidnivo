@@ -289,6 +289,29 @@ function renderEditor(){
  $('deleteClip').disabled=state.exporting;$('duplicate').disabled=state.exporting;
 }
 function edited(){pause();renderTimeline();renderEditor();renderCaptions();requestDraw();toast('Edits updated. Your original video is untouched.');}
+function toggleEnhancement(){
+ if(!state.clips.length||state.exporting||state.captioning){$('enhanceStatus').textContent='Import a video first or finish the current operation.';return;}
+ if(state.enhancement){state.enhancement=null;$('enhanceStatus').textContent='Auto Enhance switched off. Original exposure restored.';requestDraw();return;}
+ if(video.readyState<2||!video.videoWidth){$('enhanceStatus').textContent='Choose a frame of the video first, then try again.';return;}
+ const test=document.createElement('canvas');test.width=64;test.height=64;
+ const c=test.getContext('2d',{willReadFrequently:true});
+ try{c.drawImage(video,0,0,64,64);}catch{$('enhanceStatus').textContent='This frame cannot be analyzed.';return;}
+ const bytes=c.getImageData(0,0,64,64).data;
+ let mean=0,m2=0,chroma=0,n=0;
+ for(let i=0;i<bytes.length;i+=16){
+  const r=bytes[i],g=bytes[i+1],b=bytes[i+2];
+  const lum=(.2126*r+.7152*g+.0722*b)/255;
+  n++;const delta=lum-mean;mean+=delta/n;m2+=delta*(lum-mean);
+  chroma+=(Math.max(r,g,b)-Math.min(r,g,b))/255;
+ }
+ const std=Math.sqrt(m2/Math.max(1,n-1));
+ const brightness=clamp(.51/Math.max(.12,mean),.88,1.22);
+ const contrast=clamp(.25/Math.max(.12,std),.98,1.22);
+ const saturate=clamp(.24/Math.max(.13,chroma/Math.max(1,n)),1.02,1.23);
+ state.enhancement={brightness,contrast,saturate};
+ $('enhanceStatus').textContent='Auto Enhance on · exposure ×'+brightness.toFixed(2)+' · contrast ×'+contrast.toFixed(2)+' · colour ×'+saturate.toFixed(2)+'. Tap again to undo.';
+ requestDraw();
+}
 function setRatio(r){if(!['9:16','1:1','16:9'].includes(r))return;state.ratio=r;document.querySelectorAll('[data-ratio]').forEach(e=>e.classList.toggle('active',e.dataset.ratio===r));drawFrame();renderTimeline()}
 const safeFileName=(name)=>name.replace(/[^a-z0-9_.-]+/gi,'-').slice(0,75)||'untitled';
 async function importFile(file){
@@ -408,9 +431,9 @@ async function startExport(){
 }
 function setTab(tab){state.selectedTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));document.querySelectorAll('.tab-content').forEach(e=>e.hidden=e.id!=='tab-'+tab)}
 function reset(){
- if(state.exporting){toast('Cannot start a new project during export.',true);return}
+ if(state.exporting||state.captioning){toast('Finish exporting or auto captions before starting a new project.',true);return}
  if(state.clips.length&&!confirm('Start a new project? This removes the current timeline and captions (not the original files).'))return;
- pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];state.selected=null;state.position=0;state.sourceId=null;
+ pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
  video.removeAttribute('src');video.load();ui.empty.hidden=false;ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();renderEditor();renderCaptions();toast('Ready for a new project.');
 }
 // Event wiring
@@ -447,6 +470,16 @@ $('addCaption').onclick=()=>{
  state.captions.sort((a,b)=>a.start-b.start);$('captionText').value='';renderCaptions();renderTimeline();void seekTimeline(start);toast('Caption added to the timeline.');
 };
 $('export').onclick=()=>void startExport();
+$('autoEnhance').onclick=toggleEnhancement;
+$('quickEnhance').onclick=()=>{setTab('looks');toggleEnhancement()};
+$('quickCaptions').onclick=()=>{setTab('captions');void runAutoCaptions()};
+document.querySelectorAll('[data-look]').forEach(b=>b.addEventListener('click',()=>{
+ if(state.exporting||state.captioning)return;
+ state.look=b.dataset.look;
+ document.querySelectorAll('[data-look]').forEach(x=>x.classList.toggle('active',x===b));
+ requestDraw();
+ $('enhanceStatus').textContent='Filter: '+b.textContent.trim()+(state.enhancement?' · Auto Enhance active.':'');
+}));
 $('resetProject').onclick=reset;
 video.addEventListener('error',()=>{if(state.sourceId)toast('This video could not be decoded by the browser.',true)});
 const codec=preferredMime();$('outputFormat').textContent=codec?(codec.includes('mp4')?'MP4 / H.264':'WebM video'):'Not available in this browser';
