@@ -45,6 +45,7 @@ import {CloudWorkspace} from './src/ui/CloudWorkspace';
 import {HelpDesk} from './src/ui/HelpDesk';
 import {restoreCloudSession,type CloudSession} from './src/cloud/account';
 import {backUpCloudProject} from './src/cloud/transfer';
+import {listSavedVideos,deleteSavedVideo,formatExportSize,type SavedVideo} from './src/export/library';
 
 WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_ANDROID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
@@ -80,6 +81,8 @@ function EditorApp() {
   const [projectName, setProjectName] = useState('');
   const [busy, setBusy] = useState(false);
   const [lastExport, setLastExport] = useState<string | null>(null);
+  const [savedVideos,setSavedVideos]=useState<SavedVideo[]>([]);
+  const [showAllExports,setShowAllExports]=useState(false);
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [canvasHeight, setCanvasHeight] = useState(355);
   const [exportQuality, setExportQuality] = useState<720 | 1080>(1080);
@@ -117,6 +120,23 @@ function EditorApp() {
   const undo = useRef<Project[]>([]);
   const redo = useRef<Project[]>([]);
   const writeQueue = useRef<Promise<void>>(Promise.resolve());
+  useEffect(()=>{
+    try{setSavedVideos(listSavedVideos());}
+    catch{/* Export storage might be temporarily unavailable; don't crash editor. */}
+  },[editingId,lastExport]);
+  const removeSavedVideo=(video:SavedVideo)=>{
+    Alert.alert('Delete exported MP4?',
+      'This permanently deletes the finished video from this phone, not the project or original footage.',[
+      {text:'Cancel',style:'cancel'},
+      {text:'Delete MP4',style:'destructive',onPress:()=>{
+        try{
+          deleteSavedVideo(video.uri);
+          setSavedVideos(listSavedVideos());
+          if(lastExport===video.uri)setLastExport(null);
+        }catch(e){Alert.alert('Cannot delete export',String(e));}
+      }}
+    ]);
+  };
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: GOOGLE_IOS || 'not-configured.apps.googleusercontent.com',
     androidClientId: GOOGLE_ANDROID || 'not-configured.apps.googleusercontent.com',
@@ -466,7 +486,7 @@ function EditorApp() {
       setPlaying(false); setBusy(true);
       const uri = await exportMp4(project, exportQuality);
       setLastExport(uri);
-      Alert.alert('Video exported', 'Your MP4 is ready to share.', [
+      Alert.alert('Export verified', 'The MP4 passed native video, duration and format checks, and was saved in VIDNIVO’s finished-video library.', [
         { text: 'Done' },
         { text: 'Share', onPress: () => { void shareExport(uri).catch(err => Alert.alert('Could not share', String(err))); } }
       ]);
@@ -600,6 +620,28 @@ function EditorApp() {
         <Tool label="Copy" disabled={busy} onPress={() => duplicateSavedProject(p)} />
         <Tool label="Delete" disabled={busy} onPress={() => deleteProject(p)} />
       </View>)}
+      <View style={{marginTop:18,marginBottom:12,gap:9}}>
+        <View style={styles.row}>
+          <Text style={styles.section}>FINISHED VIDEOS</Text>
+          <Text style={styles.meta}>{savedVideos.length} on this phone</Text>
+        </View>
+        {savedVideos.length===0?<Text style={styles.meta}>Your verified MP4 exports will appear here and remain available after you close VIDNIVO.</Text>:null}
+        {(showAllExports?savedVideos:savedVideos.slice(0,5)).map(video=>
+          <View key={video.uri} style={styles.projectCard}>
+            <View style={{flex:1,gap:3}}>
+              <Text style={styles.projectName} numberOfLines={1}>✓ MP4 ready</Text>
+              <Text style={styles.meta}>{formatExportSize(video.sizeBytes)} · Saved on device</Text>
+            </View>
+            <Tool label="Share" disabled={busy} onPress={()=>{
+              void shareExport(video.uri).catch(e=>Alert.alert('Cannot share video',String(e)));
+            }}/>
+            <Tool label="Delete" disabled={busy} onPress={()=>removeSavedVideo(video)}/>
+          </View>
+        )}
+        {savedVideos.length>5?
+          <Tool label={showAllExports?'Show fewer videos':'Show all '+savedVideos.length+' videos'}
+            onPress={()=>setShowAllExports(value=>!value)}/>:null}
+      </View>
       <CloudWorkspace session={cloudSession} setSession={setCloudSession}
         setProjects={setProjects}/>
     </ScrollView>
