@@ -6,11 +6,11 @@ import * as Sharing from 'expo-sharing';
 
 interface ExportModule { exportProject(payload: string): Promise<string>; }
 export function canExportNatively(): boolean {
-  return Platform.OS === 'ios' && Boolean(requireOptionalNativeModule<ExportModule>('VidnivoExport'));
+  return (Platform.OS === 'ios' || Platform.OS === 'android') && Boolean(requireOptionalNativeModule<ExportModule>('VidnivoExport'));
 }
 export async function exportMp4(project: Project, quality: 720 | 1080 = 1080): Promise<string> {
-  const native = Platform.OS === 'ios' ? requireOptionalNativeModule<ExportModule>('VidnivoExport') : null;
-  if (!native) throw new Error('Native MP4 export requires the iOS development build, not Expo Go.');
+  const native = (Platform.OS === 'ios' || Platform.OS === 'android') ? requireOptionalNativeModule<ExportModule>('VidnivoExport') : null;
+  if (!native) throw new Error('Native MP4 export requires a VIDNIVO development build, not Expo Go.');
   const plan = createExportPlan(project, quality);
   return native.exportProject(JSON.stringify(plan));
 }

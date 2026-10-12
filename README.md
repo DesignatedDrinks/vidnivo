@@ -53,3 +53,14 @@ validated on a physical iPhone. The JavaScript export planner has automated test
 Do not ship the native module without testing text timing, orientation, slow
 motion, source audio mix, file formats, and failure cases on hardware.
 The Android native export implementation remains a separate milestone.
+
+## Android native video export (development)
+Native MP4 export now has a Media3 Transformer implementation in
+`modules/vidnivo-export/android`. It supports consecutive video clips,
+source trimming, constant speed, mute, and fitted output aspect ratio.
+The Android implementation **explicitly rejects text layers, separate
+soundtracks and custom volume** rather than silently dropping those edits.
+Build an Android development APK (not Expo Go) to access native export.
+
+This implementation needs a full Gradle CI build and phone-level export tests
+before being considered ready. Media3 is pinned to 1.9.4. 

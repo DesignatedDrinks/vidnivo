@@ -1,4 +1,5 @@
 {
-  "platforms": ["ios"],
-  "apple": { "modules": ["VidnivoExportModule"] }
+  "platforms": ["ios", "android"],
+  "apple": { "modules": ["VidnivoExportModule"] },
+  "android": { "modules": ["com.vidnivo.export.VidnivoExportModule"] }
 }

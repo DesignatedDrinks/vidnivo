@@ -307,7 +307,7 @@ function EditorApp() {
         <Tool label="Export MP4" disabled={!canExportNatively() || busy} onPress={renderVideo} />
         {lastExport ? <Tool label="Share MP4" onPress={() => shareExport(lastExport).catch(e => Alert.alert('Could not share', String(e)))} /> : null}
       </View>
-      <Text style={styles.disclaimer}>Native MP4 export is available only in the iOS development build and currently supports consecutive video segments with optional audio and titles. Expo Go can preview edits but cannot export. AI effects remain in development.</Text>
+      <Text style={styles.disclaimer}>Native MP4 export requires a development build, not Expo Go. iPhone supports consecutive video clips, audio mixing and titles; Android currently exports consecutive video clips only. AI effects are still in development.</Text>
     </ScrollView>
     <Modal visible={textPrompt} transparent animationType="fade" onRequestClose={() => setTextPrompt(false)}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalBackdrop}>
