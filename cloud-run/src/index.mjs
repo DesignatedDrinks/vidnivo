@@ -72,10 +72,25 @@ const handler=createHandler({
  allowedOrigins:origins,
  storageReady:!!bucket,
  resolveSupport:async(uid,input)=>{
+  // Bound even fallback support calls: authenticated traffic must not cause
+  // unlimited Firestore writes or model charges.
+  await reserveSupportRequest(uid);
   const key=(process.env.OPENAI_SUPPORT_API_KEY||'').trim();
-  // Without a configured model, return deterministic help for free.
-  if(key)await reserveSupportRequest(uid);
-  return diagnoseWithOpenAI(input,{apiKey:key,model:process.env.OPENAI_SUPPORT_MODEL||'gpt-5-mini'});
+  const advice=await diagnoseWithOpenAI(input,{
+   apiKey:key,model:process.env.OPENAI_SUPPORT_MODEL||'gpt-5-mini'
+  });
+  if(advice.action==='none'){
+   // Aggregate unresolved support signals without user-written text,
+   // media names, private files, account email, transcript or token.
+   void users(uid).collection('supportSignals').add({
+    category:advice.category,platform:input.diagnostics.platform,
+    screen:input.diagnostics.screen,
+    saveFailed:input.diagnostics.saveFailed,
+    missingSourceCount:input.diagnostics.missingSourceCount,
+    aiAvailable:advice.aiGenerated,createdAt:FieldValue.serverTimestamp()
+   }).catch(()=>{/* Support remains available if telemetry write fails. */});
+  }
+  return advice;
  },
  verifyToken:token=>getAuth().verifyIdToken(token,true),
  getProfile:async uid=>{
