@@ -127,3 +127,27 @@ export async function saveProjectToSheets(token: string, p: Project): Promise<vo
   await upsert(token, 'TextLayers', p.id, p.texts.map(t => toText(p, t)));
   await upsert(token, 'Projects', p.id, [toProject(p)]);
 }
+
+/**
+ * Soft-delete a project and all its related rows so a cloud pull doesn't
+ * resurrect the deleted project. Media remains on-device; no physical file
+ * deletion occurs. This is not an account erasure endpoint.
+ */
+export async function softDeleteProjectFromSheets(token: string, projectId: string): Promise<void> {
+  if (!projectId) throw new Error('Missing project ID');
+  const tabs: Table[] = ['Projects', 'Assets', 'Clips', 'TextLayers'];
+  const all = await Promise.all(tabs.map(tab => readTable(token, tab)));
+  const changes: { range: string; values: string[][] }[] = [];
+  tabs.forEach((tab, idx) => {
+    const rows = all[idx];
+    const parentColumn = tab === 'Projects' ? 0 : 1;
+    const deletedColumn = rows[0]?.indexOf('deleted') ?? -1;
+    if (deletedColumn < 0) throw new Error('Missing deleted column on ' + tab);
+    rows.slice(1).forEach((row, n) => {
+      if (row[parentColumn] === projectId && row[0] && String(row[deletedColumn]).toUpperCase() !== 'TRUE') {
+        changes.push({ range: tab + '!' + columnName(deletedColumn + 1) + (n + 2), values: [['TRUE']] });
+      }
+    });
+  });
+  await batchWrite(token, changes);
+}

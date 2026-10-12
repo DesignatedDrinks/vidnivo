@@ -14,7 +14,7 @@ import { AudioStage } from './src/ui/AudioStage';
 import { canExportNatively, exportMp4, shareExport } from './src/export/native';
 import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot, editTextLayer } from './src/domain/timeline';
 import { loadLocalProjects, saveLocalProjects } from './src/data/storage';
-import { loadRemoteProjects, saveProjectToSheets } from './src/data/sheets';
+import { loadRemoteProjects, saveProjectToSheets, softDeleteProjectFromSheets } from './src/data/sheets';
 import { VideoStage } from './src/ui/VideoStage';
 import { Timeline } from './src/ui/Timeline';
 import { theme } from './src/ui/theme';
@@ -211,6 +211,20 @@ function EditorApp() {
       Alert.alert('Export unavailable', e instanceof Error ? e.message : String(e));
     } finally { setBusy(false); }
   };
+  const deleteProject = (p: Project) => {
+    Alert.alert('Delete project?', 'This removes the project and its edits from VIDNIVO. Imported media files remain on the device.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try {
+          setBusy(true);
+          if (token) await softDeleteProjectFromSheets(token, p.id);
+          setProjects(existing => existing.filter(item => item.id !== p.id));
+        } catch (e) {
+          Alert.alert('Cannot delete cloud project', 'Local project retained because remote removal failed: ' + String(e));
+        } finally { setBusy(false); }
+      } }
+    ]);
+  };
   const cloudSave = async () => {
     if (!token || !project) return;
     try { setBusy(true); await saveProjectToSheets(token, project); Alert.alert('Saved', 'Project metadata uploaded to Google Sheets. Media remains on this phone.'); }
@@ -241,11 +255,13 @@ function EditorApp() {
     <View style={styles.row}><Text style={styles.section}>YOUR PROJECTS</Text><Text style={styles.meta}>{projects.length} saved</Text></View>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
       {projects.length === 0 && <Text style={styles.empty}>Create a project to start editing.</Text>}
-      {projects.map(p => <Pressable key={p.id} onPress={() => openProject(p)} style={styles.projectCard}>
-        <View style={styles.projectThumbnail}><Text style={{ fontSize: 25, color: theme.accent }}>▶</Text></View>
-        <View style={{ flex: 1 }}><Text style={styles.projectName}>{p.name}</Text><Text style={styles.meta}>{p.aspectRatio}  ·  {fmt(durationMs(p))}  ·  {p.clips.length} clips</Text></View>
-        <Text style={{ color: theme.accent, fontSize: 24 }}>›</Text>
-      </Pressable>)}
+      {projects.map(p => <View key={p.id} style={styles.projectCard}>
+        <Pressable onPress={() => openProject(p)} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={styles.projectThumbnail}><Text style={{ fontSize: 25, color: theme.accent }}>▶</Text></View>
+          <View style={{ flex: 1 }}><Text style={styles.projectName}>{p.name}</Text><Text style={styles.meta}>{p.aspectRatio} · {fmt(durationMs(p))} · {p.clips.length} clips</Text></View>
+        </Pressable>
+        <Tool label="Delete" disabled={busy} onPress={() => deleteProject(p)} />
+      </View>)}
     </ScrollView>
     <View style={styles.connect}>
       <Text style={styles.section}>GOOGLE SHEETS DATABASE</Text>

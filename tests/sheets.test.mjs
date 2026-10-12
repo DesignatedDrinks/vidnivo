@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { addAsset, addText, createProject, removeClip } from '../src/domain/timeline.ts';
-import { loadRemoteProjects, saveProjectToSheets } from '../src/data/sheets.ts';
+import { loadRemoteProjects, saveProjectToSheets, softDeleteProjectFromSheets } from '../src/data/sheets.ts';
 
 function fakeSheets() {
   const sheets = new Map(Object.entries({
@@ -85,4 +85,18 @@ test('detects divergent same-revision cloud save', async t => {
  const p=createProject('Conflict');
  fake.sheets.get('Projects').push([p.id,p.name,'9:16',p.createdAt,'2030-01-01T00:00:00.000Z',String(p.revision),'','FALSE']);
  await assert.rejects(()=>saveProjectToSheets('fake-test-token',p),/changed in Google Sheets/);
+});
+
+test('soft delete marks all project rows and excludes project from cloud load', async t => {
+ const oldFetch=globalThis.fetch, fake=fakeSheets();
+ globalThis.fetch=fake.fetchStub; t.after(()=>{globalThis.fetch=oldFetch;});
+ let p=createProject('Delete demo');
+ p=addAsset(p,{id:'d1',kind:'video',uri:'file:///tmp/d1.mp4',filename:'d1',durationMs:5000,width:1920,height:1080});
+ p=addText(p,'Test',0);
+ await saveProjectToSheets('test',p);
+ await softDeleteProjectFromSheets('test',p.id);
+ assert.equal((await loadRemoteProjects('test')).length,0);
+ for(const name of ['Projects','Assets','Clips','TextLayers']) {
+   assert.equal(fake.sheets.get(name)[1].at(-1),'TRUE',name+' should be soft-deleted');
+ }
 });
