@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { EditorRail, type EditorAction } from './src/ui/EditorRail';
 import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import { probeAudioDurationMs } from './src/media/audioProbe';
+import { pickedMediaDurationMs } from './src/media/mediaDuration';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
@@ -22,7 +23,7 @@ import { planSilenceRemoval, applySilenceRemoval } from './src/domain/silenceCut
 import { splitCaption, mergeCaptionWithNext, nudgeCaption, shiftAllCaptions,
   fixSentenceCase } from './src/domain/captionEditing';
 import { canExportNatively, exportMp4, shareExport } from './src/export/native';
-import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot, editTextLayer, rippleSpeedClip, duplicateProject } from './src/domain/timeline';
+import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot, editTextLayer, rippleSpeedClip, duplicateProject, duplicateClip } from './src/domain/timeline';
 import { loadLocalProjects, saveLocalProjects } from './src/data/storage';
 import { loadRemoteProjects, saveProjectToSheets, softDeleteProjectFromSheets } from './src/data/sheets';
 import { VideoStage } from './src/ui/VideoStage';
@@ -165,7 +166,7 @@ function EditorApp() {
       const assets = await Promise.all(picker.assets.map(async item => ({
         id: makeId(), uri: await savedMedia(item.uri, item.fileName || (item.type === 'video' ? 'video.mp4' : 'photo.jpg')),
         filename: item.fileName || (item.type === 'video' ? 'video.mp4' : 'photo.jpg'), kind: item.type === 'video' ? 'video' as const : 'image' as const,
-        durationMs: item.type === 'video' ? Math.max(500, item.duration ?? 5000) : 5000,
+        durationMs: pickedMediaDurationMs(item.type === 'video' ? 'video' : 'image', item.duration),
         width: item.width || 0, height: item.height || 0
       })));
       apply(p => assets.reduce((current, asset) => addAsset(current, asset), p));
@@ -430,6 +431,8 @@ function EditorApp() {
     { id: 'split', label: 'Split', icon: 'cut-outline', onPress: () => apply(p => splitClip(p, selected.id, positionMs)) },
     { id: 'trim-left', label: 'Trim start', icon: 'play-back-outline', onPress: () => apply(p => rippleTrimClip(p, selected.id, 'left', 500)) },
     { id: 'trim-right', label: 'Trim end', icon: 'play-forward-outline', onPress: () => apply(p => rippleTrimClip(p, selected.id, 'right', -500)) },
+    { id: 'duplicate', label: 'Duplicate', icon: 'duplicate-outline',
+      onPress: () => apply(p => duplicateClip(p, selected.id)) },
     { id: 'before', label: 'Earlier', icon: 'arrow-back-circle-outline', onPress: () => apply(p => reorderClip(p, selected.id, -1)) },
     { id: 'after', label: 'Later', icon: 'arrow-forward-circle-outline', onPress: () => apply(p => reorderClip(p, selected.id, 1)) },
     { id: 'slow', label: '0.5×', icon: 'speedometer-outline', onPress: () => apply(p => rippleSpeedClip(p, selected.id, .5)) },

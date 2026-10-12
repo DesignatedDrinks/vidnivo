@@ -229,3 +229,27 @@ export function duplicateProject(p: Project): Project {
     texts:p.texts.map(t=>({...t,id:makeId()}))
   };
 }
+
+/**
+ * Duplicate the selected clip next to itself. Video clips are inserted into
+ * the primary magnetic track; later clips, independent audio and captions are
+ * moved forward to preserve their positions relative to subsequent footage.
+ * Standalone audio duplicates onto the audio track without rippling video.
+ */
+export function duplicateClip(p: Project, id: string): Project {
+  const original=p.clips.find(c=>c.id===id);
+  if(!original)return p;
+  const duration=clipDurationMs(original);
+  if(!Number.isFinite(duration) || duration < 250) throw Error('Clip is too short to duplicate.');
+  const at=clipEndMs(original);
+  const copy: Clip={...original,id:makeId(),startMs:at};
+  if(original.track==='audio'){
+    return touch({...p,clips:[...p.clips,copy]});
+  }
+  const clips=p.clips.map(c=>
+    c.id!==id && c.startMs>=at-.001 ? {...c,startMs:c.startMs+duration} : c);
+  const texts=p.texts.map(t=>
+    t.startMs>=at-.001 ?
+      {...t,startMs:t.startMs+duration,endMs:t.endMs+duration}:t);
+  return touch({...p,clips:[...clips,copy],texts});
+}
