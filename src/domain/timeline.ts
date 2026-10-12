@@ -45,6 +45,8 @@ export interface Project {
   clips: Clip[];
   texts: TextLayer[];
   look?: LookSetting;
+  /** Last acknowledged Firebase backup version; not an edit revision. */
+  cloudVersion?: number;
 }
 const stamp = () => new Date().toISOString();
 export const makeId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`;
@@ -159,6 +161,8 @@ export function validateProject(p: Project): void {
       !Array.isArray(p.assets) || !Array.isArray(p.clips) || !Array.isArray(p.texts))
     throw new Error('Invalid project metadata');
   if (p.look) resolveLook(p.look);
+  if (p.cloudVersion !== undefined && (!Number.isSafeInteger(p.cloudVersion) || p.cloudVersion < 0))
+    throw new Error('Invalid cloud project version');
   const assetIds = new Set(p.assets.map(a => a.id));
   if (assetIds.size !== p.assets.length) throw new Error('Duplicate assets');
   if (p.assets.some(a =>
