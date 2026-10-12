@@ -348,11 +348,13 @@ input[type=range]{accent-color:#afc0ff}
 .rb-caption-font-shortcuts button span{font-size:28px;line-height:1}
 .rb-caption-font-shortcuts button small{font-size:11px;letter-spacing:0;color:#ccd5e1}
 .rb-caption-font-status{font-size:12px;color:#b9c8d5;margin:10px 0 0}
-</style></head>
+</style><link rel="stylesheet" href="./rollblink-editor-shell.css?v=3" /></head>
 <body>
   <header class="topbar">
+    <button id="mobileClose" class="mobile-top-close" type="button" aria-label="New project">×</button>
     <div class="brand"><img class="brand-mark" src="./rollblink-mark.svg" alt="ROLLBLINK icon" width="37" height="37" /><span class="wordmark"><span>ROLL</span><span class="brand-accent">BLINK</span></span></div>
     <div class="header-actions"><span class="privacy" title="Videos remain on your device"><span class="privacy-dot"></span> Local</span><button id="resetProject" class="button ghost small" title="Start a new project">New project</button></div>
+    <div class="mobile-top-actions"><label class="mobile-quality"><select id="mobileQuality" aria-label="Export resolution"><option value="720">720P</option><option value="1080">1080P</option></select></label><button id="mobileExport" type="button" disabled>Export</button></div>
   </header>
   <main class="app">
     <section class="workbench">
@@ -374,6 +376,7 @@ input[type=range]{accent-color:#afc0ff}
           </div>
           <div id="emptyState" class="empty-state"><div class="empty-symbol"><img src="./rollblink-mark.svg" width="56" height="56" alt="ROLLBLINK" /></div><h2>Your next great cut.</h2><label for="videoInput" class="button primary upload-label">Import video <span aria-hidden="true">↗</span></label></div>
         </div>
+        <button id="mobileFit" class="mobile-fit" type="button" aria-label="Expand video preview">⛶</button>
         <div class="transport"><button id="back5" class="icon-button" aria-label="Back five seconds" disabled>↶ <span>5s</span></button><button id="play" class="play-button" aria-label="Play video" disabled>▶</button><button id="forward5" class="icon-button" aria-label="Forward five seconds" disabled><span>5s</span> ↷</button><div class="timecounter"><b id="currentTime">00:00.0</b> <span>/</span> <span id="totalTime">00:00.0</span></div></div>
       </div>
       <section class="autopilot-card" aria-label="Quick finish">
@@ -422,9 +425,26 @@ input[type=range]{accent-color:#afc0ff}
         <label>Session access token<input id="rb-token" type="password" autocomplete="off" placeholder="Not your OpenAI key"></label></details>
         <p id="rb-message" class="rb-note" role="status">Video stays local. Copy drafts use captions unless a protected AI server is connected.</p>
       </section>
-      <div class="timeline-card"><div class="section-head"><div><h2 class="timeline-title">Timeline</h2></div><div class="section-actions"><label for="videoInput" class="button ghost small">+ Import</label><button id="split" class="button secondary small" disabled>✂ Split</button></div></div>
+      <div class="timeline-card">
+        <div class="section-head"><div><h2 class="timeline-title">Timeline</h2></div><div class="section-actions"><label for="videoInput" class="button ghost small">+ Import</label><button id="split" class="button secondary small" disabled>✂ Split</button></div></div>
+        <div class="mobile-timeline-top"><span><b id="mobileCurrentTime">00:00</b> / <span id="mobileTotalTime">00:00</span></span><span>Drag to scrub</span></div>
         <input id="scrubber" type="range" min="0" max="0" value="0" step="0.05" aria-label="Video playhead" disabled />
-        <div id="timeline" class="clip-track"><div class="blank-track">Import a video to see your timeline</div></div>
+        <div class="mobile-track-layout">
+          <div class="mobile-track-tools">
+            <span class="mobile-track-empty" aria-hidden="true"></span>
+            <button id="mobileMute" type="button"><span class="mobile-tool-icon" aria-hidden="true">♫</span><span>Mute audio</span></button>
+            <button id="mobileAddCaption" type="button"><span class="mobile-tool-icon" aria-hidden="true">CC</span><span>Add caption</span></button>
+          </div>
+          <div id="mobileTimelineScroll" class="mobile-timeline-scroll" aria-label="Scrollable video and caption timeline">
+            <div id="mobileTimelineContent" class="mobile-timeline-content">
+              <div id="mobileTimelineTicks" class="mobile-timeline-ticks" aria-hidden="true"></div>
+              <div id="timeline" class="clip-track"><div class="blank-track">Import a video to see your timeline</div></div>
+              <div id="mobileCaptionTrack" class="mobile-caption-track" aria-label="Timed captions"></div>
+              <div id="mobileOriginalAudio" class="mobile-original-audio"><span>♫</span> Original audio</div>
+              <div id="mobilePlayhead" class="mobile-playhead" aria-hidden="true"></div>
+            </div>
+          </div>
+        </div>
         <div class="timeline-help"><span id="clipCount">0 clips</span></div>
       </div>
     </section>
@@ -432,6 +452,8 @@ input[type=range]{accent-color:#afc0ff}
       <div class="panel inspector-tabs"><button class="inspector-tab active" data-tab="edit">Edit</button><button class="inspector-tab" data-tab="captions">Captions</button><button class="inspector-tab" data-tab="looks">Looks</button><button class="inspector-tab" data-tab="export">Export</button></div>
       <div id="tab-edit" class="panel tab-content">
         <div class="panel-head"><h2>Edit</h2></div>
+        <label class="field-label mobile-aspect-ratio" for="mobileRatio">Video format
+          <select id="mobileRatio"><option value="9:16">9:16 · Reels / Shorts</option><option value="1:1">1:1 · Square</option><option value="16:9">16:9 · Wide</option></select></label>
         <div class="button-row quick-actions"><button id="quickEnhance" class="button secondary" type="button">Auto enhance</button><button id="quickCaptions" class="button ghost" type="button">Auto captions</button></div>
         <div id="editEmpty" class="hint-block">Import a video to start.</div>
         <div id="editControls" hidden>
@@ -527,6 +549,51 @@ input[type=range]{accent-color:#afc0ff}
       <div class="footer-note"><img src="./rollblink-mark.svg" width="17" height="17" alt="" /> Private, on-device editing <span class="footer-beta">· Web beta</span></div>
     </aside>
   </main>
+  <div id="mobileDrawerBackdrop" class="mobile-drawer-backdrop" aria-hidden="true"></div>
+  <section class="mobile-caption-context" id="mobileCaptionContext" aria-label="Selected caption">
+    <div class="mobile-context-grabber" aria-hidden="true"></div>
+    <div class="mobile-context-caption-row">
+      <button id="mobileEditSelected" type="button" class="mobile-context-pencil" aria-label="Edit selected caption">✎</button>
+      <div id="mobileSelectedCaption" class="mobile-caption-selected empty">Select a caption on the timeline</div>
+      <div id="mobileCaptionTime" class="mobile-caption-time">00:00 – 00:00</div>
+    </div>
+    <div class="mobile-context-actions">
+      <button type="button" data-mobile-context="style" class="active"><span class="mobile-icon" aria-hidden="true">Aa</span><span>Style</span></button>
+      <button type="button" data-mobile-context="edit"><span class="mobile-icon" aria-hidden="true">✎</span><span>Edit text</span></button>
+      <button type="button" data-mobile-context="auto"><span class="mobile-icon" aria-hidden="true">✧</span><span>Auto captions</span></button>
+      <button type="button" data-mobile-context="split"><span class="mobile-icon" aria-hidden="true">⋈</span><span>Split</span></button>
+      <button type="button" data-mobile-context="delete"><span class="mobile-icon" aria-hidden="true">⌫</span><span>Delete</span></button>
+    </div>
+  </section>
+  <section id="mobileAudioPanel" class="mobile-audio-panel" aria-label="Audio settings">
+    <h3>Audio</h3>
+    <label><input type="checkbox" id="mobileAudioMuted"> Mute original video audio</label>
+    <label><input type="checkbox" id="mobileVoicePolish"> Voice enhancement</label>
+    <p>Audio stays linked to the source video. The exporter validates synchronization before downloading.</p>
+  </section>
+  <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Editing tools">
+    <button type="button" data-mobile-tool="edit" class="active" aria-label="Edit video">
+      <span class="mobile-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8 8l12 12M8 16L20 4"/></svg></span><span>Edit</span>
+    </button>
+    <button type="button" data-mobile-tool="audio" aria-label="Edit audio">
+      <span class="mobile-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></span><span>Audio</span>
+    </button>
+    <button type="button" data-mobile-tool="text" aria-label="Add text">
+      <span class="mobile-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16M12 5v15"/></svg></span><span>Text</span>
+    </button>
+    <button type="button" data-mobile-tool="effects" aria-label="Video effects">
+      <span class="mobile-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 2 2.9 6.2L22 9l-5.2 4.6 1.5 7L12 17l-6.3 3.6 1.5-7L2 9l7.1-.8z"/></svg></span><span>Effects</span>
+    </button>
+    <button type="button" data-mobile-tool="overlay" aria-label="Watermark and overlay">
+      <span class="mobile-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m5 17 5-6 3 3 3-4 4 5"/><circle cx="8" cy="8" r="1"/></svg></span><span>Overlay</span>
+    </button>
+    <button type="button" data-mobile-tool="captions" aria-label="Caption editor">
+      <span class="mobile-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M5 11h14M5 15h9"/></svg></span><span>Captions</span>
+    </button>
+    <button type="button" data-mobile-tool="generate" aria-label="Generate social copy">
+      <span class="mobile-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/></svg></span><span>Generate</span>
+    </button>
+  </nav>
   <input id="videoInput" type="file" accept="video/*" hidden />
   <video id="sourceVideo" playsinline preload="auto" crossorigin="anonymous" style="position:fixed;left:0;top:0;width:2px;height:2px;opacity:.001;pointer-events:none;z-index:-1" aria-hidden="true"></video>
   <script type="module">import {drawGradedVideo} from './rollblink-filters.js';
