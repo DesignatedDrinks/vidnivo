@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Backend writes use Google Application Default Credentials and Admin SDK.
+    // Browser/mobile clients may read only their own registered metadata.
+    match /users/{userId} {
+      allow get: if request.auth != null && request.auth.uid == userId;
+      allow list, create, update, delete: if false;
+      match /media/{assetId} {
+        allow get, list: if request.auth != null && request.auth.uid == userId;
+        allow create, update, delete: if false;
+      }
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
