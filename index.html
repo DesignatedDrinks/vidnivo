@@ -271,7 +271,11 @@ function renderTimeline(){
   ui.timeline.append(b);
  });
  $('clipCount').textContent=state.clips.length+' clip'+(state.clips.length===1?'':'s');
- ['back5','forward5','split','play','scrubber','export'].forEach(id=>$(id).disabled=!state.clips.length||state.exporting);
+ ['back5','forward5','split','play','scrubber','export'].forEach(id=>$(id).disabled=!state.clips.length||state.exporting||state.captioning);
+  $('autoCaptions').disabled=!state.clips.length||state.exporting||state.captioning;
+  $('quickCaptions').disabled=!state.clips.length||state.exporting||state.captioning;
+  $('quickEnhance').disabled=!state.clips.length||state.exporting||state.captioning;
+  $('autoEnhance').disabled=!state.clips.length||state.exporting||state.captioning;
  $('exportSummary').textContent=state.clips.length?`${fmt(total())} edited runtime · ${state.clips.length} clip${state.clips.length===1?'':'s'} · ${state.captions.length} caption${state.captions.length===1?'':'s'} · ${state.ratio}`:'Import a video to calculate the edited runtime.';
  syncPosition();
 }
@@ -316,7 +320,8 @@ function setRatio(r){if(!['9:16','1:1','16:9'].includes(r))return;state.ratio=r;
 const safeFileName=(name)=>name.replace(/[^a-z0-9_.-]+/gi,'-').slice(0,75)||'untitled';
 async function importFile(file){
  if(!file)return;
- if(!file.type.startsWith('video/')){toast('Choose an MP4, MOV, or another playable video file.',true);return}
+ if(state.captioning){toast('Finish auto captions before importing another video.',true);return}
+  if(!file.type.startsWith('video/')){toast('Choose an MP4, MOV, or another playable video file.',true);return}
  const url=URL.createObjectURL(file),probe=document.createElement('video');probe.preload='metadata';probe.playsInline=true;probe.src=url;
  try{
   const seconds=await new Promise((resolve,reject)=>{
@@ -360,7 +365,10 @@ function setupAudio(){
  if(!AudioContext)return;
  const context=new AudioContext();
  const source=context.createMediaElementSource(video);const destination=context.createMediaStreamDestination();
- source.connect(destination);source.connect(context.destination);
+ source.connect(destination);
+  const monitor=context.createGain();
+  source.connect(monitor);monitor.connect(context.destination);
+  state.audioMonitor=monitor;
  state.audioContext=context;state.audioDestination=destination;state.audioInput=source;
 }
 const waitRecorderStop=recorder=>new Promise((resolve,reject)=>{
@@ -369,7 +377,7 @@ const waitRecorderStop=recorder=>new Promise((resolve,reject)=>{
 });
 let exportTimer=null;
 async function startExport(){
- if(!state.clips.length||state.exporting)return;
+ if(!state.clips.length||state.exporting||state.captioning)return;
  if(!canvas.captureStream||!window.MediaRecorder){toast('This browser cannot record the editing canvas. Try recent Safari or Chrome.',true);return}
  const mime=preferredMime();if(!mime){toast('This browser does not have a supported video recording format.',true);return}
  const originalQuality=$('quality').value;
@@ -471,6 +479,7 @@ $('addCaption').onclick=()=>{
 };
 $('export').onclick=()=>void startExport();
 $('autoEnhance').onclick=toggleEnhancement;
+$('autoCaptions').onclick=()=>void runAutoCaptions();
 $('quickEnhance').onclick=()=>{setTab('looks');toggleEnhancement()};
 $('quickCaptions').onclick=()=>{setTab('captions');void runAutoCaptions()};
 document.querySelectorAll('[data-look]').forEach(b=>b.addEventListener('click',()=>{
