@@ -19,7 +19,7 @@ private enum PhotoRenderError: LocalizedError {
  * The photo is drawn with contain sizing on an opaque canvas, matching preview.
  * The temporary MOV is deleted by the caller after the final MP4 export.
  */
-func vidnivoRenderPhotoClip(_ source: URL, targetSize: CGSize, durationMs: Double) async throws -> URL {
+func rollblinkRenderPhotoClip(_ source: URL, targetSize: CGSize, durationMs: Double) async throws -> URL {
   guard let photo = UIImage(contentsOfFile: source.path), photo.size.width > 0,
         photo.size.height > 0 else {
     throw PhotoRenderError.cannotDecode
@@ -67,7 +67,7 @@ func vidnivoRenderPhotoClip(_ source: URL, targetSize: CGSize, durationMs: Doubl
   CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
 
   let url = FileManager.default.temporaryDirectory
-    .appendingPathComponent("vidnivo-photo-\(UUID().uuidString).mov")
+    .appendingPathComponent("rollblink-photo-\(UUID().uuidString).mov")
   do {
     let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
     let settings: [String: Any] = [

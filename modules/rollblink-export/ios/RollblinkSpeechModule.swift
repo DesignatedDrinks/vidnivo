@@ -12,16 +12,16 @@ private enum SpeechError: LocalizedError {
   }
 }
 
-public class VidnivoSpeechModule: Module {
+public class RollblinkSpeechModule: Module {
   public func definition() -> ModuleDefinition {
-    Name("VidnivoSpeech")
+    Name("RollblinkSpeech")
     AsyncFunction("transcribeFile") { (uri: String, language: String, promise: Promise) in
       Task {
         do {
           let words = try await self.transcribe(uri: uri, language: language)
           promise.resolve(words)
         } catch {
-          promise.reject("VIDNIVO_SPEECH", error.localizedDescription)
+          promise.reject("ROLLBLINK_SPEECH", error.localizedDescription)
         }
       }
     }
@@ -63,7 +63,7 @@ public class VidnivoSpeechModule: Module {
       throw SpeechError.unavailable("Unable to prepare the audio for transcription.")
     }
     let audioURL = FileManager.default.temporaryDirectory
-      .appendingPathComponent("vidnivo-speech-\(UUID().uuidString).m4a")
+      .appendingPathComponent("rollblink-speech-\(UUID().uuidString).m4a")
     extractor.outputURL = audioURL
     extractor.outputFileType = .m4a
     defer { try? FileManager.default.removeItem(at: audioURL) }

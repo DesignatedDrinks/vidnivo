@@ -121,7 +121,7 @@ private func makeTextLayer(_ text: RenderText, size: CGSize, duration: Double) -
   animation.duration = duration / 1000.0
   animation.isRemovedOnCompletion = false
   animation.fillMode = .both
-  layer.add(animation, forKey: "vidnivo-timeline-opacity")
+  layer.add(animation, forKey: "rollblink-timeline-opacity")
   return layer
 }
 private func fitTransform(_ source: AVAssetTrack, naturalSize: CGSize,
@@ -137,9 +137,9 @@ private func fitTransform(_ source: AVAssetTrack, naturalSize: CGSize,
     .concatenating(CGAffineTransform(translationX: dx, y: dy))
 }
 
-public class VidnivoExportModule: Module {
+public class RollblinkExportModule: Module {
   public func definition() -> ModuleDefinition {
-    Name("VidnivoExport")
+    Name("RollblinkExport")
     AsyncFunction("exportProject") { (json: String, promise: Promise) in
       Task {
         do {
@@ -148,7 +148,7 @@ public class VidnivoExportModule: Module {
           let output = try await self.createMovie(request)
           promise.resolve(output.absoluteString)
         } catch {
-          promise.reject("VIDNIVO_EXPORT", error.localizedDescription)
+          promise.reject("ROLLBLINK_EXPORT", error.localizedDescription)
         }
       }
     }
@@ -183,7 +183,7 @@ public class VidnivoExportModule: Module {
       let inputURL = try sourceURL(clip.uri)
       let mediaURL: URL
       if isPhoto {
-        mediaURL = try await vidnivoRenderPhotoClip(
+        mediaURL = try await rollblinkRenderPhotoClip(
           inputURL, targetSize: size, durationMs: displayedMs)
         temporaryStills.append(mediaURL)
       } else {
@@ -279,7 +279,7 @@ public class VidnivoExportModule: Module {
       throw RenderError.exportFailed("Unable to initialize the iOS video exporter.")
     }
     let destination = FileManager.default.temporaryDirectory
-      .appendingPathComponent("vidnivo-\(UUID().uuidString)").appendingPathExtension("mp4")
+      .appendingPathComponent("rollblink-\(UUID().uuidString)").appendingPathExtension("mp4")
     export.outputURL = destination
     export.outputFileType = .mp4
     export.shouldOptimizeForNetworkUse = true

@@ -1,5 +1,5 @@
 {
-  "name": "vidnivo-firestore-storage-rules-tests",
+  "name": "rollblink-firestore-storage-rules-tests",
   "private": true,
   "type": "module",
   "devDependencies": {

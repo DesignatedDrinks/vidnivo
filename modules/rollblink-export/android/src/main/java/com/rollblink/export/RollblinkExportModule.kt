@@ -1,4 +1,4 @@
-package com.vidnivo.export
+package com.rollblink.export
 
 import android.net.Uri
 import android.graphics.Color
@@ -45,13 +45,13 @@ import kotlin.math.max
  * Media3 runs asynchronously and responds via its completion listener.
  */
 @OptIn(UnstableApi::class)
-class VidnivoExportModule : Module() {
+class RollblinkExportModule : Module() {
   override fun definition() = ModuleDefinition {
-    Name("VidnivoExport")
+    Name("RollblinkExport")
     AsyncFunction("exportProject") { payload: String, promise: Promise ->
       val context = appContext.reactContext
       if (context == null) {
-        promise.reject("VIDNIVO_CONTEXT", "Android application context is unavailable.", null)
+        promise.reject("ROLLBLINK_CONTEXT", "Android application context is unavailable.", null)
         return@AsyncFunction
       }
       Handler(Looper.getMainLooper()).post {
@@ -221,7 +221,7 @@ class VidnivoExportModule : Module() {
             compositionBuilder.setEffects(Effects(emptyList(),listOf(OverlayEffect(overlays))))
           }
           val composition=compositionBuilder.build()
-          val file = File(context.cacheDir, "vidnivo-${UUID.randomUUID()}.mp4")
+          val file = File(context.cacheDir, "rollblink-${UUID.randomUUID()}.mp4")
           val transformer = Transformer.Builder(context)
             .setVideoMimeType(MimeTypes.VIDEO_H264)
             .setAudioMimeType(MimeTypes.AUDIO_AAC)
@@ -231,12 +231,12 @@ class VidnivoExportModule : Module() {
               }
               override fun onError(composition: Composition, result: ExportResult, exception: ExportException) {
                 file.delete()
-                promise.reject("VIDNIVO_EXPORT", exception.message ?: "Android MP4 export failed.", exception)
+                promise.reject("ROLLBLINK_EXPORT", exception.message ?: "Android MP4 export failed.", exception)
               }
             }).build()
           transformer.start(composition, file.absolutePath)
         } catch (e: Exception) {
-          promise.reject("VIDNIVO_EXPORT", e.message ?: "Unable to start Android export.", e)
+          promise.reject("ROLLBLINK_EXPORT", e.message ?: "Unable to start Android export.", e)
         }
       }
     }
