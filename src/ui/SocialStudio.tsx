@@ -72,7 +72,7 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
  const generate=async()=>{
   if(!hasKey){Alert.alert('Add an OpenAI key','Save your API key before generating posts.');return;}
   Alert.alert('Generate five post captions?',
-   'VIDNIVO will send the spoken subtitle text and your instructions to your OpenAI API account. API charges may apply.',[
+   'ROLLBLINK will send the spoken subtitle text and your instructions to your OpenAI API account. API charges may apply.',[
     {text:'Cancel',style:'cancel'},
     {text:'Generate',onPress:()=>{
      void (async()=>{
