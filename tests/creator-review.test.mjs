@@ -20,7 +20,7 @@ test('reports caption overlaps, reading speed, long text and safe zones',()=>{
  let project=addAsset(createProject(),clip('clip'));
  project=addCaptionCues(project,[
   {startMs:100,endMs:290,text:'A very short title.'},
-  {startMs:200,endMs:1000,text:'B'.repeat(130)},
+  {startMs:160,endMs:1000,text:'B'.repeat(130)},
   {startMs:2500,endMs:3900,text:'Beyond video'}
  ]);
  project=editTextLayer(project,project.texts[1].id,{y:.91});
