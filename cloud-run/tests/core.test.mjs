@@ -168,3 +168,23 @@ test('media list uses stable paginated cursors and rejects malformed cursors',as
  const invalid=await fetch(base+'/api/v1/media?after=%2E%2E',{headers});
  assert.equal(invalid.status,400);
 });
+
+test('a library larger than 50 files is retrievable without duplicates',async t=>{
+ const deps=fakeDeps();
+ for(let n=0;n<53;n++){
+  const assetId='clip'+String(n).padStart(8,'0');
+  await deps.registerMedia(user,{assetId,name:assetId+'.mp4',
+   objectPath:'users/'+user+'/media/'+assetId+'/sample.mp4',size:8});
+ }
+ const base=await fixture(t,deps);
+ const first=await fetch(base+'/api/v1/media',{headers});
+ const firstPage=await first.json();
+ assert.equal(firstPage.media.length,50);
+ assert.match(firstPage.nextCursor,/^clip\d{8}$/);
+ const second=await fetch(base+'/api/v1/media?after='+firstPage.nextCursor,{headers});
+ const secondPage=await second.json();
+ assert.equal(secondPage.media.length,3);
+ assert.equal(secondPage.nextCursor,null);
+ const ids=[...firstPage.media,...secondPage.media].map(item=>item.assetId);
+ assert.equal(new Set(ids).size,53);
+});
