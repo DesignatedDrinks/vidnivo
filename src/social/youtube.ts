@@ -10,7 +10,7 @@ export async function uploadVideoToYouTube(uri:string,oauthToken:string,
  const location=await beginYouTubeUpload(oauthToken,{title,description,privacy,size});
  const result=await LegacyFileSystem.uploadAsync(location,uri,{
   httpMethod:'PUT',uploadType:LegacyFileSystem.FileSystemUploadType.BINARY_CONTENT,
-  headers:{'Content-Type':'video/mp4','Content-Length':String(size)}
+  headers:{Authorization:'Bearer '+oauthToken,'Content-Type':'video/mp4','Content-Length':String(size)}
  });
  return completedYouTubeUpload(result.status,result.body);
 }
