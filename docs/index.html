@@ -7,6 +7,7 @@
   <meta name="description" content="VIDNIVO Studio — a private, browser-based video editor. Import, trim, caption and export locally." />
   <title>VIDNIVO Studio — Video Editor</title>
   <style>:root{color-scheme:dark;--bg:#101116;--panel:#1b1d24;--panel2:#22252c;--line:#333842;--text:#f5f8fc;--muted:#9ba3af;--accent:#27d2e5;--accent-dark:#07363f;--danger:#ed8c89;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#171b23 0,#101116 250px);color:var(--text);font-size:14px}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.42;cursor:not-allowed}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.topbar{height:67px;border-bottom:1px solid #30333b;display:flex;justify-content:space-between;align-items:center;padding:0 clamp(14px,3vw,42px);background:#12151a}.brand{font-size:23px;letter-spacing:-1.5px;font-weight:950;display:flex;align-items:center}.brand-accent{color:var(--accent)}.brand-pill{font-size:9px;letter-spacing:1.5px;margin-left:12px;padding:5px 7px;border:1px solid #536572;border-radius:5px;color:#bdced4}.header-actions{display:flex;align-items:center;gap:18px}.privacy{color:#b6c4c9;font-size:12px}.privacy-dot{display:inline-block;background:#66dcac;width:7px;height:7px;border-radius:50%;margin-right:6px}.app{display:grid;grid-template-columns:minmax(0,1fr) 354px;gap:20px;max-width:1460px;margin:auto;padding:24px clamp(15px,3vw,40px) 45px}.workbench,.inspector{min-width:0}.workbench{display:flex;flex-direction:column;gap:18px}.stage-top{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:3px 0 0}.eyebrow,.section-label{font-size:10px;font-weight:850;letter-spacing:1.8px;color:var(--accent)}h1{font-size:clamp(25px,3vw,38px);margin:9px 0 5px;line-height:1.1;letter-spacing:-1px}h2{font-size:21px;line-height:1.2;margin:7px 0 0;letter-spacing:-.5px}.muted,.subheading,.section-desc{color:var(--muted)}.subheading{margin:0;font-size:13px}.tag{font-size:10px;white-space:nowrap;background:#303238;color:#cdd4da;padding:9px 11px;border-radius:30px;font-weight:700;letter-spacing:.8px}.viewer,.timeline-card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:15px}.viewer{overflow:hidden}.viewer-toolbar{height:52px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #30343c}.ratio-pills{display:flex;gap:6px}.pill{border:1px solid #3d414b;background:#262a31;color:#b5bec9;padding:6px 10px;border-radius:7px;font-size:12px}.pill.active{background:#0f3d47;color:#54e1f1;border-color:#226c77}.preview-wrap{position:relative;background:repeating-linear-gradient(45deg,#101217,#101217 12px,#12141a 12px,#12141a 24px);height:clamp(340px,49vh,510px);display:flex;align-items:center;justify-content:center;padding:15px;overflow:hidden}#preview{height:100%;width:auto;max-width:100%;object-fit:contain;background:#08090d;box-shadow:0 15px 35px #0009;border-radius:4px}.empty-state{position:absolute;inset:0;background:#101218ed;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:25px;gap:11px}.empty-state[hidden]{display:none}.empty-state h2{font-size:23px;margin:5px 0 0}.empty-state p{max-width:260px;color:var(--muted);line-height:1.5;margin:0 0 10px}.empty-symbol{font-size:44px;color:var(--accent);border:1px solid #264e56;border-radius:18px;padding:15px 20px}.tiny{font-size:11px;color:#8a929d}.button{display:inline-flex;justify-content:center;align-items:center;border:1px solid #454b58;padding:11px 14px;border-radius:9px;background:#30353f;color:var(--text);font-weight:700;min-height:40px;white-space:nowrap;text-decoration:none;text-align:center;gap:6px}.button.primary{color:#06232a;background:var(--accent);border-color:var(--accent)}.button.primary:hover{background:#5de4ee}.button.secondary{background:#16424d;border-color:#256c7b;color:#8deaf4}.button.ghost{background:#292d35;color:#d7e1ea}.button.danger{background:#362b33;color:#efb3b3;border-color:#6e454e}.button.small{padding:8px 11px;min-height:34px;font-size:12px}.button.full{width:100%}.transport{display:flex;align-items:center;justify-content:center;gap:13px;height:66px;border-top:1px solid #30343c}.icon-button,.play-button{border:0;background:transparent;color:#e9f0f5;display:flex;gap:3px;align-items:center;justify-content:center}.icon-button span{font-size:11px}.play-button{width:41px;height:41px;background:#2d3640;border-radius:50%;font-size:18px}.timecounter{position:absolute;right:calc(354px + clamp(15px,3vw,40px) + 46px);font-variant-numeric:tabular-nums;font-size:12px;color:#9aabba}.timecounter b{color:white}.timecounter span{margin-left:3px}.timeline-card{padding:19px}.section-head,.section-actions,.button-row,.info-line{display:flex;justify-content:space-between;align-items:center;gap:10px}.section-head{flex-wrap:wrap}.section-desc{font-size:11px;margin:8px 0 0}.section-actions{gap:7px}.timeline-card input[type=range]{width:100%;margin:22px 0 13px}.clip-track{display:flex;gap:5px;overflow:auto;min-height:89px;padding-bottom:7px;border-bottom:1px solid #373c45}.clip{background:#294952;color:#dcf4f6;border:2px solid #346371;border-radius:8px;min-width:70px;min-height:79px;flex:1 0 0;padding:8px;display:flex;flex-direction:column;justify-content:space-between;text-align:left}.clip.selected{border-color:#64e8f4;box-shadow:0 0 0 1px #64e8f4}.clip-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;font-weight:800}.clip-time{font-size:11px;color:#b5dde4}.clip-number{font-size:10px;color:#84e2ed}.blank-track{display:flex;align-items:center;justify-content:center;flex:1;background:#232830;border-radius:8px;color:#919aa7;font-size:12px}.timeline-help{display:flex;justify-content:space-between;font-size:11px;color:#929ba7;margin-top:12px}.inspector{display:flex;flex-direction:column;gap:12px}.panel{padding:20px}.inspector-tabs{display:flex;padding:5px;gap:4px}.inspector-tab{flex:1;border:0;border-radius:9px;background:transparent;color:#9ba5b1;font-weight:700;padding:12px}.inspector-tab.active{background:#33414a;color:#67dfeb}.panel-head{margin-bottom:22px}.hint-block{color:#aebbc6;background:#242a33;line-height:1.7;border-radius:10px;padding:15px}.info-line{color:var(--muted);margin:15px 0;font-size:12px}.info-line strong{color:var(--text);font-size:12px}.field-group{margin:20px 0}.field-group label{display:flex;justify-content:space-between;color:#bfc9d4;font-size:12px}.field-group input{width:100%;margin:15px 0 0}input[type=range]{accent-color:var(--accent);touch-action:pan-y}.button-row{margin:10px 0}.button-row>*{flex:1;min-width:0}.two-cols{align-items:flex-end;gap:11px}.field-label{display:block;color:#c0cbd6;font-size:12px;margin:14px 0 8px}textarea,input[type=number],select{width:100%;border:1px solid #49515c;background:#242831;border-radius:9px;padding:11px;color:var(--text);margin-top:8px;outline:0}textarea{resize:vertical}.fine-print{font-size:11px;color:#9ba6b1;line-height:1.65;margin:16px 0 0}.spacing-top{margin-top:25px}.captions-list{display:flex;flex-direction:column;gap:8px;margin-top:12px;max-height:260px;overflow:auto}.caption-item{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#282d35;border-radius:9px;padding:11px}.caption-item strong{display:block;font-size:12px;font-weight:600;margin-bottom:4px;overflow-wrap:anywhere}.caption-item span{font-size:10px;color:#afbdc7}.caption-item button{background:transparent;border:1px solid #70555c;border-radius:6px;color:#f2b0b0;padding:6px}.export-summary{background:#232c33;border:1px solid #31505b;border-radius:9px;padding:13px;margin:15px 0 19px;line-height:1.8;color:#d4e0e6;font-size:12px}.export-button{min-height:48px}.progress{height:6px;border-radius:8px;overflow:hidden;background:#323b43;margin:14px 0}.progress>div{height:100%;width:0;background:var(--accent);transition:width .2s}.status{line-height:1.6;color:#d3e1e8;font-size:12px;margin-top:12px;min-height:16px}.footer-note{padding:14px;color:#808d9a;font-size:11px;line-height:1.8}.footer-note b{color:#b7c7d2}@media(max-width:1030px){.app{grid-template-columns:minmax(0,1fr) 310px}.timecounter{right:calc(310px + clamp(15px,3vw,40px) + 31px)}}@media(max-width:770px){.app{display:block;padding:15px 12px 50px}.inspector{margin-top:13px}.stage-top{margin-bottom:14px}.viewer{margin-bottom:12px}.preview-wrap{height:44vh;min-height:310px;max-height:540px}.transport{justify-content:flex-start;padding-left:20px}.timecounter{position:static;margin-left:auto;margin-right:16px}.timeline-card{padding:14px;margin-bottom:8px}.panel{padding:16px}.inspector-tabs{padding:5px}.privacy{display:none}.topbar{height:58px;padding:0 14px}.brand{font-size:21px}.tag{font-size:9px}.section-head{align-items:flex-start}h1{font-size:25px}.header-actions{gap:5px}}@media(max-width:360px){.ratio-pills{gap:2px}.pill{padding:5px 6px}.section-actions{width:100%;justify-content:flex-end}.brand-pill{display:none}}
+ .looks-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}.look-chip{display:flex;align-items:center;gap:9px;padding:10px;border-radius:10px;border:1px solid #49515c;background:#252c34;color:#dce4ed;text-align:left;min-height:48px}.look-chip.active{border-color:#32d7e7;background:#16424c;color:#e8fdff;box-shadow:inset 0 0 0 1px #36c9d7}.look-dot{display:block;width:27px;height:27px;flex:none;border-radius:7px;border:1px solid #ffffff45}.quick-actions{margin-bottom:17px}.quick-actions .button{white-space:normal;min-height:45px}.caption-item>div{min-width:0;flex:1}.caption-item button{flex:none}@media(max-width:360px){.inspector-tab{padding:11px 5px;font-size:12px}}
 </style>
 </head>
 <body>
@@ -32,9 +33,10 @@
       </div>
     </section>
     <aside class="inspector">
-      <div class="panel inspector-tabs"><button class="inspector-tab active" data-tab="edit">Edit</button><button class="inspector-tab" data-tab="captions">Captions</button><button class="inspector-tab" data-tab="export">Export</button></div>
+      <div class="panel inspector-tabs"><button class="inspector-tab active" data-tab="edit">Edit</button><button class="inspector-tab" data-tab="captions">Captions</button><button class="inspector-tab" data-tab="looks">Looks</button><button class="inspector-tab" data-tab="export">Export</button></div>
       <div id="tab-edit" class="panel tab-content">
         <div class="panel-head"><div class="eyebrow">CLIP CONTROLS</div><h2>Edit your cut</h2></div>
+        <div class="button-row quick-actions"><button id="quickEnhance" class="button secondary" type="button">✦ Auto Enhance</button><button id="quickCaptions" class="button ghost" type="button">◉ Auto Captions</button></div>
         <div id="editEmpty" class="hint-block">Import footage to start. Adjust the trim, then split the timeline or add your own captions.</div>
         <div id="editControls" hidden>
           <div class="info-line"><span>Selected clip</span><strong id="selectedClipName">Clip 1</strong></div>
@@ -48,11 +50,34 @@
       </div>
       <div id="tab-captions" class="panel tab-content" hidden>
         <div class="panel-head"><div class="eyebrow">TEXT LAYERS</div><h2>Captions & titles</h2></div>
+        <button id="autoCaptions" class="button primary full" type="button">✦ Generate Auto Captions</button>
+        <div id="captionStatus" class="status" aria-live="polite" role="status">One click: transcribe your edited video locally and place timed captions. English beta, up to 120 seconds. First run downloads the speech model and may be slow on phones.</div>
+        <div class="progress"><div id="captionProgress"></div></div>
+        <p class="fine-print">Footage stays in this browser. The speech model downloads from Hugging Face. No microphone access or account required. Keep the page open; some phones lack enough memory for local AI.</p>
         <label class="field-label" for="captionText">Caption text</label><textarea id="captionText" rows="3" maxlength="240" placeholder="What should appear on screen?"></textarea>
         <div class="button-row two-cols"><label class="field-label">Start (seconds)<input type="number" id="captionStart" min="0" step="0.1" value="0" /></label><label class="field-label">End (seconds)<input type="number" id="captionEnd" min="0" step="0.1" value="3" /></label></div>
         <div class="button-row two-cols"><label class="field-label">Position<select id="captionPosition"><option value="bottom">Bottom</option><option value="middle">Middle</option><option value="top">Top</option></select></label><label class="field-label">Colour<select id="captionColor"><option value="#FFFFFF">White</option><option value="#23D4E9">Cyan</option><option value="#FFE178">Yellow</option></select></label></div>
         <button id="addCaption" class="button primary full">+ Add timed caption</button>
+        <div class="button-row"><button id="downloadSrt" class="button ghost" type="button">↓ Export subtitles .SRT</button>
+        <button id="clearAutoCaptions" class="button ghost" type="button">Clear generated</button></div>
         <div class="section-label spacing-top">CAPTION TRACK</div><div id="captionsList" class="captions-list"><div class="muted">No captions yet.</div></div>
+      </div>
+      <div id="tab-looks" class="panel tab-content" hidden>
+        <div class="panel-head"><div class="eyebrow">COLOUR STUDIO</div><h2>Filters & enhancements</h2></div>
+        <button id="autoEnhance" class="button primary full" type="button">✦ Auto Enhance This Video</button>
+        <div id="enhanceStatus" class="status" aria-live="polite" role="status">Analyze the preview frame for exposure and contrast, then apply balanced adjustments to all clips. Tap again to switch it off.</div>
+        <div class="section-label spacing-top">ONE-TAP FILTERS</div>
+        <div id="lookPresets" class="looks-grid" role="group" aria-label="Video filters">
+          <button type="button" class="look-chip active" data-look="original"><span class="look-dot" style="background:linear-gradient(125deg,#bbc4d2,#3b5d77)"></span>Original</button>
+          <button type="button" class="look-chip" data-look="vibrant"><span class="look-dot" style="background:linear-gradient(125deg,#ffab3c,#eb416f)"></span>Vibrant</button>
+          <button type="button" class="look-chip" data-look="cinematic"><span class="look-dot" style="background:linear-gradient(125deg,#183c55,#98a5a5)"></span>Cinematic</button>
+          <button type="button" class="look-chip" data-look="warm"><span class="look-dot" style="background:linear-gradient(125deg,#b95824,#f7c884)"></span>Warm</button>
+          <button type="button" class="look-chip" data-look="cool"><span class="look-dot" style="background:linear-gradient(125deg,#0d507a,#87c9ed)"></span>Cool</button>
+          <button type="button" class="look-chip" data-look="vintage"><span class="look-dot" style="background:linear-gradient(125deg,#aa8a55,#d0b88e)"></span>Vintage</button>
+          <button type="button" class="look-chip" data-look="mono"><span class="look-dot" style="background:linear-gradient(125deg,#111,#dadada)"></span>Black & White</button>
+          <button type="button" class="look-chip" data-look="moody"><span class="look-dot" style="background:linear-gradient(125deg,#1b203b,#65627f)"></span>Moody</button>
+        </div>
+        <p class="fine-print">Looks and Auto Enhance appear in both preview and exported video. These edits are non-destructive, and Original restores the baseline look.</p>
       </div>
       <div id="tab-export" class="panel tab-content" hidden>
         <div class="panel-head"><div class="eyebrow">FINISH & SHARE</div><h2>Export video</h2></div>
@@ -70,7 +95,8 @@
   </main>
   <input id="videoInput" type="file" accept="video/*" hidden />
   <video id="sourceVideo" playsinline preload="auto" crossorigin="anonymous" style="display:none"></video>
-  <script type="module">// VIDNIVO Browser Studio — all source media remains in local object URLs.
+  <script type="module">import {drawGradedVideo} from './vidnivo-filters.js';
+// VIDNIVO Browser Studio — all source media remains in local object URLs.
 // Exports use the browser's own MediaRecorder; no video is sent to a server.
 const $ = id => document.getElementById(id);
 const video = $('sourceVideo');
@@ -79,11 +105,29 @@ const ctx = canvas.getContext('2d', {alpha: false});
 const ui = {videoInput:$('videoInput'),play:$('play'),scrubber:$('scrubber'),timeline:$('timeline'),empty:$('emptyState'),trimStart:$('trimStart'),trimEnd:$('trimEnd'),speed:$('speed'),export:$('export'),status:$('exportStatus'),progress:$('exportProgress'),download:$('download')};
 const state = {
  sources:[], clips:[], captions:[], selected:null, position:0,
- ratio:'9:16', playing:false, exporting:false, selectedTab:'edit',
+ ratio:'9:16', playing:false, exporting:false, captioning:false, selectedTab:'edit',
+  look:'original', enhancement:null, editCaptionId:null,
  objectUrl:null, sourceId:null, pendingSeek:0, clock:0,
  audioContext:null, audioInput:null, audioDestination:null
 };
 const MIN_CLIP=0.2;
+const LOOKS={
+ original:{brightness:1,contrast:1,saturate:1,sepia:0,hue:0,grayscale:0},
+ vibrant:{brightness:1.04,contrast:1.11,saturate:1.36,sepia:0,hue:0,grayscale:0},
+ cinematic:{brightness:.96,contrast:1.16,saturate:.85,sepia:.08,hue:-6,grayscale:0},
+ warm:{brightness:1.04,contrast:1.06,saturate:1.15,sepia:.2,hue:-10,grayscale:0},
+ cool:{brightness:1.01,contrast:1.08,saturate:1.1,sepia:0,hue:12,grayscale:0},
+ vintage:{brightness:1.04,contrast:.94,saturate:.73,sepia:.38,hue:-7,grayscale:0},
+ mono:{brightness:1.05,contrast:1.2,saturate:1,sepia:0,hue:0,grayscale:1},
+ moody:{brightness:.9,contrast:1.19,saturate:.86,sepia:.12,hue:10,grayscale:0}
+};
+function previewFilter(){
+ const p=LOOKS[state.look]||LOOKS.original,h=state.enhancement||{};
+ const b=clamp(p.brightness*(h.brightness||1),.7,1.5);
+ const c=clamp(p.contrast*(h.contrast||1),.7,1.55);
+ const sat=clamp(p.saturate*(h.saturate||1),0,2);
+ return `brightness(${b.toFixed(3)}) contrast(${c.toFixed(3)}) saturate(${sat.toFixed(3)}) sepia(${p.sepia}) hue-rotate(${p.hue}deg) grayscale(${p.grayscale})`;
+}
 const clamp=(x,min,max)=>Math.max(min,Math.min(max,x));
 const fmt=t=>{const ms=Math.max(0,Number(t)||0),n=Math.floor(ms/60);return String(n).padStart(2,'0')+':'+String(Math.floor(ms%60)).padStart(2,'0')+'.'+Math.floor((ms%1)*10)};
 const duration=clip=>(clip.end-clip.start)/clip.speed;
@@ -103,7 +147,7 @@ function drawFrame(){
  if(video.readyState>=2&&video.videoWidth>0){
   const factor=Math.min(W/video.videoWidth,H/video.videoHeight);
   const w=video.videoWidth*factor,h=video.videoHeight*factor;
-  ctx.drawImage(video,(W-w)/2,(H-h)/2,w,h);
+  drawGradedVideo(ctx,video,(W-w)/2,(H-h)/2,w,h,LOOKS[state.look]||LOOKS.original,state.enhancement);
  }
  const captions=state.captions.filter(c=>state.position>=c.start&&state.position<c.end);
  for(const cap of captions){
@@ -227,7 +271,11 @@ function renderTimeline(){
   ui.timeline.append(b);
  });
  $('clipCount').textContent=state.clips.length+' clip'+(state.clips.length===1?'':'s');
- ['back5','forward5','split','play','scrubber','export'].forEach(id=>$(id).disabled=!state.clips.length||state.exporting);
+ ['back5','forward5','split','play','scrubber','export'].forEach(id=>$(id).disabled=!state.clips.length||state.exporting||state.captioning);
+  $('autoCaptions').disabled=!state.clips.length||state.exporting||state.captioning;
+  $('quickCaptions').disabled=!state.clips.length||state.exporting||state.captioning;
+  $('quickEnhance').disabled=!state.clips.length||state.exporting||state.captioning;
+  $('autoEnhance').disabled=!state.clips.length||state.exporting||state.captioning;
  $('exportSummary').textContent=state.clips.length?`${fmt(total())} edited runtime · ${state.clips.length} clip${state.clips.length===1?'':'s'} · ${state.captions.length} caption${state.captions.length===1?'':'s'} · ${state.ratio}`:'Import a video to calculate the edited runtime.';
  syncPosition();
 }
@@ -245,11 +293,35 @@ function renderEditor(){
  $('deleteClip').disabled=state.exporting;$('duplicate').disabled=state.exporting;
 }
 function edited(){pause();renderTimeline();renderEditor();renderCaptions();requestDraw();toast('Edits updated. Your original video is untouched.');}
+function toggleEnhancement(){
+ if(!state.clips.length||state.exporting||state.captioning){$('enhanceStatus').textContent='Import a video first or finish the current operation.';return;}
+ if(state.enhancement){state.enhancement=null;$('enhanceStatus').textContent='Auto Enhance switched off. Original exposure restored.';requestDraw();return;}
+ if(video.readyState<2||!video.videoWidth){$('enhanceStatus').textContent='Choose a frame of the video first, then try again.';return;}
+ const test=document.createElement('canvas');test.width=64;test.height=64;
+ const c=test.getContext('2d',{willReadFrequently:true});
+ try{c.drawImage(video,0,0,64,64);}catch{$('enhanceStatus').textContent='This frame cannot be analyzed.';return;}
+ const bytes=c.getImageData(0,0,64,64).data;
+ let mean=0,m2=0,chroma=0,n=0;
+ for(let i=0;i<bytes.length;i+=16){
+  const r=bytes[i],g=bytes[i+1],b=bytes[i+2];
+  const lum=(.2126*r+.7152*g+.0722*b)/255;
+  n++;const delta=lum-mean;mean+=delta/n;m2+=delta*(lum-mean);
+  chroma+=(Math.max(r,g,b)-Math.min(r,g,b))/255;
+ }
+ const std=Math.sqrt(m2/Math.max(1,n-1));
+ const brightness=clamp(.51/Math.max(.12,mean),.88,1.22);
+ const contrast=clamp(.25/Math.max(.12,std),.98,1.22);
+ const saturate=clamp(.24/Math.max(.13,chroma/Math.max(1,n)),1.02,1.23);
+ state.enhancement={brightness,contrast,saturate};
+ $('enhanceStatus').textContent='Auto Enhance on · exposure ×'+brightness.toFixed(2)+' · contrast ×'+contrast.toFixed(2)+' · colour ×'+saturate.toFixed(2)+'. Tap again to undo.';
+ requestDraw();
+}
 function setRatio(r){if(!['9:16','1:1','16:9'].includes(r))return;state.ratio=r;document.querySelectorAll('[data-ratio]').forEach(e=>e.classList.toggle('active',e.dataset.ratio===r));drawFrame();renderTimeline()}
 const safeFileName=(name)=>name.replace(/[^a-z0-9_.-]+/gi,'-').slice(0,75)||'untitled';
 async function importFile(file){
  if(!file)return;
- if(!file.type.startsWith('video/')){toast('Choose an MP4, MOV, or another playable video file.',true);return}
+ if(state.captioning){toast('Finish auto captions before importing another video.',true);return}
+  if(!file.type.startsWith('video/')){toast('Choose an MP4, MOV, or another playable video file.',true);return}
  const url=URL.createObjectURL(file),probe=document.createElement('video');probe.preload='metadata';probe.playsInline=true;probe.src=url;
  try{
   const seconds=await new Promise((resolve,reject)=>{
@@ -277,10 +349,176 @@ function renderCaptions(){
   const detail=document.createElement('div');const text=document.createElement('strong');text.textContent=cap.text;
   const timing=document.createElement('span');timing.textContent=`${fmt(cap.start)} – ${fmt(cap.end)}`;
   detail.append(text,timing);
+  const controls=document.createElement('div');controls.style.cssText='display:flex;gap:5px;flex-shrink:0';
+  const edit=document.createElement('button');edit.textContent='Edit';edit.setAttribute('aria-label','Edit caption');
+  edit.onclick=()=>{
+   if(state.exporting||state.captioning)return;
+   state.editCaptionId=cap.id;$('captionText').value=cap.text;
+   $('captionStart').value=cap.start.toFixed(2);$('captionEnd').value=cap.end.toFixed(2);
+   $('captionPosition').value=cap.position;$('captionColor').value=cap.color;
+   $('addCaption').textContent='Save caption changes';
+   void seekTimeline(cap.start);
+  };
   const remove=document.createElement('button');remove.textContent='Remove';remove.setAttribute('aria-label','Remove caption');
-  remove.onclick=()=>{if(state.exporting)return;state.captions=state.captions.filter(c=>c.id!==cap.id);renderCaptions();renderTimeline()};
-  item.append(detail,remove);node.append(item);
+  remove.onclick=()=>{
+   if(state.exporting||state.captioning)return;
+   state.captions=state.captions.filter(c=>c.id!==cap.id);
+   if(state.editCaptionId===cap.id){state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption'}
+   renderCaptions();renderTimeline();
+  };
+  controls.append(edit,remove);item.append(detail,controls);node.append(item);
  });
+}
+
+let localSpeechModel=null;
+function captionProgress(message,percent,error=false){
+ $('captionStatus').textContent=message;
+ $('captionStatus').style.color=error?'#ffaca9':'#d3e1e8';
+ $('captionProgress').style.width=Math.max(0,Math.min(100,percent))+'%';
+}
+function audioRecordMime(){
+ if(!window.MediaRecorder)return null;
+ const candidates=['audio/mp4;codecs=mp4a.40.2','audio/mp4',
+  'audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
+ return candidates.find(m=>MediaRecorder.isTypeSupported(m))||null;
+}
+async function recordEditedAudio(){
+ const mime=audioRecordMime();
+ if(!mime)throw Error('Audio capture is not supported in this browser. Try Chrome or current Safari.');
+ setupAudio();
+ if(!state.audioContext||!state.audioDestination)
+  throw Error('This browser cannot capture the video soundtrack.');
+ if(state.audioContext.state!=='running')await state.audioContext.resume();
+ await seekTimeline(0);
+ const mediaStream=new MediaStream(state.audioDestination.stream.getAudioTracks());
+ if(!mediaStream.getAudioTracks().length)throw Error('No audio track could be captured.');
+ const recorder=new MediaRecorder(mediaStream,{mimeType:mime,audioBitsPerSecond:96000});
+ const chunks=[];let timer=null;let stopped=false;
+ recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+ const stopResult=new Promise((resolve,reject)=>{
+  recorder.addEventListener('stop',resolve,{once:true});
+  recorder.addEventListener('error',e=>reject(e.error||Error('Audio recording failed')),{once:true});
+ });
+ const volume=state.audioMonitor?.gain.value??1;
+ try{
+  if(state.audioMonitor)state.audioMonitor.gain.value=0;
+  recorder.start(1000);
+  await play();
+  if(!state.playing)throw Error('This browser blocked video playback. Tap Play once and retry Auto Captions.');
+  captionProgress('Capturing the edited soundtrack locally · keep this page open…',2);
+  await new Promise((resolve,reject)=>{
+   let last=state.position,lastMovement=performance.now();
+   timer=setInterval(()=>{
+    if(document.hidden){reject(Error('Keep VIDNIVO visible while capturing speech.'));return}
+    const done=state.position>=total()-.05||(!state.playing&&state.position>=total()-.5);
+    captionProgress('Capturing soundtrack · '+Math.round(100*state.position/Math.max(1,total()))+'%…',
+      60*Math.min(1,state.position/Math.max(1,total())));
+    if(done){resolve();return}
+    if(state.position>last+.02){last=state.position;lastMovement=performance.now()}
+    if(performance.now()-lastMovement>10000)reject(Error('Video playback stalled during transcription.'));
+   },160);
+  });
+ }finally{
+  if(timer)clearInterval(timer);
+  pause();
+  if(state.audioMonitor)state.audioMonitor.gain.value=volume;
+  if(recorder.state!=='inactive')recorder.stop();
+ }
+ await stopResult;
+ const blob=new Blob(chunks,{type:mime});
+ if(blob.size<1024)throw Error('No usable audio was captured. Check that the imported video has sound.');
+ return blob;
+}
+function resampleSpeech(buffer){
+ // Model expects mono linear PCM at 16 kHz; keep source audio exclusively in memory.
+ const length=Math.ceil(buffer.duration*16000);
+ if(!length||length>16000*125)throw Error('Audio length is outside the 120-second limit.');
+ const out=new Float32Array(length),channels=[];
+ for(let k=0;k<Math.min(2,buffer.numberOfChannels);k++)channels.push(buffer.getChannelData(k));
+ if(!channels.length)throw Error('The soundtrack is empty.');
+ let energy=0;
+ for(let i=0;i<length;i++){
+  const at=Math.min(buffer.length-1,Math.floor(i*buffer.sampleRate/16000));
+  let sample=0;for(const channel of channels)sample+=channel[at];
+  sample/=channels.length;out[i]=sample;energy+=sample*sample;
+ }
+ if(Math.sqrt(energy/length)<.001)
+  throw Error('The captured audio is silent. Check that the source video contains audible speech.');
+ return out;
+}
+function segmentsFromTranscript(result,maximum){
+ if(!Array.isArray(result?.chunks))throw Error('The speech model did not return reliable caption timestamps.');
+ const captions=[];
+ for(const chunk of result.chunks){
+  const words=String(chunk?.text||'').trim().split(/\s+/).filter(Boolean);
+  const [a,b]=chunk?.timestamp||[];
+  const start=Number(a),end=Number(b);
+  if(!words.length||!Number.isFinite(start)||!Number.isFinite(end)||end<=start||start>=maximum)continue;
+  const limit=clamp(end,0,maximum),begin=clamp(start,0,limit);
+  const subdivisions=Math.max(1,Math.ceil(words.length/7),Math.ceil((limit-begin)/4.5));
+  for(let i=0;i<subdivisions;i++){
+   const from=Math.floor(words.length*i/subdivisions),to=Math.floor(words.length*(i+1)/subdivisions);
+   if(to<=from)continue;
+   const cStart=begin+(limit-begin)*i/subdivisions,cEnd=begin+(limit-begin)*(i+1)/subdivisions;
+   if(cEnd-cStart<.12)continue;
+   captions.push({id:key(),text:words.slice(from,to).join(' ').slice(0,240),start:cStart,end:cEnd,position:'bottom',color:'#FFFFFF',origin:'auto'});
+  }
+ }
+ if(!captions.length)throw Error('No timestamped speech was detected. Try a video with clear English dialogue.');
+ return captions.slice(0,160);
+}
+async function getLocalSpeechModel(){
+ if(localSpeechModel)return localSpeechModel;
+ captionProgress('Loading English speech recognition model · first use downloads model files…',65);
+ let engine;
+ try{engine=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1');}
+ catch{throw Error('The local AI engine could not load. Check your connection to the model CDN.')}
+ // Models download to the browser cache; they never receive the video file.
+ try{
+  engine.env.backends.onnx.wasm.numThreads=1;
+  localSpeechModel=await engine.pipeline('automatic-speech-recognition',
+   'Xenova/whisper-tiny.en',{device:'wasm',dtype:'q8',progress_callback:p=>{
+    if(p?.status==='progress'&&Number.isFinite(p.progress))
+     captionProgress('Downloading speech model · '+Math.round(p.progress)+'%…',
+      65+Math.min(15,p.progress*.15));
+    else if(p?.status==='done')
+     captionProgress('Preparing speech recognition…',82);
+   }});
+ }catch(e){throw Error('The speech model could not start on this device. It may lack memory, WebAssembly support, or model download access. '+(e?.message||''))}
+ return localSpeechModel;
+}
+async function runAutoCaptions(){
+ if(!state.clips.length){captionProgress('Import a video before generating captions.',0,true);return}
+ if(state.captioning||state.exporting)return;
+ if(total()>120){captionProgress('Auto Captions beta supports up to 120 seconds of edited video. Trim it first.',0,true);return}
+ if(!window.MediaRecorder||!(window.AudioContext||window.webkitAudioContext)){
+  captionProgress('This browser cannot capture audio for local AI captions. Use current Safari or Chrome.',0,true);return;
+ }
+ const oldPosition=state.position;
+ state.captioning=true;renderTimeline();
+ try{
+  captionProgress('Preparing audio from your timeline…',1);
+  const audio=await recordEditedAudio();
+  captionProgress('Decoding captured audio on your device…',62);
+  const buffer=await state.audioContext.decodeAudioData(await audio.arrayBuffer());
+  const speech=resampleSpeech(buffer);
+  const model=await getLocalSpeechModel();
+  captionProgress('Transcribing English speech locally · this can take several minutes on a phone…',84);
+  const result=await model(speech,{return_timestamps:true,chunk_length_s:30,stride_length_s:5});
+  const captions=segmentsFromTranscript(result,total());
+  // Keep existing manually authored captions; regenerate auto captions as a group.
+  state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';
+  state.captions=[...state.captions.filter(c=>c.origin!=='auto'),...captions]
+   .sort((a,b)=>a.start-b.start);
+  renderCaptions();renderTimeline();requestDraw();
+  captionProgress('✓ '+captions.length+' timed captions generated. Review the words and timing before publishing.',100);
+  toast(captions.length+' automatic captions added to your video.');
+ }catch(error){
+  captionProgress('Auto Captions unavailable: '+(error?.message||String(error)),0,true);
+ }finally{
+  pause();state.captioning=false;renderTimeline();
+  await seekTimeline(clamp(oldPosition,0,total()));
+ }
 }
 function preferredMime(){
  if(!('MediaRecorder'in window)||!canvas.captureStream)return null;
@@ -293,7 +531,10 @@ function setupAudio(){
  if(!AudioContext)return;
  const context=new AudioContext();
  const source=context.createMediaElementSource(video);const destination=context.createMediaStreamDestination();
- source.connect(destination);source.connect(context.destination);
+ source.connect(destination);
+  const monitor=context.createGain();
+  source.connect(monitor);monitor.connect(context.destination);
+  state.audioMonitor=monitor;
  state.audioContext=context;state.audioDestination=destination;state.audioInput=source;
 }
 const waitRecorderStop=recorder=>new Promise((resolve,reject)=>{
@@ -302,7 +543,7 @@ const waitRecorderStop=recorder=>new Promise((resolve,reject)=>{
 });
 let exportTimer=null;
 async function startExport(){
- if(!state.clips.length||state.exporting)return;
+ if(!state.clips.length||state.exporting||state.captioning)return;
  if(!canvas.captureStream||!window.MediaRecorder){toast('This browser cannot record the editing canvas. Try recent Safari or Chrome.',true);return}
  const mime=preferredMime();if(!mime){toast('This browser does not have a supported video recording format.',true);return}
  const originalQuality=$('quality').value;
@@ -364,9 +605,9 @@ async function startExport(){
 }
 function setTab(tab){state.selectedTab=tab;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));document.querySelectorAll('.tab-content').forEach(e=>e.hidden=e.id!=='tab-'+tab)}
 function reset(){
- if(state.exporting){toast('Cannot start a new project during export.',true);return}
+ if(state.exporting||state.captioning){toast('Finish exporting or auto captions before starting a new project.',true);return}
  if(state.clips.length&&!confirm('Start a new project? This removes the current timeline and captions (not the original files).'))return;
- pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];state.selected=null;state.position=0;state.sourceId=null;
+ pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
  video.removeAttribute('src');video.load();ui.empty.hidden=false;ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();renderEditor();renderCaptions();toast('Ready for a new project.');
 }
 // Event wiring
@@ -399,10 +640,49 @@ $('addCaption').onclick=()=>{
  const start=Number($('captionStart').value),end=Number($('captionEnd').value);
  if(!text){toast('Enter caption text first.',true);return}
  if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<=start||end>total()+.1){toast('Caption timing must fall inside your edited video.',true);return}
- state.captions.push({id:key(),text,start,end,position:$('captionPosition').value,color:$('captionColor').value});
- state.captions.sort((a,b)=>a.start-b.start);$('captionText').value='';renderCaptions();renderTimeline();void seekTimeline(start);toast('Caption added to the timeline.');
+ if(state.exporting||state.captioning)return;
+ if(state.editCaptionId){
+  const target=state.captions.find(c=>c.id===state.editCaptionId);
+  if(!target){state.editCaptionId=null;toast('Caption no longer exists.',true);return}
+  Object.assign(target,{text,start,end,position:$('captionPosition').value,color:$('captionColor').value});
+ }else state.captions.push({id:key(),text,start,end,position:$('captionPosition').value,color:$('captionColor').value,origin:'manual'});
+ state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';
+ state.captions.sort((a,b)=>a.start-b.start);$('captionText').value='';renderCaptions();renderTimeline();void seekTimeline(start);toast('Caption saved to the timeline.');
 };
 $('export').onclick=()=>void startExport();
+$('autoEnhance').onclick=toggleEnhancement;
+$('autoCaptions').onclick=()=>void runAutoCaptions();
+$('clearAutoCaptions').onclick=()=>{
+ if(state.exporting||state.captioning)return;
+ state.captions=state.captions.filter(c=>c.origin!=='auto');
+ state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';
+ renderCaptions();renderTimeline();requestDraw();
+ captionProgress('Generated captions cleared. Manually added captions were kept.',0);
+};
+$('downloadSrt').onclick=()=>{
+ if(!state.captions.length){captionProgress('Add or generate captions before exporting subtitles.',0,true);return}
+ const stamp=seconds=>{
+  const ms=Math.max(0,Math.round(seconds*1000));
+  const h=Math.floor(ms/3600000),m=Math.floor(ms/60000)%60;
+  const sec=Math.floor(ms/1000)%60,rem=ms%1000;
+  return [h,m,sec].map(n=>String(n).padStart(2,'0')).join(':')+','+String(rem).padStart(3,'0');
+ };
+ const lines=state.captions.slice().sort((a,b)=>a.start-b.start).map((c,i)=>
+  String(i+1)+'\n'+stamp(c.start)+' --> '+stamp(c.end)+'\n'+c.text.replace(/\r/g,'')+'\n').join('\n');
+ const url=URL.createObjectURL(new Blob([lines],{type:'application/x-subrip;charset=utf-8'}));
+ const anchor=document.createElement('a');anchor.href=url;anchor.download='vidnivo-captions.srt';
+ document.body.append(anchor);anchor.click();anchor.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),5000);
+};
+$('quickEnhance').onclick=()=>{setTab('looks');toggleEnhancement()};
+$('quickCaptions').onclick=()=>{setTab('captions');void runAutoCaptions()};
+document.querySelectorAll('[data-look]').forEach(b=>b.addEventListener('click',()=>{
+ if(state.exporting||state.captioning)return;
+ state.look=b.dataset.look;
+ document.querySelectorAll('[data-look]').forEach(x=>x.classList.toggle('active',x===b));
+ requestDraw();
+ $('enhanceStatus').textContent='Filter: '+b.textContent.trim()+(state.enhancement?' · Auto Enhance active.':'');
+}));
 $('resetProject').onclick=reset;
 video.addEventListener('error',()=>{if(state.sourceId)toast('This video could not be decoded by the browser.',true)});
 const codec=preferredMime();$('outputFormat').textContent=codec?(codec.includes('mp4')?'MP4 / H.264':'WebM video'):'Not available in this browser';
