@@ -273,3 +273,19 @@ export function duplicateClip(p: Project, id: string): Project {
       {...t,startMs:t.startMs+duration,endMs:t.endMs+duration}:t);
   return touch({...p,clips:[...clips,copy],texts});
 }
+
+/** Precisely set the media source in/out point while preserving ripple alignment. */
+export function setClipSourceEdge(p:Project,id:string,edge:'left'|'right',sourceTimeMs:number):Project {
+  const clip=p.clips.find(c=>c.id===id);
+  if(!clip)return p;
+  const asset=p.assets.find(a=>a.id===clip.assetId);
+  if(!asset || !Number.isFinite(sourceTimeMs))return p;
+  const minimum=clip.speed*250;
+  if(!Number.isFinite(minimum) || minimum<=0)return p;
+  const value=edge==='left'
+    ? bound(Math.round(sourceTimeMs),0,clip.outMs-minimum)
+    : bound(Math.round(sourceTimeMs),clip.inMs+minimum,asset.durationMs);
+  const current=edge==='left'?clip.inMs:clip.outMs;
+  if(Math.abs(value-current)<0.1)return p;
+  return rippleTrimClip(p,id,edge,(value-current)/clip.speed);
+}

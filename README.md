@@ -87,3 +87,10 @@ sequences for imported soundtracks and voiceovers. Each sequence starts at the
 selected timeline position and mixes with the original video audio.
 Custom track gain beyond 100%/mute is not yet supported. Verify soundtrack
 position, overlap and output playback on an Android device before release.
+
+## Precision trim
+The clip toolbar includes a source-aware **Precision** trim sheet with source
+in/out sliders and 100ms nudges, with minimum 250ms output duration. Primary video
+ripple trim shifts downstream video, audio and caption tracks together; edits
+remain reversible using Undo. The timeline editor now uses picker durations in
+milliseconds rather than incorrectly treating source seconds as milliseconds.

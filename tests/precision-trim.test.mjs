@@ -1,0 +1,35 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createProject,addAsset,addText,setClipSourceEdge,validateProject} from '../src/domain/timeline.ts';
+import {createExportPlan} from '../src/export/plan.ts';
+const vid=id=>({id,kind:'video',uri:'file:///tmp/'+id+'.mp4',filename:id+'.mp4',durationMs:10000,width:1080,height:1920});
+test('exact source trim respects speed and moves caption and following clip',()=>{
+ let p=addAsset(addAsset(createProject(),vid('a')),vid('b'));
+ p=addText(p,'Later',12000,1000);
+ const id=p.clips[0].id;
+ p=setClipSourceEdge(p,id,'left',2500);
+ assert.equal(p.clips[0].inMs,2500);
+ assert.equal(p.clips[0].startMs,0);
+ assert.equal(p.clips[1].startMs,7500);
+ assert.equal(p.texts[0].startMs,9500);
+ p=setClipSourceEdge(p,id,'right',7500);
+ assert.equal(p.clips[0].outMs,7500);
+ assert.equal(p.clips[1].startMs,5000);
+ assert.equal(p.texts[0].startMs,7000);
+ assert.equal(createExportPlan(p).durationMs,15000);
+ validateProject(p);
+});
+test('small 100ms nudges, minimum duration and invalid input',()=>{
+ let p=addAsset(createProject(),vid('a'));
+ const id=p.clips[0].id;
+ p=setClipSourceEdge(p,id,'right',9900);
+ assert.equal(p.clips[0].outMs,9900);
+ p=setClipSourceEdge(p,id,'left',100);
+ assert.equal(p.clips[0].inMs,100);
+ const same=p;
+ assert.equal(setClipSourceEdge(p,id,'left',NaN),same);
+ assert.equal(setClipSourceEdge(p,id,'missing',100),same);
+ p=setClipSourceEdge(p,id,'right',100);
+ assert.ok(p.clips[0].outMs-p.clips[0].inMs>=250);
+ validateProject(p);
+});

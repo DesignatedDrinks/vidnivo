@@ -23,7 +23,7 @@ import { planSilenceRemoval, applySilenceRemoval } from './src/domain/silenceCut
 import { splitCaption, mergeCaptionWithNext, nudgeCaption, shiftAllCaptions,
   fixSentenceCase } from './src/domain/captionEditing';
 import { canExportNatively, exportMp4, shareExport } from './src/export/native';
-import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot, editTextLayer, rippleSpeedClip, duplicateProject, duplicateClip } from './src/domain/timeline';
+import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot, editTextLayer, rippleSpeedClip, duplicateProject, duplicateClip, setClipSourceEdge } from './src/domain/timeline';
 import { loadLocalProjects, saveLocalProjects } from './src/data/storage';
 import { loadRemoteProjects, saveProjectToSheets, softDeleteProjectFromSheets } from './src/data/sheets';
 import { VideoStage } from './src/ui/VideoStage';
@@ -66,6 +66,7 @@ function EditorApp() {
   const [exportQuality, setExportQuality] = useState<720 | 1080>(1080);
   const [fullPreview, setFullPreview] = useState(false);
   const [captionPanelOpen, setCaptionPanelOpen] = useState(false);
+  const [preciseTrimOpen, setPreciseTrimOpen] = useState(false);
   const [captionStylesOpen, setCaptionStylesOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -429,6 +430,8 @@ function EditorApp() {
   const clipActions: EditorAction[] = selected ? [
     { id: 'back', label: 'Done', icon: 'arrow-back', onPress: () => setSelectedId(null) },
     { id: 'split', label: 'Split', icon: 'cut-outline', onPress: () => apply(p => splitClip(p, selected.id, positionMs)) },
+    { id: 'precision', label: 'Precision', icon: 'options-outline',
+      onPress: () => { setPlaying(false); setPreciseTrimOpen(true); } },
     { id: 'trim-left', label: 'Trim start', icon: 'play-back-outline', onPress: () => apply(p => rippleTrimClip(p, selected.id, 'left', 500)) },
     { id: 'trim-right', label: 'Trim end', icon: 'play-forward-outline', onPress: () => apply(p => rippleTrimClip(p, selected.id, 'right', -500)) },
     { id: 'duplicate', label: 'Duplicate', icon: 'duplicate-outline',
@@ -577,6 +580,48 @@ function EditorApp() {
     {lastExport ? <Pressable accessibilityRole="button" onPress={() => shareExport(lastExport).catch(e => Alert.alert('Sharing failed', String(e)))}
       style={styles.shareResult}><Text style={styles.shareResultText}>✓ MP4 ready — Share</Text></Pressable> : null}
 
+    <Modal visible={preciseTrimOpen} animationType="slide" transparent
+      onRequestClose={() => setPreciseTrimOpen(false)}>
+      <View style={styles.captionBackdrop}>
+        <View style={styles.captionSheet}>
+          <View style={styles.row}>
+            <Text style={styles.captionSheetTitle}>Precision trim</Text>
+            <Pressable accessibilityLabel="Close precision editor" onPress={() => setPreciseTrimOpen(false)}>
+              <Ionicons name="close" color="#F3F4F6" size={25} />
+            </Pressable>
+          </View>
+          {selected ? <>
+            <Text style={styles.trimHint}>Drag source points or adjust in 0.1-second steps. Video tracks move together to preserve sync.</Text>
+            <View style={styles.trimHeader}>
+              <Text style={styles.trimTitle}>Start · {(selected.inMs / 1000).toFixed(2)}s</Text>
+              <Text style={styles.trimTitle}>End · {(selected.outMs / 1000).toFixed(2)}s</Text>
+            </View>
+            <Slider style={{ height: 42 }} minimumValue={0}
+              maximumValue={Math.max(250, selected.outMs - 250 * selected.speed)}
+              step={50} value={selected.inMs} minimumTrackTintColor="#23D4E9"
+              maximumTrackTintColor="#757980" thumbTintColor="#23D4E9"
+              onSlidingComplete={value => apply(p => setClipSourceEdge(p, selected.id, 'left', value))} />
+            <View style={styles.trimRow}>
+              <Tool label="Start −0.1s" onPress={() => apply(p => setClipSourceEdge(p, selected.id, 'left', selected.inMs - 100))} />
+              <Tool label="Start +0.1s" onPress={() => apply(p => setClipSourceEdge(p, selected.id, 'left', selected.inMs + 100))} />
+            </View>
+            <Slider style={{ height: 42 }} minimumValue={Math.min(selected.outMs,selected.inMs + 250 * selected.speed)}
+              maximumValue={Math.max(selected.outMs,project.assets.find(a=>a.id===selected.assetId)?.durationMs || selected.outMs)}
+              step={50} value={selected.outMs} minimumTrackTintColor="#23D4E9"
+              maximumTrackTintColor="#757980" thumbTintColor="#23D4E9"
+              onSlidingComplete={value => apply(p => setClipSourceEdge(p, selected.id, 'right', value))} />
+            <View style={styles.trimRow}>
+              <Tool label="End −0.1s" onPress={() => apply(p => setClipSourceEdge(p, selected.id, 'right', selected.outMs - 100))} />
+              <Tool label="End +0.1s" onPress={() => apply(p => setClipSourceEdge(p, selected.id, 'right', selected.outMs + 100))} />
+            </View>
+            <Text style={styles.trimHint}>Selected clip: {(clipDurationSafe(selected)/1000).toFixed(2)}s at {selected.speed.toFixed(2)}×</Text>
+          </> : <Text style={styles.trimHint}>Select a clip to trim.</Text>}
+          <Pressable style={styles.trimDone} onPress={() => setPreciseTrimOpen(false)}>
+            <Text style={styles.trimDoneText}>Done</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
     <Modal visible={captionPanelOpen} animationType="slide" transparent
       onRequestClose={() => { setCaptionPanelOpen(false); setCaptionStylesOpen(false); }}>
       <View style={styles.captionBackdrop}>
@@ -731,6 +776,12 @@ function clipDurationSafe(c: { inMs: number; outMs: number; speed: number }): nu
 export default function App() { return <SafeAreaProvider><EditorApp /></SafeAreaProvider>; }
 const styles = StyleSheet.create({
 
+  trimHint: { color:'#A5ABB0',fontSize:12,marginTop:14,marginBottom:10,lineHeight:18 },
+  trimHeader: { flexDirection:'row',justifyContent:'space-between',marginTop:8 },
+  trimTitle: { color:'#F4F6F7',fontSize:13,fontWeight:'600' },
+  trimRow: { flexDirection:'row',gap:8,justifyContent:'space-between',marginBottom:10 },
+  trimDone: { backgroundColor:'#23D4E9',borderRadius:10,alignItems:'center',paddingVertical:13,marginTop:16 },
+  trimDoneText: { color:'#102125',fontWeight:'800',fontSize:15 },
   captionBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: '#000000AA' },
   captionSheet: { backgroundColor: '#222528', borderTopLeftRadius: 22,
     borderTopRightRadius: 22, paddingTop: 16, paddingBottom: 36, paddingHorizontal: 20 },
