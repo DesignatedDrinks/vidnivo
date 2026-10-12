@@ -105,17 +105,19 @@
   <input id="videoInput" type="file" accept="video/*" hidden />
   <video id="sourceVideo" playsinline preload="auto" crossorigin="anonymous" style="display:none"></video>
   <script type="module">import {drawGradedVideo} from './vidnivo-filters.js';
+import {FaceRetouch} from './vidnivo-face-retouch.js';
 // VIDNIVO Browser Studio — all source media remains in local object URLs.
 // Exports use the browser's own MediaRecorder; no video is sent to a server.
 const $ = id => document.getElementById(id);
 const video = $('sourceVideo');
+const faceTracker = new FaceRetouch();
 const canvas = $('preview');
 const ctx = canvas.getContext('2d', {alpha: false});
 const ui = {videoInput:$('videoInput'),play:$('play'),scrubber:$('scrubber'),timeline:$('timeline'),empty:$('emptyState'),trimStart:$('trimStart'),trimEnd:$('trimEnd'),speed:$('speed'),export:$('export'),status:$('exportStatus'),progress:$('exportProgress'),download:$('download')};
 const state = {
  sources:[], clips:[], captions:[], selected:null, position:0,
  ratio:'9:16', playing:false, exporting:false, captioning:false, selectedTab:'edit',
-  look:'original', enhancement:null, editCaptionId:null,
+  look:'original', enhancement:null, editCaptionId:null, faceRetouch:0, faceLoading:false,
  objectUrl:null, sourceId:null, pendingSeek:0, clock:0,
  audioContext:null, audioInput:null, audioDestination:null
 };
@@ -157,6 +159,8 @@ function drawFrame(){
   const factor=Math.min(W/video.videoWidth,H/video.videoHeight);
   const w=video.videoWidth*factor,h=video.videoHeight*factor;
   drawGradedVideo(ctx,video,(W-w)/2,(H-h)/2,w,h,LOOKS[state.look]||LOOKS.original,state.enhancement);
+  if(state.faceRetouch>0&&faceTracker.supported)
+   faceTracker.draw(ctx,video,{x:(W-w)/2,y:(H-h)/2,w,h},state.faceRetouch,state.sourceId);
  }
  const captions=state.captions.filter(c=>state.position>=c.start&&state.position<c.end);
  for(const cap of captions){
@@ -194,7 +198,7 @@ function locate(time){
 }
 function setSource(source){
  if(!source||state.sourceId===source.id)return Promise.resolve();
- state.sourceId=source.id;
+ state.sourceId=source.id;faceTracker.reset();
  video.pause();video.src=source.url;video.load();
  return new Promise((resolve,reject)=>{
   const timeout=setTimeout(()=>{cleanup();reject(new Error('Video could not be loaded.'))},18000);
@@ -206,7 +210,7 @@ function setSource(source){
 }
 async function seekTimeline(time,shouldPlay=false){
  const request=++state.pendingSeek;
- const target=clamp(time,0,total());state.position=target;syncPosition();
+ const target=clamp(time,0,total());if(Math.abs(state.position-target)>.35)faceTracker.reset();state.position=target;syncPosition();
  const located=locate(target);
  if(!located){video.pause();drawFrame();return}
  try{
@@ -285,6 +289,9 @@ function renderTimeline(){
   $('quickCaptions').disabled=!state.clips.length||state.exporting||state.captioning;
   $('quickEnhance').disabled=!state.clips.length||state.exporting||state.captioning;
   $('autoEnhance').disabled=!state.clips.length||state.exporting||state.captioning;
+  $('faceRetouch').disabled=!state.clips.length||state.exporting||state.captioning||state.faceLoading;
+  $('faceRetouchPreset').disabled=!state.clips.length||state.exporting||state.captioning||state.faceLoading;
+  $('export').disabled=!state.clips.length||state.exporting||state.captioning||state.faceLoading;
  $('exportSummary').textContent=state.clips.length?`${fmt(total())} edited runtime · ${state.clips.length} clip${state.clips.length===1?'':'s'} · ${state.captions.length} caption${state.captions.length===1?'':'s'} · ${state.ratio}`:'Import a video to calculate the edited runtime.';
  syncPosition();
 }
