@@ -13,6 +13,9 @@ on:
       - 'vidnivo-caption-touch.js'
       - 'docs/vidnivo-caption-touch.js'
       - 'tests/web-caption-touch.test.mjs'
+      - 'vidnivo-autopilot.js'
+      - 'docs/vidnivo-autopilot.js'
+      - 'tests/web-creator-autopilot.test.mjs'
       - 'tests/web-export-sync.test.mjs'
       - 'tests/web-face-retouch.test.mjs'
       - 'tests/web-studio.test.mjs'
@@ -31,6 +34,9 @@ on:
       - 'vidnivo-caption-touch.js'
       - 'docs/vidnivo-caption-touch.js'
       - 'tests/web-caption-touch.test.mjs'
+      - 'vidnivo-autopilot.js'
+      - 'docs/vidnivo-autopilot.js'
+      - 'tests/web-creator-autopilot.test.mjs'
       - 'tests/web-export-sync.test.mjs'
       - 'tests/web-face-retouch.test.mjs'
       - 'tests/web-studio.test.mjs'
@@ -44,7 +50,7 @@ jobs:
         with:
           node-version: '22'
       - name: Test real browser editor, subtitle mapping and Safari filters
-        run: node --test tests/web-studio.test.mjs tests/web-face-retouch.test.mjs tests/web-export-sync.test.mjs tests/web-caption-touch.test.mjs
+        run: node --test tests/web-studio.test.mjs tests/web-face-retouch.test.mjs tests/web-export-sync.test.mjs tests/web-caption-touch.test.mjs tests/web-creator-autopilot.test.mjs
       - name: Verify real face-tracking assets resolve over HTTPS
         shell: bash
         run: |
