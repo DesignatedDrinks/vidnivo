@@ -224,7 +224,7 @@ function EditorApp() {
   };
   const savedMedia = async (uri: string, filename: string): Promise<string> => {
     try {
-      const folder = new Directory(Paths.document, 'vidnivo-media');
+      const folder = new Directory(Paths.document, 'rollblink-media');
       await folder.create({ idempotent: true, intermediates: true });
       const ext = filename.match(/\.[a-zA-Z0-9]+$/)?.[0] ?? '.mp4';
       const file = new File(folder, makeId() + ext);
@@ -396,7 +396,7 @@ function EditorApp() {
     setCaptionPanelOpen(false);
     if(!speechRecognitionAvailable()){
       Alert.alert('iPhone development build required',
-        'Offline speech recognition currently requires VIDNIVO on iPhone. Script captions and imported subtitles work on Android and iPhone.');
+        'Offline speech recognition currently requires ROLLBLINK on iPhone. Script captions and imported subtitles work on Android and iPhone.');
       return;
     }
     const selectedVideo=selected?.track==='video'?selected:
@@ -432,12 +432,12 @@ function EditorApp() {
       Alert.alert('No captions yet', 'Add text, import a subtitle file, or generate captions first.'); return;
     }
     try {
-      const target = new File(Paths.cache, 'vidnivo-' + project.id + '-captions.srt');
+      const target = new File(Paths.cache, 'rollblink-' + project.id + '-captions.srt');
       target.create({ overwrite: true });
       target.write(serializeSrt(captionsFromProject(project)));
       if (!await Sharing.isAvailableAsync()) throw new Error('Sharing is not available.');
       await Sharing.shareAsync(target.uri, { mimeType: 'application/x-subrip',
-        dialogTitle: 'Share VIDNIVO subtitles' });
+        dialogTitle: 'Share ROLLBLINK subtitles' });
     } catch (e) { Alert.alert('Subtitle export failed', String(e)); }
   };
   const applyCaptionStyle = (preset: CaptionPreset) => {
@@ -494,7 +494,7 @@ function EditorApp() {
     Alert.alert('Project duplicated', 'The new draft uses the same local media files. Original edits remain unchanged.');
   };
   const deleteProject = (p: Project) => {
-    Alert.alert('Delete project?', 'This removes the project and its edits from VIDNIVO. Imported media files remain on the device.', [
+    Alert.alert('Delete project?', 'This removes the project and its edits from ROLLBLINK. Imported media files remain on the device.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
         try {
@@ -709,7 +709,7 @@ function EditorApp() {
         accessibilityRole="button" disabled={busy}
         onPress={() => {
           if (!canExportNatively()) Alert.alert('Development build required',
-            'Install a VIDNIVO native development build to export MP4. Expo Go does not contain the native encoder.');
+            'Install a ROLLBLINK native development build to export MP4. Expo Go does not contain the native encoder.');
           else void renderVideo();
         }}>
         <Text style={styles.exportText}>Export</Text>
@@ -880,7 +880,7 @@ function EditorApp() {
             <Ionicons name="close" color="white" size={25}/>
           </Pressable>
         </View>
-        <Text style={styles.trimHint}>Paste your script. VIDNIVO estimates timings across the video, creates editable timed subtitles, and lets you correct them afterward. This is not speech recognition.</Text>
+        <Text style={styles.trimHint}>Paste your script. ROLLBLINK estimates timings across the video, creates editable timed subtitles, and lets you correct them afterward. This is not speech recognition.</Text>
         <TextInput multiline value={captionScript} onChangeText={setCaptionScript}
           placeholder="Enter or paste your spoken script…"
           placeholderTextColor="#7F8992"

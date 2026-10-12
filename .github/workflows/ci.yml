@@ -4,7 +4,7 @@ on:
     branches: [main]
   pull_request:
 concurrency:
-  group: vidnivo-${{ github.workflow }}-${{ github.ref }}
+  group: rollblink-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   validate:
@@ -35,7 +35,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Swift native exporter syntax validation
-        run: xcrun swiftc -frontend -parse modules/vidnivo-export/ios/VidnivoExportModule.swift
+        run: xcrun swiftc -frontend -parse modules/rollblink-export/ios/RollblinkExportModule.swift
 
   android-native-build:
     runs-on: ubuntu-latest
@@ -69,7 +69,7 @@ jobs:
       - name: Upload Android installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: vidnivo-android-debug
+          name: rollblink-android-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
@@ -89,4 +89,4 @@ jobs:
         working-directory: ios
         run: pod install
       - name: Build iOS simulator app without signing
-        run: xcodebuild -workspace ios/VIDNIVO.xcworkspace -scheme VIDNIVO -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/vidnivo-build" CODE_SIGNING_ALLOWED=NO build -quiet
+        run: xcodebuild -workspace ios/ROLLBLINK.xcworkspace -scheme ROLLBLINK -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/rollblink-build" CODE_SIGNING_ALLOWED=NO build -quiet

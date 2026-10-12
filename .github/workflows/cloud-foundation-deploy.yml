@@ -1,4 +1,4 @@
-name: Deploy VIDNIVO cloud foundation
+name: Deploy ROLLBLINK cloud foundation
 # No automatic deploys. A human must explicitly select the deployment tier,
 # authorize the protected environment, and configure a billing-enabled project
 # before any Cloud Run/Storage resources are created.
@@ -15,7 +15,7 @@ permissions:
   contents: read
   id-token: write
 concurrency:
-  group: vidnivo-cloud-production
+  group: rollblink-cloud-production
   cancel-in-progress: false
 jobs:
   deploy:
@@ -64,7 +64,7 @@ jobs:
         if: inputs.tier == 'full'
         run: |
           set -eu
-          cat > "$RUNNER_TEMP/vidnivo-env.yaml" <<EOF
+          cat > "$RUNNER_TEMP/rollblink-env.yaml" <<EOF
           FIREBASE_STORAGE_BUCKET: "$STORAGE_BUCKET"
           ALLOWED_ORIGINS: "https://$PROJECT_ID.web.app,https://$PROJECT_ID.firebaseapp.com"
           EOF
@@ -80,7 +80,7 @@ jobs:
             --memory 512Mi \
             --concurrency 40 \
             --timeout 25s \
-            --env-vars-file "$RUNNER_TEMP/vidnivo-env.yaml" \
+            --env-vars-file "$RUNNER_TEMP/rollblink-env.yaml" \
             --quiet
           # Cloud Run uses public ingress only for the health endpoint;
           # all private endpoints require valid Firebase ID tokens.
@@ -94,8 +94,8 @@ jobs:
           fi
       - name: Smoke test Hosting
         run: |
-          curl --fail --silent --show-error --retry 3 "https://$PROJECT_ID.web.app/" -o "$RUNNER_TEMP/vidnivo.html"
-          grep -q 'VIDNIVO' "$RUNNER_TEMP/vidnivo.html"
+          curl --fail --silent --show-error --retry 3 "https://$PROJECT_ID.web.app/" -o "$RUNNER_TEMP/rollblink.html"
+          grep -q 'ROLLBLINK' "$RUNNER_TEMP/rollblink.html"
           if [[ "${{ inputs.tier }}" == full ]]; then
             curl --fail --silent --show-error "https://$PROJECT_ID.web.app/api/healthz" | grep -q '"status":"ok"'
           fi

@@ -71,4 +71,4 @@ jobs:
       - name: Start emulator and exercise owner isolation
         run: |
           npm install --global firebase-tools
-          firebase emulators:exec --project demo-vidnivo --only firestore,storage             "node --test infra/rules/rules.test.mjs"
+          firebase emulators:exec --project demo-rollblink --only firestore,storage             "node --test infra/rules/rules.test.mjs"
