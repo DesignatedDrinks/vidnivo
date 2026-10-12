@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {parseSocialPostDraft,type SocialPostDraft} from './copy';
-const KEY='@vidnivo/social/draft/v1/';
+const KEY='@rollblink/social/draft/v1/';
 export interface StoredSocialDraft {projectId:string;revision:number;generatedAt:string;draft:SocialPostDraft}
 export async function saveSocialDraft(projectId:string,revision:number,draft:SocialPostDraft):Promise<void>{
  if(!projectId||!Number.isInteger(revision))throw Error('Invalid project reference');
