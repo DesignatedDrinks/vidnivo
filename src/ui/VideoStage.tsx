@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Image, StyleSheet, Text, View } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { activeClip, Clip, Project } from '../domain/timeline';
 import { theme } from './theme';
@@ -30,7 +30,8 @@ export function VideoStage({ project, playheadMs, playing, seekVersion }:
   const seconds = clip ? (clip.inMs + (playheadMs - clip.startMs) * clip.speed) / 1000 : 0;
   const visible = project.texts.filter(t => playheadMs >= t.startMs && playheadMs < t.endMs);
   const aspectRatio = project.aspectRatio === '9:16' ? 9 / 16 : project.aspectRatio === '16:9' ? 16 / 9 : 1;
-  return <View style={[styles.frame, { aspectRatio }]}>
+  const previewWidth = Math.min(Dimensions.get('window').width - 28, 355 * aspectRatio);
+  return <View style={[styles.frame, { aspectRatio, width: previewWidth }]}>
     {!asset ? <View style={styles.placeholder}><Text style={styles.mark}>V</Text><Text style={styles.placeholderLabel}>Import video to begin</Text></View> : null}
     {asset?.kind === 'image' ? <Image source={{ uri: asset.uri }} resizeMode="contain" style={styles.full} /> : null}
     {asset?.kind === 'video' && clip ? <VideoClip key={clip.id} uri={asset.uri} clip={clip} sourceSeconds={seconds} playing={playing} seekVersion={seekVersion} /> : null}
@@ -40,7 +41,7 @@ export function VideoStage({ project, playheadMs, playing, seekVersion }:
   </View>;
 }
 const styles = StyleSheet.create({
-  frame: { backgroundColor: '#06080A', overflow: 'hidden', maxHeight: 360, alignSelf: 'center', width: '100%', justifyContent: 'center' },
+  frame: { backgroundColor: '#06080A', overflow: 'hidden', maxHeight: 360, alignSelf: 'center', justifyContent: 'center' },
   full: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
   placeholder: { alignItems: 'center', justifyContent: 'center', height: '100%' },
   mark: { fontSize: 64, fontWeight: '900', color: theme.accent },
