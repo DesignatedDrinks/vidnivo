@@ -7,6 +7,7 @@ import ExpoModulesCore
 private struct RenderClip: Decodable {
   let uri: String
   let track: String
+  let kind: String?
   let startMs: Double
   let inMs: Double
   let outMs: Double
@@ -157,7 +158,7 @@ public class VidnivoExportModule: Module {
     let size = try exportSize(request)
     let total = milliseconds(request.durationMs)
     let videoClips = request.clips.filter { $0.track == "video" }.sorted { $0.startMs < $1.startMs }
-    guard !videoClips.isEmpty else { throw RenderError.missingVideo("Add a video before exporting.") }
+    guard !videoClips.isEmpty else { throw RenderError.missingVideo("Add a video or photo before exporting.") }
 
     let composition = AVMutableComposition()
     guard let videoOutput = composition.addMutableTrack(withMediaType: .video,
@@ -165,33 +166,53 @@ public class VidnivoExportModule: Module {
       throw RenderError.exportFailed("Could not create the video composition track.")
     }
     var layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoOutput)
+    // Temporary H.264 photo frames must remain available until the final
+    // AVFoundation composition finishes reading every source frame.
+    var temporaryStills: [URL] = []
+    defer {
+      for url in temporaryStills { try? FileManager.default.removeItem(at: url) }
+    }
     var mixParameters: [AVMutableAudioMixInputParameters] = []
     var lastMs: Double = 0
     for clip in videoClips {
       guard clip.speed > 0, clip.outMs > clip.inMs, abs(clip.startMs - lastMs) < 40 else {
         throw RenderError.invalidInput("Video clips must be consecutive without overlaps.")
       }
-      let asset = AVURLAsset(url: try sourceURL(clip.uri))
+      let isPhoto = clip.kind == "image"
+      let displayedMs = (clip.outMs - clip.inMs) / clip.speed
+      let inputURL = try sourceURL(clip.uri)
+      let mediaURL: URL
+      if isPhoto {
+        mediaURL = try await vidnivoRenderPhotoClip(
+          inputURL, targetSize: size, durationMs: displayedMs)
+        temporaryStills.append(mediaURL)
+      } else {
+        mediaURL = inputURL
+      }
+      let asset = AVURLAsset(url: mediaURL)
       guard let video = try await asset.loadTracks(withMediaType: .video).first else {
-        throw RenderError.missingVideo("One of the imported files has no video stream.")
+        throw RenderError.missingVideo("One of the imported files cannot be decoded as video.")
       }
       let assetDuration = try await asset.load(.duration)
-      guard CMTimeCompare(milliseconds(clip.outMs), assetDuration) <= 0 else {
+      guard isPhoto || CMTimeCompare(milliseconds(clip.outMs), assetDuration) <= 0 else {
         throw RenderError.invalidInput("A clip trim goes beyond the source file duration.")
       }
-      let sourceRange = CMTimeRange(start: milliseconds(clip.inMs),
-                                    duration: milliseconds(clip.outMs - clip.inMs))
+      let sourceRange = isPhoto
+        ? CMTimeRange(start: .zero, duration: milliseconds(displayedMs))
+        : CMTimeRange(start: milliseconds(clip.inMs),
+                      duration: milliseconds(clip.outMs - clip.inMs))
       let position = milliseconds(clip.startMs)
       try videoOutput.insertTimeRange(sourceRange, of: video, at: position)
-      let finalRange = CMTimeRange(start: position,
-        duration: milliseconds((clip.outMs - clip.inMs) / clip.speed))
-      videoOutput.scaleTimeRange(CMTimeRange(start: position, duration: sourceRange.duration),
-                                 toDuration: finalRange.duration)
+      let finalRange = CMTimeRange(start: position, duration: milliseconds(displayedMs))
+      if !isPhoto {
+        videoOutput.scaleTimeRange(CMTimeRange(start: position, duration: sourceRange.duration),
+                                   toDuration: finalRange.duration)
+      }
       let preferred = try await video.load(.preferredTransform)
       let natural = try await video.load(.naturalSize)
       layerInstruction.setTransform(fitTransform(video, naturalSize: natural,
                                   preferred: preferred, destination: size), at: position)
-      if !clip.muted, clip.volume > 0,
+      if !isPhoto, !clip.muted, clip.volume > 0,
          let sourceAudio = try await asset.loadTracks(withMediaType: .audio).first,
          let audioOutput = composition.addMutableTrack(withMediaType: .audio,
                        preferredTrackID: kCMPersistentTrackID_Invalid) {
