@@ -58,7 +58,14 @@ jobs:
         run: CI=1 npx expo prebuild --platform android --no-install
       - name: Build debug APK
         working-directory: android
-        run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+        run: |
+          chmod +x gradlew
+          for attempt in 1 2 3; do
+            ./gradlew assembleDebug --no-daemon --refresh-dependencies && exit 0
+            echo "Gradle dependency resolution or compilation failed (attempt $attempt). Retrying..."
+            sleep $((attempt * 15))
+          done
+          exit 1
       - name: Upload Android installable APK
         uses: actions/upload-artifact@v4
         with:
