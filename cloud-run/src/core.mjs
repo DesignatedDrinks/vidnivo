@@ -128,7 +128,7 @@ export function createHandler({verifyToken,getProfile,saveProfile,listMedia,getM
    }
    send(res,404,{error:errors[404]},origin,allowedOrigins);
   }catch(error){
-   const status=Number.isInteger(error?.status) && error.status>=400 && error.status<500
+   const status=Number.isInteger(error?.status) && error.status>=400 && error.status<600
     ?error.status:500;
    // Never echo provider errors, stack traces or credentials to the client.
    send(res,status,{error:status===500?'Service temporarily unavailable. Please retry.':error.message},
