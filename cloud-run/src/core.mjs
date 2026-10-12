@@ -109,8 +109,11 @@ export function createHandler({verifyToken,getProfile,saveProfile,listMedia,getM
     send(res,200,{uid,displayName},origin,allowedOrigins);return;
    }
    if(req.method==='GET'&&path==='/api/v1/media'){
-    const media=await listMedia(uid);
-    send(res,200,{media},origin,allowedOrigins);return;
+    const after=new URL(req.url||'/', 'http://localhost').searchParams.get('after');
+    if(after!==null&&!ASSET_ID.test(after))
+     throw Object.assign(Error('Invalid media page cursor.'),{status:400});
+    const page=await listMedia(uid,after,50);
+    send(res,200,page,origin,allowedOrigins);return;
    }
    if(req.method==='POST'&&path==='/api/v1/media/register'){
     if(!storageReady)throw Object.assign(Error(errors[503]),{status:503});
