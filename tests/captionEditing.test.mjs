@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createProject, addText, validateProject} from '../src/domain/timeline.ts';
+import {addCaptionCues} from '../src/domain/captions.ts';
 import {splitCaption,mergeCaptionWithNext,nudgeCaption,shiftAllCaptions,fixSentenceCase} from '../src/domain/captionEditing.ts';
 test('split then merge retains accurate total caption timing',()=>{
  let p=addText(createProject(),'First two words here',2000,4000);
@@ -16,7 +17,7 @@ test('split then merge retains accurate total caption timing',()=>{
  validateProject(p);
 });
 test('nudge and shift preserve durations and do not create negative times',()=>{
- let p=addText(createProject(),'one',50,3000);
+ let p=addCaptionCues(createProject(),[{startMs:50,endMs:3050,text:'one'}]);
  const originalDuration=p.texts[0].endMs-p.texts[0].startMs;
  p=nudgeCaption(p,p.texts[0].id,-500);
  assert.equal(p.texts[0].startMs,0);
@@ -27,7 +28,7 @@ test('nudge and shift preserve durations and do not create negative times',()=>{
  assert.equal(p.texts[0].startMs,0);
 });
 test('sentence capitalization keeps acronym and contractions intact',()=>{
- let p=addText(createProject(),"hello USA. it's nice! welcome",0);
+ let p=addCaptionCues(createProject(),[{startMs:0,endMs:3000,text:"hello USA. it's nice! welcome"}]);
  p=fixSentenceCase(p);
  assert.equal(p.texts[0].text,"Hello USA. It's nice! Welcome");
  assert.equal(fixSentenceCase(p),p);
