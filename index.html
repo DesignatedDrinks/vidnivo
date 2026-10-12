@@ -117,68 +117,276 @@ textarea,input[type=number],select{background:#192538;border:1px solid rgba(168,
 @keyframes vidnivo-flow{0%{background-position:100% center}100%{background-position:-100% center}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}.processing-wave i{height:12px;opacity:1}}
 
+
+/* Studio 2 — editorial dark. Restraint over dashboard decoration. */
+:root{
+ --bg:#090a0c;--panel:#131517;--panel2:#191b1f;--line:#27292e;
+ --text:#f5f5f3;--muted:#9a9da4;--accent:#c0ccff;--accent-dark:#242941;
+ --danger:#ff9f9d;--violet:#c0ccff;--mint:#a0dbc5;color-scheme:dark
+}
+html{background:#090a0c}
+body{
+ background:#090a0c!important;
+ font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif;
+ color:var(--text);letter-spacing:-.012em
+}
+button,input,select,textarea{font-family:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid #b7c8ff;outline-offset:3px}
+.topbar{height:73px;background:#0d0e10;box-shadow:none;border-bottom:1px solid #25272b;backdrop-filter:none;-webkit-backdrop-filter:none}
+.brand{font-weight:760;gap:9px;font-size:22px;letter-spacing:-1.25px}
+.brand-mark{width:33px;height:33px;box-shadow:none;border-radius:10px}
+.brand-accent{color:inherit}
+.brand-pill{background:none;border:0;color:#787e89;font-size:9px;padding:0;margin-left:3px;letter-spacing:1.6px}
+.header-actions{gap:20px}
+.privacy{font-size:12px;color:#a0a4ac;background:none;border:0;border-radius:0;padding:0}
+.privacy-dot{background:#86ceb2;box-shadow:none;width:6px;height:6px}
+.app{max-width:1540px;grid-template-columns:minmax(0,1fr) 340px;gap:24px;padding:22px clamp(17px,3vw,52px) 58px}
+.workbench{gap:14px}
+.stage-top{margin:0;min-height:50px;padding:2px 5px 7px;display:flex;align-items:center;justify-content:space-between}
+.stage-top h1{margin:0;font-size:clamp(24px,2.8vw,34px);letter-spacing:-1.3px;font-weight:700;line-height:1}
+.studio-dot{color:#c0ccff}
+.stage-subtitle{color:#80858e;font-size:13px;letter-spacing:0;font-weight:470}
+.viewer,.timeline-card,.panel{background:#131517;box-shadow:none;border:1px solid #292b30;border-radius:17px}
+.viewer{order:0;border-radius:18px}
+.autopilot-card{order:1}
+.timeline-card{order:2}
+.viewer-toolbar{height:52px;border-bottom:1px solid #26282c;padding:0 18px}
+.preview-title{font-size:13px;color:#adb0b6;font-weight:630;letter-spacing:0}
+.preview-wrap{height:clamp(445px,61vh,690px);min-height:390px;background:#090a0b;padding:18px}
+#preview{background:#050506;border-radius:6px;box-shadow:0 0 0 1px rgba(255,255,255,.055),0 22px 50px rgba(0,0,0,.4)}
+.empty-state{background:#090a0b;gap:20px}
+.empty-state h2{font-size:clamp(24px,3.5vw,35px);font-weight:665;letter-spacing:-1.25px;margin:3px 0 3px}
+.empty-symbol img{width:60px;height:60px;filter:none}
+.empty-state .upload-label{min-height:47px;min-width:170px}
+.empty-state .upload-label span{margin-left:10px;font-size:16px}
+.transport{height:61px;border-top:1px solid #26282c;justify-content:flex-start;padding:0 20px;gap:21px}
+.play-button{background:#292c34;color:#fff;width:38px;height:38px;box-shadow:none;font-size:16px}
+.play-button:hover{transform:none;background:#383b44}
+.icon-button{color:#bec0c5;font-size:16px}
+.timecounter{right:calc(340px + clamp(17px,3vw,52px) + 47px);color:#858a93}
+.timecounter b{color:#e2e5eb}
+.ratio-pills{gap:4px}
+.pill{font-size:12px;color:#8d929c;background:transparent;border:1px solid transparent;border-radius:8px;padding:7px 10px;transition:background .15s ease,color .15s ease}
+.pill.active{background:#272b35;color:#f1f3fa;border:1px solid #3a4051}
+.pill:hover{background:#25272c}
+.button{border-radius:10px;background:#24262b;border:1px solid #363941;color:#e1e3e7;min-height:43px;padding:10px 15px;box-shadow:none!important;font-weight:615;letter-spacing:-.015em;transition:background .15s,border-color .15s,transform .13s}
+.button:not(:disabled):active{transform:translateY(1px)}
+.button.primary{background:#ecedf2;border:1px solid #ecedf2;color:#101116}
+.button.primary:hover,.button.primary:not(:disabled):hover{background:#cbd4ef;border-color:#cbd4ef;box-shadow:none!important}
+.button.secondary{background:#292d37;color:#d7dfff;border-color:#394050}
+.button.ghost{background:#222429;color:#c7c9d0;border-color:#31343a}
+.button.ghost:not(:disabled):hover{background:#2d3037}
+.button.danger{background:#32272b;color:#ffadaa;border-color:#513a41}
+.button.small{min-height:37px;font-size:12px}
+.button:disabled{opacity:.38}
+.autopilot-card{border:1px solid #2b2d32;background:#15171a!important;border-radius:17px;padding:19px 22px 14px;box-shadow:none}
+.autopilot-heading{margin:0 0 14px;display:flex;align-items:center;justify-content:space-between}
+.autopilot-heading h2{font-size:20px;font-weight:685;letter-spacing:-.55px;margin:0}
+.autopilot-indicator{font-size:21px;color:#878b94}
+.autopilot-core{display:grid;grid-template-columns:minmax(120px,1fr) minmax(155px,1.14fr) auto;gap:9px;align-items:center}
+.autopilot-core select{margin:0;height:46px;padding:0 14px;font-weight:540;font-size:13px;max-width:100%;border-radius:10px}
+.autopilot-core .button{height:46px;white-space:nowrap}
+.autopilot-run{min-width:0!important;flex:none!important}
+.autopilot-run span{margin-left:8px}
+.autopilot-options{display:flex;justify-content:flex-start;gap:20px;flex-wrap:wrap;margin:5px 0 1px}
+.autopilot-options label{font-size:13px;font-weight:500;color:#bbbfc8}
+.autopilot-options input{accent-color:#d8e1ff}
+.quiet-details{font-size:13px;color:#9297a1;margin:12px 1px 0}
+.quiet-details>summary{display:inline-flex;gap:6px;align-items:center;cursor:pointer;list-style:none;color:#9ca1a9;user-select:none;padding:4px 0;font-size:12px;transition:color .15s}
+.quiet-details>summary::-webkit-details-marker{display:none}
+.quiet-details>summary::after{content:"⌄";font-size:14px;margin-left:3px;transition:transform .15s}
+.quiet-details[open]>summary::after{transform:rotate(180deg)}
+.quiet-details>summary:hover{color:#eef1f6}
+.quiet-details p{line-height:1.5;color:#9fa4ae;font-size:12px;margin:10px 0 3px}
+.autopilot-card .status{margin-top:10px;font-size:12px;line-height:1.5}
+.autopilot-card .progress{margin:0}
+.autopilot-card .progress:has(>div:not([style])){display:none}
+.creator-hooks{margin-top:16px;padding:14px 0 0;border-top:1px solid #303237}
+.creator-hooks h3{font-size:14px;font-weight:680;margin:0}
+.creator-hook-choices{margin:8px 0}
+.creator-hook-choices button{background:#23262c;border:1px solid #393c45;color:#e1e4ee;font-size:13px;border-radius:9px;padding:12px}
+.creator-hook-choices button:hover{background:#30333c}
+.timeline-card{padding:17px 18px}
+.timeline-title{font-size:16px;font-weight:680;margin:0;letter-spacing:-.25px}
+.section-head{align-items:center}
+.section-actions{gap:7px}
+.clip-track{border-bottom:1px solid #2b2d32}
+.clip{min-height:70px;background:#242834;border:1px solid #3a4050;border-radius:9px;color:#dce2f2}
+.clip.selected{border-color:#a8b9ff;box-shadow:inset 0 0 0 1px #7688c3}
+.clip-number{font-size:10px;color:#818da9;letter-spacing:.4px}
+.clip-time{color:#c4cbd9}
+.blank-track{background:#1b1d21;color:#888e96}
+.timeline-help{justify-content:flex-end}
+.timeline-card input[type=range]{margin:17px 0 14px}
+.inspector{gap:10px}
+.panel{padding:19px}
+.inspector-tabs{padding:4px;background:#17191c;display:flex;border-radius:14px;gap:3px}
+.inspector-tab{padding:13px 4px;border-radius:10px;color:#92969e;font-weight:600;font-size:13px;transition:background .16s,color .16s}
+.inspector-tab.active{background:#292c33;color:#f0f1f5;box-shadow:none}
+.panel-head{margin-bottom:19px}
+.panel-head h2{font-size:19px;font-weight:680;letter-spacing:-.55px;margin:0}
+.info-line{color:#a5a9b3}
+.quick-actions{gap:8px;margin:4px 0 18px}
+.quick-actions button{min-height:44px;font-size:12px}
+.hint-block{padding:14px;border-radius:10px;background:#1e2024;border:1px solid #2c2e35;line-height:1.5;color:#a6aab4}
+.field-label,.field-group label{font-size:13px;color:#b7bbc3;font-weight:550}
+textarea,input[type=number],select{background:#1d2025;color:#e7e9ef;border:1px solid #373a42;border-radius:10px;padding:11px}
+textarea{resize:vertical}
+input[type=range]{accent-color:#afc0ff}
+.captions-list{gap:9px}
+.caption-item{background:#1d2025;border:1px solid #2c2f35}
+.subsection-title{font-size:14px;font-weight:645;letter-spacing:-.15px;color:#c4c7ce;margin:23px 0 12px}
+.touch-caption-hint{display:block;margin:14px 1px 12px;color:#b3b8c4;font-size:13px;line-height:1.45}
+.touch-caption-hint span{font-size:13px}
+.looks-grid{gap:8px}
+.look-chip{border:1px solid #353840;background:#202329;color:#d2d6de;min-height:55px;border-radius:10px;font-size:13px}
+.look-chip:hover{transform:none;background:#292d34}
+.look-chip.active{border-color:#a8b8f7;background:#2a3040;color:#fff;box-shadow:none}
+.look-dot{border-radius:6px}
+.retouch-panel{background:#1b1e22;border:1px solid #30323a;border-radius:12px}
+.retouch-heading strong{font-size:14px}
+.retouch-heading>span,.retouch-heading b{color:#d0d7ec}
+.retouch-desc{font-size:12px;color:#9298a3;margin:7px 0}
+.watermark-settings{background:#1b1d21;border:1px solid #30333a;border-radius:12px}
+.watermark-head{margin-bottom:13px}
+.watermark-head strong{font-size:14px}
+.watermark-toggle{margin-top:9px}
+.export-summary{background:#1c1f24;border:1px solid #2d3036;padding:12px;color:#c2c8d2}
+.export-button{min-height:49px}
+.status{color:#c4c9d2;font-size:13px;line-height:1.5}
+.status:empty{display:none}
+.progress{height:3px;background:#2c3037}
+.progress>div{background:#bacbff}
+.footer-note{padding:14px 8px;color:#9297a0;line-height:1.4}
+.footer-note img{width:16px;height:16px}
+.footer-beta{color:#666c77}
+.processing-overlay{background:rgba(8,9,11,.93);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.processing-sheet{border:0;background:none;border-radius:0;padding:16px 12px;width:min(100%,350px)}
+.processing-emblem{width:64px;height:64px;margin-bottom:24px}
+.processing-emblem img{width:47px;height:47px;filter:none}
+.processing-ring{border-color:#424853;border-top-color:#b6c4fa;border-right-color:#b6c4fa;animation-duration:2.8s}
+.processing-eyebrow,.processing-wave,.processing-privacy{display:none}
+.processing-headline{font-size:24px;letter-spacing:-.75px;font-weight:660;margin:8px 0}
+.processing-detail{font-size:13px;color:#aeb3bb;margin:12px 0}
+.processing-stages{max-width:245px;margin:20px auto 0;gap:3px}
+.process-step{font-size:12px;color:#686e79;padding:8px 10px}
+.process-step.current{background:#1d222d;color:#edf0fa}
+.process-step.current .process-dot{border-color:#a6b8ee;color:#bbceff;box-shadow:none}
+.process-step.done{color:#a9b4b6}
+.process-step.done .process-dot{color:#abd2bf;border-color:#728d84;background:none}
+@media(max-width:1030px){
+ .app{grid-template-columns:minmax(0,1fr) 300px;gap:15px}
+ .timecounter{right:calc(300px + clamp(17px,3vw,52px) + 26px)}
+ .autopilot-core{grid-template-columns:minmax(100px,1fr) minmax(134px,1.1fr)}
+ .autopilot-core #creatorSave{grid-column:1 / -1}
+}
+@media(max-width:770px){
+ .topbar{height:59px;padding:0 14px}
+ .brand{font-size:20px}
+ .brand-mark{width:30px;height:30px}
+ .brand-pill{font-size:8px}
+ .app{display:block;padding:12px 11px 40px}
+ .stage-top{min-height:43px;margin:0;padding:0 5px 12px}
+ .stage-top h1{font-size:26px}
+ .stage-subtitle{font-size:12px}
+ .viewer{margin:0}
+ .preview-wrap{height:clamp(360px,56vh,630px);min-height:350px;padding:12px}
+ .transport{height:57px}
+ .timecounter{position:static;margin-left:auto;margin-right:0;font-size:12px}
+ .autopilot-card{margin:12px 0 0;padding:16px}
+ .autopilot-heading{margin-bottom:11px}
+ .autopilot-heading h2{font-size:19px}
+ .autopilot-core{grid-template-columns:minmax(125px,1fr) minmax(150px,1.1fr);gap:8px}
+ .autopilot-core #creatorSave{grid-column:1 / -1;height:38px;min-height:38px}
+ .timeline-card{padding:14px 15px;margin-top:12px}
+ .inspector{margin-top:14px;gap:10px}
+ .panel{padding:17px}
+ .inspector-tabs{padding:3px}
+ .inspector-tab{padding:12px 4px}
+}
+@media(max-width:385px){
+ .brand-pill{display:none}
+ .header-actions{gap:7px}
+ .privacy{font-size:11px}
+ .stage-subtitle{display:none}
+ .autopilot-core{grid-template-columns:1fr}
+ .autopilot-core .button{width:100%}
+ .autopilot-core #creatorSave{grid-column:auto}
+ .ratio-pills{gap:0}
+ .pill{padding:6px 8px}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+
 </style>
 </head>
 <body>
   <header class="topbar">
     <div class="brand"><img class="brand-mark" src="./vidnivo-mark.svg" alt="VIDNIVO icon" width="37" height="37" /><span class="wordmark"><span>VIDNI</span><span class="brand-accent">VO</span></span><div class="brand-pill">STUDIO</div></div>
-    <div class="header-actions"><span class="privacy"><span class="privacy-dot"></span> Local editing</span><button id="resetProject" class="button ghost small" title="Start a new project">New project</button></div>
+    <div class="header-actions"><span class="privacy" title="Videos remain on your device"><span class="privacy-dot"></span> Local</span><button id="resetProject" class="button ghost small" title="Start a new project">New project</button></div>
   </header>
   <main class="app">
     <section class="workbench">
-      <div class="stage-top"><div><div class="eyebrow">CREATOR WORKSPACE</div><h1>Your story. Your edit.</h1><p class="muted subheading">A real editor you can use in your browser.</p></div><div class="tag">PRIVATE BETA</div></div>
-      <section class="panel autopilot-card" aria-label="One-click Creator Autopilot">
-        <div class="autopilot-heading"><div><div class="eyebrow">VIDNIVO CREATOR AUTOPILOT</div><h2>Make this clip ready to post.</h2><p class="subheading">Finish the repetitive edits with one tap. Review the result before exporting.</p></div><span class="autopilot-icon">✦</span></div>
-        <label class="field-label" for="creatorStyle">Finishing style</label>
-        <select id="creatorStyle" aria-label="Choose a creator finishing style">
-          <option value="talking">On Camera · natural talking-head</option>
-          <option value="product">Product Demo · punchy colours</option>
-          <option value="story">Story Mode · cinematic</option>
-          <option value="custom" disabled>My Style · save yours first</option>
-        </select>
-        <div class="autopilot-options"><label><input id="creatorCaptions" type="checkbox" checked /> Auto captions</label><label><input id="creatorTighten" type="checkbox" checked /> Trim silent edges</label><label><input id="creatorVoice" type="checkbox" checked /> Voice clarity</label></div>
-        <div class="button-row"><button id="creatorRun" type="button" class="button primary autopilot-run" disabled>✦ Finish My Video</button><button id="creatorSave" type="button" class="button ghost" title="Remember my selected colours, caption size and position for future clips">Save My Style</button></div>
-        <div id="creatorStatus" class="status" aria-live="polite" role="status">Import a video, choose a style, then select Finish My Video.</div>
-        <div id="creatorHookPanel" class="creator-hooks" hidden>
-          <div class="section-label">OPENING HOOKS FROM YOUR OWN WORDS</div>
-          <p class="fine-print">Choose a spoken phrase as an editable 2-second opening title. No invented claims.</p>
-          <div id="creatorHookChoices" class="creator-hook-choices"></div>
-          <button id="creatorHookRemove" class="button ghost small" type="button">Remove opening title</button>
-        </div>
-        <div class="progress" aria-label="Creator Autopilot progress"><div id="creatorProgress"></div></div>
-        <p class="fine-print">Colour, format and speech styles can be applied immediately. Caption transcription runs locally, may need a model download and takes longer on phones. Only beginning/end silence is trimmed to preserve synchronized speech.</p>
-      </section>
+      <div class="stage-top"><h1>Studio<span class="studio-dot">.</span></h1><span class="stage-subtitle">Create something good.</span></div>
       <div class="viewer">
-        <div class="viewer-toolbar"><span class="section-label">PREVIEW</span><div class="ratio-pills" role="group" aria-label="Video aspect ratio"><button data-ratio="9:16" class="pill active">9:16</button><button data-ratio="1:1" class="pill">1:1</button><button data-ratio="16:9" class="pill">16:9</button></div></div>
+        <div class="viewer-toolbar"><span class="preview-title">Preview</span><div class="ratio-pills" role="group" aria-label="Video aspect ratio"><button data-ratio="9:16" class="pill active">9:16</button><button data-ratio="1:1" class="pill">1:1</button><button data-ratio="16:9" class="pill">16:9</button></div></div>
         <div id="previewWrap" class="preview-wrap">
           <canvas id="preview" width="540" height="960" aria-label="Video and captions preview"></canvas>
           <div id="processingOverlay" class="processing-overlay" hidden role="status" aria-live="polite">
             <div class="processing-sheet">
               <div class="processing-emblem" aria-hidden="true"><span class="processing-ring"></span><img src="./vidnivo-mark.svg" width="55" height="55" alt="" /></div>
-              <div class="processing-eyebrow">VIDNIVO WORKING</div>
+              <div class="processing-eyebrow" aria-hidden="true"></div>
               <div id="processHeadline" class="processing-headline">Preparing your clip</div>
               <p id="processDetail" class="processing-detail">Reading local media.</p>
-              <div class="processing-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="processing-wave" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
               <div id="processStages" class="processing-stages" aria-label="Real processing stages"></div>
-              <div class="processing-privacy"><span aria-hidden="true">●</span> Original footage stays on this device</div>
+              <div class="processing-privacy">On-device</div>
             </div>
           </div>
-          <div id="emptyState" class="empty-state"><div class="empty-symbol"><img src="./vidnivo-mark.svg" width="67" height="67" alt="VIDNIVO" /></div><h2>Make something worth watching.</h2><p>Choose a video from your phone or computer to start editing.</p><label for="videoInput" class="button primary upload-label">+ Import video</label><div class="tiny">Your footage stays on your device.</div></div>
+          <div id="emptyState" class="empty-state"><div class="empty-symbol"><img src="./vidnivo-mark.svg" width="56" height="56" alt="VIDNIVO" /></div><h2>Your next great cut.</h2><label for="videoInput" class="button primary upload-label">Import video <span aria-hidden="true">↗</span></label></div>
         </div>
         <div class="transport"><button id="back5" class="icon-button" aria-label="Back five seconds" disabled>↶ <span>5s</span></button><button id="play" class="play-button" aria-label="Play video" disabled>▶</button><button id="forward5" class="icon-button" aria-label="Forward five seconds" disabled><span>5s</span> ↷</button><div class="timecounter"><b id="currentTime">00:00.0</b> <span>/</span> <span id="totalTime">00:00.0</span></div></div>
       </div>
-      <div class="timeline-card"><div class="section-head"><div><div class="section-label">TIMELINE</div><p class="section-desc">Select a clip to trim, split, move or remove it.</p></div><div class="section-actions"><label for="videoInput" class="button ghost small">+ Import</label><button id="split" class="button secondary small" disabled>✂ Split</button></div></div>
+      <section class="autopilot-card" aria-label="Quick finish">
+        <div class="autopilot-heading"><h2>Make the cut.</h2><span class="autopilot-indicator" aria-hidden="true">↗</span></div>
+        <div class="autopilot-core">
+          <select id="creatorStyle" aria-label="Video style">
+            <option value="talking">On camera</option>
+            <option value="product">Product</option>
+            <option value="story">Story</option>
+            <option value="custom" disabled>My style</option>
+          </select>
+          <button id="creatorRun" class="button primary autopilot-run" type="button" disabled>Auto-finish <span aria-hidden="true">↗</span></button>
+          <button id="creatorSave" class="button ghost" type="button" title="Remember your current style">Save style</button>
+        </div>
+        <details class="quiet-details"><summary>Customize</summary>
+          <div class="autopilot-options">
+            <label><input id="creatorCaptions" type="checkbox" checked /> Captions</label>
+            <label><input id="creatorTighten" type="checkbox" checked /> Trim silence</label>
+            <label><input id="creatorVoice" type="checkbox" checked /> Voice</label>
+          </div>
+        </details>
+        <div id="creatorStatus" class="status" aria-live="polite" role="status"></div>
+        <div id="creatorHookPanel" class="creator-hooks" hidden>
+          <h3>Opening line</h3>
+          <div id="creatorHookChoices" class="creator-hook-choices"></div>
+          <button id="creatorHookRemove" class="button ghost small" type="button">Remove title</button>
+        </div>
+        <div class="progress" aria-label="Auto-finish progress"><div id="creatorProgress"></div></div>
+      </section>
+      <div class="timeline-card"><div class="section-head"><div><h2 class="timeline-title">Timeline</h2></div><div class="section-actions"><label for="videoInput" class="button ghost small">+ Import</label><button id="split" class="button secondary small" disabled>✂ Split</button></div></div>
         <input id="scrubber" type="range" min="0" max="0" value="0" step="0.05" aria-label="Video playhead" disabled />
         <div id="timeline" class="clip-track"><div class="blank-track">Import a video to see your timeline</div></div>
-        <div class="timeline-help"><span>◀ &nbsp; tap clips to select</span><span id="clipCount">0 clips</span></div>
+        <div class="timeline-help"><span id="clipCount">0 clips</span></div>
       </div>
     </section>
     <aside class="inspector">
       <div class="panel inspector-tabs"><button class="inspector-tab active" data-tab="edit">Edit</button><button class="inspector-tab" data-tab="captions">Captions</button><button class="inspector-tab" data-tab="looks">Looks</button><button class="inspector-tab" data-tab="export">Export</button></div>
       <div id="tab-edit" class="panel tab-content">
-        <div class="panel-head"><div class="eyebrow">CLIP CONTROLS</div><h2>Edit your cut</h2></div>
-        <div class="button-row quick-actions"><button id="quickEnhance" class="button secondary" type="button">✦ Auto Enhance</button><button id="quickCaptions" class="button ghost" type="button">◉ Auto Captions</button></div>
-        <div id="editEmpty" class="hint-block">Import footage to start. Adjust the trim, then split the timeline or add your own captions.</div>
+        <div class="panel-head"><h2>Edit</h2></div>
+        <div class="button-row quick-actions"><button id="quickEnhance" class="button secondary" type="button">Auto enhance</button><button id="quickCaptions" class="button ghost" type="button">Auto captions</button></div>
+        <div id="editEmpty" class="hint-block">Import a video to start.</div>
         <div id="editControls" hidden>
           <div class="info-line"><span>Selected clip</span><strong id="selectedClipName">Clip 1</strong></div>
           <div class="field-group"><label for="trimStart">Trim start <b id="startLabel">0.0s</b></label><input type="range" id="trimStart" min="0" max="1" step="0.05" /></div>
@@ -186,33 +394,33 @@ textarea,input[type=number],select{background:#192538;border:1px solid rgba(168,
           <div class="field-group"><label for="speed">Playback speed <b id="speedLabel">1.0×</b></label><input type="range" id="speed" min="0.5" max="2" step="0.25" value="1" /></div>
           <div class="button-row"><button id="moveLeft" class="button ghost">← Earlier</button><button id="moveRight" class="button ghost">Later →</button></div>
           <div class="button-row"><button id="duplicate" class="button ghost">Duplicate</button><button id="deleteClip" class="button danger">Delete clip</button></div>
-          <p class="fine-print">Edits affect your new export, not the source video on your phone.</p>
+          <details class="quiet-details"><summary>About edits</summary><p>Your original video is never changed.</p></details>
         </div>
       </div>
       <div id="tab-captions" class="panel tab-content" hidden>
-        <div class="panel-head"><div class="eyebrow">TEXT LAYERS</div><h2>Captions & titles</h2></div>
-        <button id="autoCaptions" class="button primary full" type="button">✦ Generate Auto Captions</button>
-        <div id="captionStatus" class="status" aria-live="polite" role="status">One click: transcribe your edited video locally and place timed captions. English beta, up to 120 seconds. First run downloads the speech model and may be slow on phones.</div>
+        <div class="panel-head"><h2>Captions</h2></div>
+        <button id="autoCaptions" class="button primary full" type="button">Generate captions <span aria-hidden="true">↗</span></button>
+        <div id="captionStatus" class="status" aria-live="polite" role="status"></div>
         <div class="progress"><div id="captionProgress"></div></div>
-        <p class="fine-print">Footage stays in this browser. The speech model downloads from Hugging Face. No microphone access or account required. Keep the page open; some phones lack enough memory for local AI.</p>
-        <div id="touchCaptionHint" class="hint-block touch-caption-hint"><strong><icon aria-hidden="true"></icon> Edit captions with your fingers</strong><span>Tap a caption on the video, drag it anywhere, or use two fingers to pinch it bigger or smaller. You can also select a caption below.</span></div>
+        <details class="quiet-details"><summary>Caption limits</summary><p>English · up to 2 minutes. First use downloads a speech model. Keep the editor open; older phones may not support local transcription.</p></details>
+        <div id="touchCaptionHint" class="touch-caption-hint"><span>Drag to move. Pinch to resize.</span></div>
         <label class="field-label" for="captionText">Caption text</label><textarea id="captionText" rows="3" maxlength="240" placeholder="What should appear on screen?"></textarea>
         <div class="button-row two-cols"><label class="field-label">Start (seconds)<input type="number" id="captionStart" min="0" step="0.1" value="0" /></label><label class="field-label">End (seconds)<input type="number" id="captionEnd" min="0" step="0.1" value="3" /></label></div>
         <div class="button-row two-cols"><label class="field-label">Position preset<select id="captionPosition"><option value="bottom">Bottom</option><option value="middle">Middle</option><option value="top">Top</option><option value="custom">Custom (dragged)</option></select></label><label class="field-label">Colour<select id="captionColor"><option value="#FFFFFF">White</option><option value="#23D4E9">Cyan</option><option value="#FFE178">Yellow</option></select></label></div>
         <div class="field-group"><label for="captionFontSize">Caption size <b id="captionFontSizeLabel">100%</b></label><input id="captionFontSize" type="range" min="55" max="240" step="5" value="100" aria-label="Caption font size percentage" /></div>
         <div class="button-row"><button id="captionSmaller" type="button" class="button ghost">A− Smaller</button><button id="captionLarger" type="button" class="button ghost">A+ Larger</button></div>
         <div class="button-row"><button id="captionCenter" type="button" class="button ghost full">Center selected caption</button></div>
-        <p id="captionTouchStatus" class="fine-print" role="status" aria-live="polite">Select any visible caption and drag or pinch directly on the video preview.</p>
-        <button id="addCaption" class="button primary full">+ Add timed caption</button>
-        <div class="button-row"><button id="downloadSrt" class="button ghost" type="button">↓ Export subtitles .SRT</button>
-        <button id="clearAutoCaptions" class="button ghost" type="button">Clear generated</button></div>
-        <div class="section-label spacing-top">CAPTION TRACK</div><div id="captionsList" class="captions-list"><div class="muted">No captions yet.</div></div>
+        <p id="captionTouchStatus" class="status" role="status" aria-live="polite"></p>
+        <button id="addCaption" class="button primary full">Add caption</button>
+        <div class="button-row"><button id="downloadSrt" class="button ghost" type="button">Download SRT</button>
+        <button id="clearAutoCaptions" class="button ghost" type="button">Clear auto</button></div>
+        <h3 class="subsection-title">Captions on timeline</h3><div id="captionsList" class="captions-list"><div class="muted">No captions yet.</div></div>
       </div>
       <div id="tab-looks" class="panel tab-content" hidden>
-        <div class="panel-head"><div class="eyebrow">COLOUR STUDIO</div><h2>Filters & enhancements</h2></div>
-        <button id="autoEnhance" class="button primary full" type="button">✦ Auto Enhance This Video</button>
-        <div id="enhanceStatus" class="status" aria-live="polite" role="status">Analyze the preview frame for exposure and contrast, then apply balanced adjustments to all clips. Tap again to switch it off.</div>
-        <div class="section-label spacing-top">ONE-TAP FILTERS</div>
+        <div class="panel-head"><h2>Looks</h2></div>
+        <button id="autoEnhance" class="button primary full" type="button">Auto enhance</button>
+        <div id="enhanceStatus" class="status" aria-live="polite" role="status"></div>
+        <h3 class="subsection-title">Colour</h3>
         <div id="lookPresets" class="looks-grid" role="group" aria-label="Video filters">
           <button type="button" class="look-chip active" data-look="original"><span class="look-dot" style="background:linear-gradient(125deg,#bbc4d2,#3b5d77)"></span>Original</button>
           <button type="button" class="look-chip" data-look="vibrant"><span class="look-dot" style="background:linear-gradient(125deg,#ffab3c,#eb416f)"></span>Vibrant</button>
@@ -223,39 +431,39 @@ textarea,input[type=number],select{background:#192538;border:1px solid rgba(168,
           <button type="button" class="look-chip" data-look="mono"><span class="look-dot" style="background:linear-gradient(125deg,#111,#dadada)"></span>Black & White</button>
           <button type="button" class="look-chip" data-look="moody"><span class="look-dot" style="background:linear-gradient(125deg,#1b203b,#65627f)"></span>Moody</button>
         </div>
-        <div class="section-label spacing-top">FACE RETOUCH</div>
+        <h3 class="subsection-title">Retouch</h3>
 <div class="retouch-panel">
   <div class="retouch-heading"><strong>Skin Smooth</strong><b id="faceRetouchValue">Off</b></div>
-  <p class="fine-print">Soften visible blemishes while protecting eyes, eyebrows and lips.</p>
+  <p class="retouch-desc">Natural skin smoothing</p>
   <input id="faceRetouch" aria-label="Face smoothing intensity" type="range" min="0" max="100" step="5" value="0" disabled style="width:100%;margin:16px 0" />
   <div class="retouch-scale" style="display:flex;justify-content:space-between;color:#b3bfca;font-size:11px"><span>Off</span><span>Soft</span><span>Smooth</span></div>
-  <button id="faceRetouchPreset" type="button" class="button secondary full" disabled style="margin-top:13px">✦ Natural Retouch · 35%</button>
-  <div id="faceRetouchStatus" class="status" aria-live="polite">Face tracking runs on this device. First use downloads a model; original footage stays local.</div>
+  <button id="faceRetouchPreset" type="button" class="button secondary full" disabled>Natural · 35%</button>
+  <div id="faceRetouchStatus" class="status" aria-live="polite"></div>
 </div>
-<p class="fine-print">Looks and Auto Enhance appear in both preview and exported video. These edits are non-destructive, and Original restores the baseline look.</p>
+<details class="quiet-details"><summary>About retouch</summary><p>Face tracking runs on your device. Eyes and lips stay sharp. Changes appear in exports.</p></details>
       </div>
       <div id="tab-export" class="panel tab-content" hidden>
-        <div class="panel-head"><div class="eyebrow">FINISH & SHARE</div><h2>Export video</h2></div>
+        <div class="panel-head"><h2>Export</h2></div>
         <div class="info-line"><span>Video format</span><strong id="outputFormat">Detecting browser…</strong></div>
         <label class="field-label" for="quality">Resolution</label><select id="quality"><option value="720">720p — best on mobile</option><option value="1080">1080p — high quality</option></select>
-        <div class="export-summary" id="exportSummary">Import a video to calculate the edited runtime.</div>
+        <div class="export-summary" id="exportSummary"></div>
         <div class="watermark-settings">
-          <div class="watermark-head"><div class="watermark-icon"><img src="./vidnivo-mark.svg" width="28" height="28" alt="" /></div><div><strong>VIDNIVO watermark</strong><span>Subtle brand signature on exported frames</span></div></div>
-          <label class="watermark-toggle"><input id="watermarkEnabled" type="checkbox" checked /><span>Include VIDNIVO watermark</span></label>
+          <div class="watermark-head"><div class="watermark-icon"><img src="./vidnivo-mark.svg" width="24" height="24" alt="" /></div><strong>Watermark</strong></div>
+          <label class="watermark-toggle"><input id="watermarkEnabled" type="checkbox" checked /><span>Show on video</span></label>
           <label class="field-label" for="watermarkPosition">Position
-            <select id="watermarkPosition"><option value="bottom-right">Bottom right · default</option><option value="top-left">Top left</option></select>
+            <select id="watermarkPosition"><option value="bottom-right">Bottom right</option><option value="top-left">Top left</option></select>
           </label>
-          <p class="fine-print">Visible on preview and in the recorded export. Optional for this beta; no watermark if disabled.</p>
+          
         </div>
-        <div class="section-label">LIP SYNC · AUDIO SAFETY</div>
-        <p id="syncStatus" class="status" role="status" aria-live="polite">VIDNIVO checks audio/video timing, encoded tracks, and output duration. If they cannot be checked, export is blocked.</p>
-        <button id="export" class="button primary full export-button" disabled>Export finished video ↗</button>
+        
+        <p id="syncStatus" class="status" role="status" aria-live="polite"></p>
+        <button id="export" class="button primary full export-button" disabled>Export video <span aria-hidden="true">↗</span></button>
         <div id="exportStatus" class="status" role="status" aria-live="polite"></div>
         <div class="progress"><div id="exportProgress"></div></div>
         <a id="download" class="button secondary full" hidden download>↓ Download video</a>
-        <p class="fine-print">Audio-safe browser export currently supports one continuous source at 1× speed (including adjacent, unaltered splits). Reordered cuts, audio remixing and speed changes require native timestamped encoding. Keep the browser visible. Timing checks cannot independently verify lip movement — always review the downloaded video.</p>
+        <details class="quiet-details"><summary>Export requirements</summary><p>Browser export supports continuous footage at 1× speed. Cut gaps, reordered clips and speed changes need a native build. Keep VIDNIVO open while exporting and check the result before posting.</p></details>
       </div>
-      <div class="footer-note"><img src="./vidnivo-mark.svg" width="18" height="18" alt="" /> <b>VIDNIVO STUDIO</b> · Browser preview edition<br />No account required. Source video stays local. This is not yet feature-equivalent to the native mobile editor.</div>
+      <div class="footer-note"><img src="./vidnivo-mark.svg" width="17" height="17" alt="" /> Private, on-device editing <span class="footer-beta">· Web beta</span></div>
     </aside>
   </main>
   <input id="videoInput" type="file" accept="video/*" hidden />
@@ -553,7 +761,7 @@ function toggleEnhancement(){
  const contrast=clamp(.25/Math.max(.12,std),.98,1.22);
  const saturate=clamp(.24/Math.max(.13,chroma/Math.max(1,n)),1.02,1.23);
  state.enhancement={brightness,contrast,saturate};
- $('enhanceStatus').textContent='Auto Enhance on · exposure ×'+brightness.toFixed(2)+' · contrast ×'+contrast.toFixed(2)+' · colour ×'+saturate.toFixed(2)+'. Tap again to undo.';
+ $('enhanceStatus').textContent='Enhanced · Tap again to undo';
  requestDraw();
 }
 function setRatio(r){if(!['9:16','1:1','16:9'].includes(r))return;state.ratio=r;document.querySelectorAll('[data-ratio]').forEach(e=>e.classList.toggle('active',e.dataset.ratio===r));drawFrame();renderTimeline()}
@@ -601,7 +809,7 @@ function selectCaptionForEditing(cap,{seek=false}={}){
  $('captionColor').value=cap.color||'#FFFFFF';
  syncCaptionSizeControls(cap);
  $('addCaption').textContent='Save caption changes';
- $('captionTouchStatus').textContent='Selected: drag this caption on the preview to move it. Pinch with two fingers to resize. The export uses exactly this position and size.';
+ $('captionTouchStatus').textContent='Drag to move · pinch to resize';
  setTab('captions');
  renderCaptions();
  requestDraw();
@@ -1013,9 +1221,7 @@ async function startExport(){
   ui.download.download='vidnivo-sync-checked-'+Date.now()+'.'+ext;
   ui.download.textContent='↓ Download '+ext.toUpperCase()+' · '+(blob.size/1048576).toFixed(1)+' MB';
   ui.download.hidden=false;ui.progress.style.width='100%';
-  $('syncStatus').textContent='Timing checks passed · audio and video tracks confirmed · max playback drift '+
-    Math.round(summary.maxDriftMs)+' ms · output duration difference '+
-    Math.round(verified.durationErrorMs)+' ms. Review the finished video for visual lip sync.';
+  $('syncStatus').textContent='Audio + video checks passed · Review before posting';
   showProcessing('export',3,'The recorded file passed available browser integrity checks.');
   toast('Export ready after audio/video integrity checks. Review the downloaded video.');
  }catch(error){
@@ -1042,7 +1248,7 @@ function setTab(tab){state.selectedTab=tab;document.querySelectorAll('[data-tab]
 function reset(){
  if(state.exporting||state.captioning||state.creatorBusy){toast('Finish the current edit before starting a new project.',true);return}
  if(state.clips.length&&!confirm('Start a new project? This removes the current timeline and captions (not the original files).'))return;
- pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];$('creatorHookPanel').hidden=true;state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.faceRetouch=0;state.voicePolish=false;applyVoicePolish();faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;touchPointers.clear();dragAnchor=null;pinchOrigin=null;$('captionFontSize').value='100';$('captionFontSizeLabel').textContent='100%';$('captionTouchStatus').textContent='Select a caption and drag or pinch to edit it.';$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
+ pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];$('creatorHookPanel').hidden=true;state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.faceRetouch=0;state.voicePolish=false;applyVoicePolish();faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;touchPointers.clear();dragAnchor=null;pinchOrigin=null;$('captionFontSize').value='100';$('captionFontSizeLabel').textContent='100%';$('captionTouchStatus').textContent='';$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
  video.removeAttribute('src');video.load();ui.empty.hidden=false;ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();renderEditor();renderCaptions();toast('Ready for a new project.');
 }
 function canvasGesturePoint(event){
@@ -1115,14 +1321,14 @@ canvas.addEventListener('pointermove',event=>{
   cap.position='custom';
   $('captionPosition').value='custom';
   syncCaptionSizeControls(cap);
-  $('captionTouchStatus').textContent='Pinch to resize: '+Math.round(value*100)+'%. Two-finger drag also moves the caption.';
+  $('captionTouchStatus').textContent='Size '+Math.round(value*100)+'%';
   touchWasEdited=true;
  }else if(touchPointers.size===1&&dragAnchor){
   const layout=captionLayout(ctx,cap,canvas.width,canvas.height);
   Object.assign(cap,clampedCaptionAnchor(point.x+dragAnchor.offsetX,point.y+dragAnchor.offsetY,layout,canvas.width,canvas.height));
   cap.position='custom';
   $('captionPosition').value='custom';
-  $('captionTouchStatus').textContent='Moving caption · release your finger to keep this position.';
+  $('captionTouchStatus').textContent='Moving…';
   touchWasEdited=true;
  }
  requestDraw();
@@ -1138,7 +1344,7 @@ function finishCaptionPointer(event){
   dragAnchor=null;pinchOrigin=null;
   if(touchWasEdited){
    renderCaptions();
-   $('captionTouchStatus').textContent='Position and size saved to this caption. Your exported video will use the same settings.';
+   $('captionTouchStatus').textContent='Caption updated';
    requestDraw();
   }
   touchWasEdited=false;
@@ -1308,7 +1514,7 @@ function loadCreatorPreference(){
  option.disabled=!state.creatorCustom;
  if(state.creatorCustom){
   $('creatorStyle').value='custom';
-  creatorStatus('My Style is ready. Import a video and choose Finish My Video.',0);
+  creatorStatus('',0);
  }
 }
 // Event wiring
@@ -1324,7 +1530,7 @@ $('watermarkPosition').addEventListener('change',event=>{
 });
 $('creatorRun').onclick=()=>void runCreatorAutopilot();
 $('creatorSave').onclick=storeCurrentCreatorStyle;
-$('creatorStyle').addEventListener('change',()=>creatorStatus('Ready for '+$('creatorStyle').selectedOptions[0].textContent+'. Import your footage and finish in one tap.',0));
+$('creatorStyle').addEventListener('change',()=>creatorStatus('',0));
 ui.videoInput.addEventListener('change',e=>{const file=e.target.files?.[0];e.target.value='';void importFile(file)});
 ui.play.onclick=()=>{if(state.playing)pause();else void play()};
 $('back5').onclick=()=>{pause();void seekTimeline(state.position-5)};

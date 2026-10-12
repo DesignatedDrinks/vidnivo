@@ -22,6 +22,7 @@ on:
       - 'docs/VIDNIVO_DESIGN_SYSTEM_V1.md'
       - 'docs/VIDNIVO_DEVELOPER_BUILD_BRIEF.md'
       - 'tests/web-brand-motion.test.mjs'
+      - 'tests/web-editorial-ui.test.mjs'
       - 'tests/web-creator-autopilot.test.mjs'
       - 'tests/web-export-sync.test.mjs'
       - 'tests/web-face-retouch.test.mjs'
@@ -64,7 +65,7 @@ jobs:
         with:
           node-version: '22'
       - name: Test real browser editor, subtitle mapping and Safari filters
-        run: node --test tests/web-studio.test.mjs tests/web-face-retouch.test.mjs tests/web-export-sync.test.mjs tests/web-caption-touch.test.mjs tests/web-creator-autopilot.test.mjs tests/web-brand-motion.test.mjs
+        run: node --test tests/web-studio.test.mjs tests/web-face-retouch.test.mjs tests/web-export-sync.test.mjs tests/web-caption-touch.test.mjs tests/web-creator-autopilot.test.mjs tests/web-brand-motion.test.mjs tests/web-editorial-ui.test.mjs
       - name: Verify real face-tracking assets resolve over HTTPS
         shell: bash
         run: |

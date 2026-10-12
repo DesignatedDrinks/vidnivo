@@ -32,11 +32,11 @@ jobs:
       - name: Validate standalone editor
         run: |
           test -s docs/index.html
-          grep -q 'Your story. Your edit.' docs/index.html
+          grep -q 'class="stage-top"' docs/index.html
           grep -q 'startExport()' docs/index.html
           grep -q 'MediaRecorder' docs/index.html
       - name: Validate browser editor and Safari shader
-        run: node --test tests/web-studio.test.mjs tests/web-face-retouch.test.mjs tests/web-export-sync.test.mjs tests/web-caption-touch.test.mjs tests/web-creator-autopilot.test.mjs tests/web-brand-motion.test.mjs
+        run: node --test tests/web-studio.test.mjs tests/web-face-retouch.test.mjs tests/web-export-sync.test.mjs tests/web-caption-touch.test.mjs tests/web-creator-autopilot.test.mjs tests/web-brand-motion.test.mjs tests/web-editorial-ui.test.mjs
       - name: Prepare GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload VIDNIVO Studio
