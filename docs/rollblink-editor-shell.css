@@ -158,3 +158,31 @@
  #mobileAddCaption{grid-row:auto!important}
 }
 @media(max-width:460px){.topbar .brand-mark{display:none}.topbar .brand{font-size:18px!important}}
+
+/* Phone-height composition: keeps preview, multi-track timeline and tools in view. */
+@media(max-width:770px){
+ .topbar{height:58px!important;min-height:58px!important}
+ .topbar .wordmark>span:first-child{text-transform:capitalize}
+ .topbar .wordmark .brand-accent{text-transform:lowercase}
+ .viewer .preview-wrap{height:clamp(245px,44dvh,565px)!important}
+ .transport{height:45px!important}
+ .transport .play-button{top:0}
+ .transport .timecounter{top:16px}
+ .transport .icon-button{top:3px}
+ .mobile-timeline-top{padding:2px 13px 4px}
+ .timeline-card input#scrubber{height:14px;margin-bottom:5px!important}
+ .mobile-track-tools{grid-template-rows:20px repeat(4,31px)!important;gap:4px!important}
+ .mobile-track-tools button{min-height:30px!important}
+ .mobile-timeline-ticks{height:20px}
+ .mobile-timeline-ticks span::after{top:9px}
+ .clip-track#timeline,#timeline .clip{height:61px!important;min-height:61px!important}
+ .mobile-caption-track{height:42px;margin-top:5px}
+ .mobile-caption-chip{height:38px}
+ .mobile-original-audio{height:29px;margin-top:5px}
+ .mobile-playhead{top:13px}
+ .mobile-caption-context{padding:8px 10px 7px}
+ .mobile-context-grabber{margin:0 auto 9px}
+ .mobile-context-caption-row{min-height:36px;margin-bottom:8px}
+ .mobile-context-actions button{min-height:55px;gap:3px}
+ .mobile-context-actions .mobile-icon{font-size:20px}
+}
