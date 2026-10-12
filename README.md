@@ -74,3 +74,10 @@ probed before it is added. Microphone permission is requested when recording
 begins. iOS exports can mix voiceovers; the Android exporter currently refuses
 extra audio tracks until native mixing is implemented. Actual device recording
 and sync must be checked before shipping.
+
+## Mobile editor redesign (October 2026)
+The editing surface follows touch-first conventions inspired by modern mobile editors:
+portrait-first centered preview, a fixed playhead, horizontally scrubbable frame timeline,
+independent audio and text tracks, and a bottom action rail. Actions without a working
+backend are marked Soon and display an explicit explanation. HD export is a real control
+in native builds; it is not represented as working inside Expo Go.

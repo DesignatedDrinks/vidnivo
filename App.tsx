@@ -5,6 +5,8 @@ import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import Slider from '@react-native-community/slider';
+import { Ionicons } from '@expo/vector-icons';
+import { EditorRail, type EditorAction } from './src/ui/EditorRail';
 import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import { probeAudioDurationMs } from './src/media/audioProbe';
 import { Directory, File, Paths } from 'expo-file-system';
@@ -51,6 +53,10 @@ function EditorApp() {
   const [busy, setBusy] = useState(false);
   const [lastExport, setLastExport] = useState<string | null>(null);
   const [timelineZoom, setTimelineZoom] = useState(1);
+  const [exportQuality, setExportQuality] = useState<720 | 1080>(1080);
+  const [fullPreview, setFullPreview] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const voiceRecorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, directory: 'document' });
   const recordingState = useAudioRecorderState(voiceRecorder, 250);
   const voiceoverStart = useRef(0);
@@ -204,9 +210,12 @@ function EditorApp() {
     if (!project) return;
     try {
       setPlaying(false); setBusy(true);
-      const uri = await exportMp4(project);
+      const uri = await exportMp4(project, exportQuality);
       setLastExport(uri);
-      Alert.alert('MP4 exported', 'Your video is ready. Tap Share MP4 to save or send it.');
+      Alert.alert('Video exported', 'Your MP4 is ready to share.', [
+        { text: 'Done' },
+        { text: 'Share', onPress: () => { void shareExport(uri).catch(err => Alert.alert('Could not share', String(err))); } }
+      ]);
     } catch (e) {
       Alert.alert('Export unavailable', e instanceof Error ? e.message : String(e));
     } finally { setBusy(false); }
@@ -275,121 +284,203 @@ function EditorApp() {
     <StatusBar style="light" />
   </View>;
 
-  return <View style={[styles.screen, { paddingTop: insets.top + 4, paddingBottom: insets.bottom + 7 }]}>
-    <View style={styles.editorBar}>
-      <Tool label="← Projects" disabled={recordingState.isRecording} onPress={() => { setEditingId(null); setPlaying(false); }} />
-      <View style={{ flex: 1, alignItems: 'center' }}><Text style={styles.projectName} numberOfLines={1}>{project.name}</Text><Text style={styles.meta}>Autosaved locally</Text></View>
-      <Tool label="Save" disabled={!token || busy} onPress={cloudSave} />
+  const comingSoon = (feature: string) =>
+    Alert.alert(feature + ' — coming soon', 'This tool is not implemented yet. It will only appear as an editing action when its result can be previewed and exported reliably.');
+  const showRatioMenu = () =>
+    Alert.alert('Canvas ratio', 'Choose an aspect ratio.', [
+      ...(['9:16','16:9','1:1'] as const).map(ratio => ({
+        text: ratio + (project.aspectRatio === ratio ? ' ✓' : ''),
+        onPress: () => apply(p => ({ ...p, aspectRatio: ratio,
+          updatedAt: new Date().toISOString(), revision: p.revision + 1 }))
+      })),
+      { text: 'Cancel', style: 'cancel' as const }
+    ]);
+  const showExportMenu = () =>
+    Alert.alert('Export resolution', 'Choose your MP4 export quality.', [
+      { text: '720p', onPress: () => setExportQuality(720) },
+      { text: '1080p', onPress: () => setExportQuality(1080) },
+      { text: 'Cancel', style: 'cancel' }
+    ]);
+  const findInProject = (value: string) => {
+    const query = value.toLowerCase().trim();
+    if (!query) return [];
+    return [
+      ...project.clips.filter(c => project.assets.find(a => a.id === c.assetId)?.filename.toLowerCase().includes(query))
+        .map(c => ({ id: c.id, type: 'clip' as const, title: project.assets.find(a => a.id === c.assetId)?.filename || 'Clip', at: c.startMs })),
+      ...project.texts.filter(t => t.text.toLowerCase().includes(query))
+        .map(t => ({ id: t.id, type: 'text' as const, title: t.text, at: t.startMs }))
+    ];
+  };
+  const clipActions: EditorAction[] = selected ? [
+    { id: 'back', label: 'Done', icon: 'arrow-back', onPress: () => setSelectedId(null) },
+    { id: 'split', label: 'Split', icon: 'cut-outline', onPress: () => apply(p => splitClip(p, selected.id, positionMs)) },
+    { id: 'trim-left', label: 'Trim start', icon: 'play-back-outline', onPress: () => apply(p => rippleTrimClip(p, selected.id, 'left', 500)) },
+    { id: 'trim-right', label: 'Trim end', icon: 'play-forward-outline', onPress: () => apply(p => rippleTrimClip(p, selected.id, 'right', -500)) },
+    { id: 'before', label: 'Earlier', icon: 'arrow-back-circle-outline', onPress: () => apply(p => reorderClip(p, selected.id, -1)) },
+    { id: 'after', label: 'Later', icon: 'arrow-forward-circle-outline', onPress: () => apply(p => reorderClip(p, selected.id, 1)) },
+    { id: 'slow', label: '0.5×', icon: 'speedometer-outline', onPress: () => apply(p => editClip(p, selected.id, { speed: .5 })) },
+    { id: 'normal', label: '1×', icon: 'speedometer-outline', onPress: () => apply(p => editClip(p, selected.id, { speed: 1 })) },
+    { id: 'fast', label: '2×', icon: 'flash-outline', onPress: () => apply(p => editClip(p, selected.id, { speed: 2 })) },
+    { id: 'mute', label: selected.muted ? 'Unmute' : 'Mute', icon: selected.muted ? 'volume-high-outline' : 'volume-mute-outline',
+      onPress: () => apply(p => editClip(p, selected.id, { muted: !selected.muted })) },
+    { id: 'delete', label: 'Delete', icon: 'trash-outline', onPress: () => {
+      apply(p => rippleDeleteClip(p, selected.id)); setSelectedId(null);
+    }}
+  ] : [];
+  const textActions: EditorAction[] = selectedText ? [
+    { id: 'back', label: 'Done', icon: 'arrow-back', onPress: () => setSelectedTextId(null) },
+    { id: 'edit', label: 'Edit', icon: 'create-outline', onPress: () => { setTitleText(selectedText.text); setEditTextPrompt(true); } },
+    { id: 'bigger', label: 'Larger', icon: 'add-circle-outline', onPress: () => apply(p => editTextLayer(p, selectedText.id, { fontSize: selectedText.fontSize + 4 })) },
+    { id: 'smaller', label: 'Smaller', icon: 'remove-circle-outline', onPress: () => apply(p => editTextLayer(p, selectedText.id, { fontSize: selectedText.fontSize - 4 })) },
+    { id: 'up', label: 'Move up', icon: 'arrow-up-outline', onPress: () => apply(p => editTextLayer(p, selectedText.id, { y: selectedText.y - .05 })) },
+    { id: 'down', label: 'Move down', icon: 'arrow-down-outline', onPress: () => apply(p => editTextLayer(p, selectedText.id, { y: selectedText.y + .05 })) },
+    { id: 'longer', label: 'Extend', icon: 'resize-outline', onPress: () => apply(p => editTextLayer(p, selectedText.id, { endMs: selectedText.endMs + 500 })) },
+    { id: 'shorter', label: 'Shorten', icon: 'contract-outline', onPress: () => apply(p => editTextLayer(p, selectedText.id, { endMs: selectedText.endMs - 500 })) },
+    { id: 'white', label: 'White', icon: 'color-palette-outline', onPress: () => apply(p => editTextLayer(p, selectedText.id, { color: '#FFFFFF' })) },
+    { id: 'cyan', label: 'Cyan', icon: 'color-palette-outline', onPress: () => apply(p => editTextLayer(p, selectedText.id, { color: '#23D4E9' })) },
+    { id: 'yellow', label: 'Yellow', icon: 'color-palette-outline', onPress: () => apply(p => editTextLayer(p, selectedText.id, { color: '#FFDD57' })) },
+    { id: 'delete', label: 'Delete', icon: 'trash-outline', onPress: () => { apply(p => removeText(p, selectedText.id)); setSelectedTextId(null); } }
+  ] : [];
+  const baseActions: EditorAction[] = [
+    { id: 'edit', label: 'Edit', icon: 'cut-outline', onPress: () => {
+      const clip = activeClip(project, positionMs) || project.clips.find(c => c.track === 'video');
+      if (clip) setSelectedId(clip.id); else importVisual();
+    }},
+    { id: 'audio', label: 'Audio', icon: 'musical-notes-outline', onPress: importAudio },
+    { id: 'text', label: 'Text', icon: 'text-outline', onPress: () => { setTitleText(''); setTextPrompt(true); } },
+    { id: 'effects', label: 'Effects', icon: 'sparkles-outline', onPress: () => comingSoon('Effects'), hint: 'Soon' },
+    { id: 'overlay', label: 'Add video', icon: 'albums-outline', onPress: importVisual },
+    { id: 'captions', label: 'Captions', icon: 'chatbox-ellipses-outline', onPress: () => comingSoon('Automatic captions'), hint: 'Soon' },
+    { id: 'voiceover', label: recordingState.isRecording ? 'Stop voice' : 'Voiceover',
+      icon: recordingState.isRecording ? 'stop-circle-outline' : 'mic-outline', onPress: toggleVoiceover },
+    { id: 'ratio', label: 'Aspect ratio', icon: 'crop-outline', onPress: showRatioMenu },
+    { id: 'filters', label: 'Filters', icon: 'color-filter-outline', onPress: () => comingSoon('Filters'), hint: 'Soon' },
+    { id: 'zoom', label: 'Timeline +', icon: 'add-circle-outline',
+      disabled: timelineZoom >= 3, onPress: () => setTimelineZoom(z => Math.min(3, z + .5)) },
+    { id: 'zoom-out', label: 'Timeline −', icon: 'remove-circle-outline',
+      disabled: timelineZoom <= .5, onPress: () => setTimelineZoom(z => Math.max(.5, z - .5)) },
+    { id: 'save', label: 'Save cloud', icon: 'cloud-upload-outline',
+      disabled: !token, onPress: cloudSave }
+  ];
+  return <View style={[styles.editorScreen, { paddingTop: insets.top + 4, paddingBottom: insets.bottom }]}>
+    <View style={styles.mobileHeader}>
+      <Pressable accessibilityLabel="Back to projects" accessibilityRole="button"
+        disabled={recordingState.isRecording}
+        onPress={() => { setEditingId(null); setPlaying(false); }}
+        style={styles.headerIcon}><Ionicons name="close" size={29} color="#EBEDF0" /></Pressable>
+      <Pressable accessibilityLabel="Search clips and text" accessibilityRole="button"
+        onPress={() => { setSearchTerm(''); setSearchOpen(true); }} style={styles.headerIcon}>
+        <Ionicons name="search-outline" size={25} color="#E9EBED" /></Pressable>
+      <Pressable style={styles.headerProject} onPress={() => { setProjectName(project.name); setNamePrompt(true); }}>
+        <Text style={styles.headerProjectText} numberOfLines={1}>{project.name}</Text>
+      </Pressable>
+      <Pressable style={styles.qualityButton} accessibilityRole="button"
+        accessibilityLabel="Choose export quality" onPress={showExportMenu}>
+        <Text style={styles.qualityLabel}>{exportQuality}P</Text>
+        <Ionicons name="chevron-down" size={14} color="#F6F7F8" />
+      </Pressable>
+      <Pressable style={[styles.exportButton, busy && { opacity: .65 }]}
+        accessibilityRole="button" disabled={busy}
+        onPress={() => {
+          if (!canExportNatively()) Alert.alert('Development build required',
+            'Install a VIDNIVO native development build to export MP4. Expo Go does not contain the native encoder.');
+          else void renderVideo();
+        }}>
+        <Text style={styles.exportText}>Export</Text>
+      </Pressable>
     </View>
-    <ScrollView keyboardShouldPersistTaps="handled" style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 22 }}>
-      <View style={styles.previewContainer}>
+
+    <View style={styles.mobileCanvas}>
+      <View style={styles.canvasCenter}>
         <VideoStage project={project} playheadMs={positionMs} playing={playing} seekVersion={seekVersion} />
         <AudioStage project={project} playheadMs={positionMs} playing={playing} seekVersion={seekVersion} />
       </View>
-      <View style={styles.transport}>
-        <Text style={styles.clock}>{fmt(positionMs)} <Text style={styles.meta}>/ {fmt(total)}</Text></Text>
-        <View style={styles.controls}>
-          <Tool label="−1s" onPress={() => seek(positionMs - 1000)} />
-          <Tool label={playing ? '❚❚ Pause' : '▶ Play'} primary onPress={() => {
-            if (total === 0) return;
-            if (positionMs >= total) seek(0);
-            setPlaying(v => !v);
-          }} />
-          <Tool label="+1s" onPress={() => seek(positionMs + 1000)} />
-        </View>
-        <Text style={styles.meta}> {project.aspectRatio}</Text>
+    </View>
+
+    <View style={styles.mobileTransport}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Fullscreen video preview"
+        onPress={() => { setPlaying(false); setFullPreview(true); }} style={styles.transportSide}>
+        <Ionicons name="expand-outline" color="#D3D5D7" size={23} /></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={playing ? 'Pause playback' : 'Play'}
+        onPress={() => { if (total > 0) { if (positionMs >= total) seek(0); setPlaying(v => !v); } }}
+        style={styles.playControl}>
+        <Ionicons name={playing ? 'pause' : 'play-outline'} size={30} color="#E8E9EA" />
+      </Pressable>
+      <View style={styles.transportRight}>
+        <Pressable onPress={undoAction} accessibilityLabel="Undo" disabled={!undo.current.length}
+          style={{ opacity: undo.current.length ? 1 : .3 }}>
+          <Ionicons name="arrow-undo-outline" size={25} color="#C9CACD" /></Pressable>
+        <Pressable onPress={redoAction} accessibilityLabel="Redo" disabled={!redo.current.length}
+          style={{ opacity: redo.current.length ? 1 : .3 }}>
+          <Ionicons name="arrow-redo-outline" size={25} color="#C9CACD" /></Pressable>
       </View>
-      <Slider
-        minimumValue={0} maximumValue={Math.max(total, 1)} step={50} value={positionMs}
-        minimumTrackTintColor={theme.accent} maximumTrackTintColor={theme.border} thumbTintColor={theme.accent}
-        onSlidingStart={() => setPlaying(false)}
-        onValueChange={setPositionMs}
-        onSlidingComplete={seek}
-      />
-      <View style={styles.row}>
-        <Text style={styles.meta}>Timeline zoom: {timelineZoom.toFixed(1)}×</Text>
-        <View style={styles.controls}>
-          <Tool label="− Zoom" disabled={timelineZoom <= 0.5} onPress={() => setTimelineZoom(v => Math.max(.5, v - .5))} />
-          <Tool label="+ Zoom" disabled={timelineZoom >= 3} onPress={() => setTimelineZoom(v => Math.min(3, v + .5))} />
+    </View>
+
+    <Timeline project={project} playheadMs={positionMs}
+      selectedId={selectedId} selectedTextId={selectedTextId} zoom={timelineZoom}
+      onSelect={(id, at) => {
+        setSelectedId(id); setSelectedTextId(null);
+        const clip = project.clips.find(c => c.id === id);
+        if (clip && !(positionMs >= clip.startMs && positionMs < clip.startMs + clipDurationSafe(clip))) seek(at);
+      }}
+      onSelectText={(id, at) => { setSelectedTextId(id); setSelectedId(null); seek(at); }}
+      onSeek={seek} onScrubStart={() => setPlaying(false)}
+      onAddVideo={importVisual} onAddAudio={importAudio} />
+
+    {selected ? <View style={styles.contextBar}>
+      <Text style={styles.contextTitle}>CLIP  ·  {fmt(clipDurationSafe(selected))}  ·  {selected.speed}× SPEED</Text>
+      <Text style={styles.contextVolume}>{selected.muted ? 'Muted' : 'Volume ' + Math.round(selected.volume * 100) + '%'}</Text>
+      <Slider style={{ height: 22 }} minimumValue={0} maximumValue={1}
+        step={.05} value={selected.volume} minimumTrackTintColor="#27D3E7"
+        maximumTrackTintColor="#575B60" thumbTintColor="#27D3E7"
+        onSlidingComplete={volume => apply(p => editClip(p, selected.id, { volume }))} />
+    </View> : null}
+    {selectedText ? <View style={styles.contextBar}>
+      <Text style={styles.contextTitle}>TEXT  ·  {selectedText.text}</Text>
+      <Text style={styles.contextVolume}>{fmt(selectedText.startMs)} – {fmt(selectedText.endMs)}  ·  {selectedText.fontSize} pt</Text>
+    </View> : null}
+    {recordingState.isRecording ? <View style={styles.recordingBanner}>
+      <Ionicons name="radio-button-on" size={17} color="#FF6875" />
+      <Text style={styles.recordingBannerText}>Recording voiceover  {Math.round(recordingState.durationMillis / 1000)}s</Text>
+    </View> : null}
+    <EditorRail actions={selected ? clipActions : selectedText ? textActions : baseActions} />
+    {lastExport ? <Pressable accessibilityRole="button" onPress={() => shareExport(lastExport).catch(e => Alert.alert('Sharing failed', String(e)))}
+      style={styles.shareResult}><Text style={styles.shareResultText}>✓ MP4 ready — Share</Text></Pressable> : null}
+
+    <Modal visible={fullPreview} animationType="fade" onRequestClose={() => setFullPreview(false)}>
+      <View style={[styles.fullPreview, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 20 }]}>
+        <Pressable accessibilityLabel="Close fullscreen preview" onPress={() => setFullPreview(false)} style={{ alignSelf: 'flex-end', padding: 12 }}>
+          <Ionicons name="close" color="white" size={30} /></Pressable>
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <VideoStage project={project} playheadMs={positionMs} playing={false} seekVersion={seekVersion} />
         </View>
       </View>
-      <Timeline project={project} playheadMs={positionMs} selectedId={selectedId}
-        selectedTextId={selectedTextId} zoom={timelineZoom}
-        onSelect={(id, start) => { setSelectedId(id); setSelectedTextId(null); seek(start); }}
-        onSelectText={(id, start) => { setSelectedTextId(id); setSelectedId(null); seek(start); }}
-        onSeek={seek} />
-      <View style={[styles.controls, { marginTop: 10, paddingHorizontal: 4 }]}>
-        <Tool label="+ Video" onPress={importVisual} disabled={busy || recordingState.isRecording} />
-        <Tool label="+ Audio" onPress={importAudio} disabled={busy || recordingState.isRecording} />
-        <Tool label={recordingState.isRecording ? "■ Stop voiceover" : "● Voiceover"}
-          onPress={toggleVoiceover} disabled={busy} />
-        <Tool label="+ Text" onPress={() => setTextPrompt(true)} />
-        <Tool label="Undo" onPress={undoAction} disabled={!undo.current.length} />
-        <Tool label="Redo" onPress={redoAction} disabled={!redo.current.length} />
+    </Modal>
+    <Modal visible={searchOpen} animationType="slide" onRequestClose={() => setSearchOpen(false)}>
+      <View style={[styles.searchPage, { paddingTop: insets.top + 16, paddingBottom: insets.bottom }]}>
+        <View style={styles.searchHeader}>
+          <Pressable onPress={() => setSearchOpen(false)} accessibilityLabel="Close search">
+            <Ionicons name="arrow-back" size={26} color="white" /></Pressable>
+          <TextInput autoFocus placeholder="Search your clips and captions" placeholderTextColor="#83878D"
+            style={styles.searchInput} value={searchTerm} onChangeText={setSearchTerm} />
+        </View>
+        <ScrollView keyboardShouldPersistTaps="always">
+          {findInProject(searchTerm).map(item => <Pressable key={item.type + item.id}
+            style={styles.searchResult} onPress={() => {
+              if (item.type === 'clip') { setSelectedId(item.id); setSelectedTextId(null); }
+              else { setSelectedTextId(item.id); setSelectedId(null); }
+              setSearchOpen(false); seek(item.at);
+            }}>
+            <Ionicons name={item.type === 'clip' ? 'film-outline' : 'text-outline'} size={20} color="#23D4E9" />
+            <Text numberOfLines={1} style={styles.searchResultLabel}>{item.title}</Text>
+            <Text style={styles.searchResultTime}>{fmt(item.at)}</Text>
+          </Pressable>)}
+          {searchTerm.trim() && findInProject(searchTerm).length === 0 ?
+            <Text style={{ color: '#90969F', textAlign: 'center', marginTop: 25 }}>No matching clips or captions</Text> : null}
+        </ScrollView>
       </View>
-      {selectedText ? <View style={styles.toolsPanel}>
-        <View style={styles.row}><Text style={styles.section}>TEXT OVERLAY</Text><Text style={styles.meta}>{fmt(selectedText.startMs)} – {fmt(selectedText.endMs)}</Text></View>
-        <Text style={styles.projectName}>{selectedText.text}</Text>
-        <View style={styles.controls}>
-          <Tool label="Edit wording" onPress={() => { setTitleText(selectedText.text); setEditTextPrompt(true); }} />
-          <Tool label="Delete text" onPress={() => { apply(p => removeText(p, selectedText.id)); setSelectedTextId(null); }} />
-          <Tool label="Duration −" onPress={() => apply(p => editTextLayer(p, selectedText.id, { endMs: selectedText.endMs - 500 }))} />
-          <Tool label="Duration +" onPress={() => apply(p => editTextLayer(p, selectedText.id, { endMs: selectedText.endMs + 500 }))} />
-        </View>
-        <View style={styles.controls}>
-          <Tool label="Size −" onPress={() => apply(p => editTextLayer(p, selectedText.id, { fontSize: selectedText.fontSize - 4 }))} />
-          <Tool label="Size +" onPress={() => apply(p => editTextLayer(p, selectedText.id, { fontSize: selectedText.fontSize + 4 }))} />
-          <Tool label="↑" onPress={() => apply(p => editTextLayer(p, selectedText.id, { y: selectedText.y - 0.05 }))} />
-          <Tool label="↓" onPress={() => apply(p => editTextLayer(p, selectedText.id, { y: selectedText.y + 0.05 }))} />
-          <Tool label="←" onPress={() => apply(p => editTextLayer(p, selectedText.id, { x: selectedText.x - 0.05 }))} />
-          <Tool label="→" onPress={() => apply(p => editTextLayer(p, selectedText.id, { x: selectedText.x + 0.05 }))} />
-        </View>
-        <View style={styles.controls}>
-          {['#FFFFFF', '#BBF65A', '#FFDD57', '#FF647C', '#65D7FA'].map(color =>
-            <Pressable key={color} accessibilityLabel={'Text color ' + color}
-              onPress={() => apply(p => editTextLayer(p, selectedText.id, { color }))}
-              style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: color, marginHorizontal: 6,
-                borderWidth: selectedText.color.toUpperCase() === color ? 3 : 0, borderColor: theme.text }} />)}
-        </View>
-      </View> : null}
-      {selected ? <View style={styles.toolsPanel}>
-        <View style={styles.row}><Text style={styles.section}>SELECTED CLIP</Text><Text style={styles.meta}>{fmt(clipDurationSafe(selected))}</Text></View>
-        <View style={styles.controls}>
-          <Tool label="Split" onPress={() => apply(p => splitClip(p, selected.id, positionMs))} />
-          <Tool label="← Trim" onPress={() => apply(p => rippleTrimClip(p, selected.id, 'left', 500))} />
-          <Tool label="Trim →" onPress={() => apply(p => rippleTrimClip(p, selected.id, 'right', -500))} />
-          <Tool label="Delete" onPress={() => { apply(p => rippleDeleteClip(p, selected.id)); setSelectedId(null); }} />
-        </View>
-        <View style={styles.controls}>
-          <Tool label="← Move" onPress={() => apply(p => moveClip(p, selected.id, -500))} />
-          <Tool label="Move →" onPress={() => apply(p => moveClip(p, selected.id, 500))} />
-          <Tool label="◀ Order" onPress={() => apply(p => reorderClip(p, selected.id, -1))} />
-          <Tool label="Order ▶" onPress={() => apply(p => reorderClip(p, selected.id, 1))} />
-        </View>
-        <Text style={styles.meta}>Clip volume: {Math.round(selected.volume * 100)}%</Text>
-        <Slider minimumValue={0} maximumValue={1} step={0.05} value={selected.volume}
-          minimumTrackTintColor={theme.accent} maximumTrackTintColor={theme.border} thumbTintColor={theme.accent}
-          onSlidingComplete={volume => apply(p => editClip(p, selected.id, { volume }))} />
-        <View style={styles.controls}>
-          <Tool label="0.5×" onPress={() => apply(p => editClip(p, selected.id, { speed: .5 }))} />
-          <Tool label="1×" onPress={() => apply(p => editClip(p, selected.id, { speed: 1 }))} />
-          <Tool label="2×" onPress={() => apply(p => editClip(p, selected.id, { speed: 2 }))} />
-          <Tool label={selected.muted ? 'Unmute' : 'Mute'} onPress={() => apply(p => editClip(p, selected.id, { muted: !selected.muted }))} />
-        </View>
-      </View> : <View style={styles.toolsPanel}><Text style={styles.meta}>Select a clip to trim, split, move, or change playback speed.</Text></View>}
-      <View style={styles.controls}>
-        <Tool label="9:16" onPress={() => apply(p => ({ ...p, aspectRatio: '9:16', revision: p.revision + 1, updatedAt: new Date().toISOString() }))} />
-        <Tool label="16:9" onPress={() => apply(p => ({ ...p, aspectRatio: '16:9', revision: p.revision + 1, updatedAt: new Date().toISOString() }))} />
-        <Tool label="1:1" onPress={() => apply(p => ({ ...p, aspectRatio: '1:1', revision: p.revision + 1, updatedAt: new Date().toISOString() }))} />
-        <Tool label="Rename" onPress={() => { setProjectName(project.name); setNamePrompt(true); }} />
-      </View>
-      <View style={styles.controls}>
-        <Tool label="Delete latest text" disabled={!project.texts.length} onPress={() => apply(p => removeText(p, p.texts[p.texts.length - 1].id))} />
-        <Tool label="Export MP4" disabled={!canExportNatively() || busy} onPress={renderVideo} />
-        {lastExport ? <Tool label="Share MP4" onPress={() => shareExport(lastExport).catch(e => Alert.alert('Could not share', String(e)))} /> : null}
-      </View>
-      <Text style={styles.disclaimer}>Native MP4 export requires a development build, not Expo Go. iPhone supports consecutive video clips, audio mixing and titles; Android currently exports consecutive video clips only. AI effects are still in development.</Text>
-    </ScrollView>
+    </Modal>
+
     <Modal visible={textPrompt} transparent animationType="fade" onRequestClose={() => setTextPrompt(false)}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalBackdrop}>
         <View style={styles.modalPanel}>
@@ -438,6 +529,46 @@ function EditorApp() {
 function clipDurationSafe(c: { inMs: number; outMs: number; speed: number }): number { return (c.outMs - c.inMs) / c.speed; }
 export default function App() { return <SafeAreaProvider><EditorApp /></SafeAreaProvider>; }
 const styles = StyleSheet.create({
+
+  editorScreen: { flex: 1, backgroundColor: '#111214' },
+  mobileHeader: { height: 57, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center',
+    gap: 7, backgroundColor: '#111214' },
+  headerIcon: { width: 36, height: 42, alignItems: 'center', justifyContent: 'center' },
+  headerProject: { flex: 1, justifyContent: 'center', minWidth: 30 },
+  headerProjectText: { color: '#777C84', fontSize: 11 },
+  qualityButton: { height: 39, minWidth: 81, paddingHorizontal: 9, borderRadius: 10,
+    backgroundColor: '#292B2F', flexDirection: 'row', justifyContent: 'center',
+    alignItems: 'center', gap: 5 },
+  qualityLabel: { color: '#F8F9FA', fontSize: 15, fontWeight: '600' },
+  exportButton: { height: 39, minWidth: 80, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#22D1E7', borderRadius: 9, paddingHorizontal: 13 },
+  exportText: { color: '#0A1A22', fontSize: 16, fontWeight: '700' },
+  mobileCanvas: { flex: 1, minHeight: 105, backgroundColor: '#111214', justifyContent: 'center', alignItems: 'center' },
+  canvasCenter: { width: '100%', flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  mobileTransport: { height: 49, paddingHorizontal: 14, backgroundColor: '#111214',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  transportSide: { width: 65, alignItems: 'flex-start', justifyContent: 'center' },
+  playControl: { height: 46, width: 76, alignItems: 'center', justifyContent: 'center' },
+  transportRight: { width: 100, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
+  contextBar: { backgroundColor: '#1D1F22', paddingHorizontal: 14, paddingTop: 5, paddingBottom: 2,
+    height: 59, justifyContent: 'center' },
+  contextTitle: { color: '#F1F3F4', fontSize: 12, fontWeight: '700' },
+  contextVolume: { color: '#92999E', fontSize: 11, marginTop: 2 },
+  recordingBanner: { height: 28, alignItems: 'center', justifyContent: 'center', gap: 8,
+    flexDirection: 'row', backgroundColor: '#322127' },
+  recordingBannerText: { color: '#F5A3AF', fontSize: 12 },
+  shareResult: { height: 30, alignItems: 'center', justifyContent: 'center', backgroundColor: '#203B3D' },
+  shareResultText: { fontSize: 12, fontWeight: '700', color: '#57DEE8' },
+  fullPreview: { flex: 1, backgroundColor: '#050505', paddingHorizontal: 16 },
+  searchPage: { flex: 1, backgroundColor: '#111214', paddingHorizontal: 16 },
+  searchHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
+  searchInput: { flex: 1, backgroundColor: '#26292D', borderRadius: 12, padding: 12,
+    color: 'white', fontSize: 15 },
+  searchResult: { minHeight: 57, paddingHorizontal: 10, flexDirection: 'row',
+    alignItems: 'center', gap: 14, borderBottomWidth: 1, borderBottomColor: '#25282C' },
+  searchResultLabel: { color: '#F3F5F6', fontSize: 14, flex: 1 },
+  searchResultTime: { color: '#8E9398', fontSize: 12 },
+
   screen: { flex: 1, backgroundColor: theme.bg, paddingHorizontal: 14 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.bg },
   heading: { paddingTop: 13, paddingBottom: 28 },
