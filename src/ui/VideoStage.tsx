@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Dimensions, Image, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Image, Platform, StyleSheet, Text, View } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { activeClip, Clip, Project } from '../domain/timeline';
 import { theme } from './theme';
@@ -22,7 +22,8 @@ function VideoClip({ uri, clip, sourceSeconds, playing, seekVersion }:
     if (playing) player.play();
     else player.pause();
   }, [player, playing]);
-  return <VideoView player={player} nativeControls={false} contentFit="contain" style={StyleSheet.absoluteFill} />;
+  return <VideoView player={player} nativeControls={false}
+    surfaceType={Platform.OS === 'android' ? 'textureView' : undefined} contentFit="contain" style={StyleSheet.absoluteFill} />;
 }
 export function VideoStage({ project, playheadMs, playing, seekVersion, maxHeight = 355 }:
   { project: Project; playheadMs: number; playing: boolean; seekVersion: number; maxHeight?: number }) {
