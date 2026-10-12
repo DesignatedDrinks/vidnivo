@@ -32,7 +32,7 @@ jobs:
       - name: Validate standalone editor
         run: |
           test -s docs/index.html
-          grep -q 'class="stage-top"' docs/index.html
+          grep -q 'class="viewer"' docs/index.html
           grep -q 'startExport()' docs/index.html
           grep -q 'MediaRecorder' docs/index.html
       - name: Validate browser editor and Safari shader
