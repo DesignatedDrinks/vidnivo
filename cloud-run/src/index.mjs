@@ -1,11 +1,11 @@
 import {createServer} from 'node:http';
-import {Transform} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {initializeApp,applicationDefault} from 'firebase-admin/app';
 import {getAuth} from 'firebase-admin/auth';
 import {getFirestore,FieldValue,FieldPath} from 'firebase-admin/firestore';
 import {getStorage} from 'firebase-admin/storage';
 import {createHandler,MAX_MEDIA_BYTES} from './core.mjs';
+import {writeBoundedMedia} from './mediaStream.mjs';
 
 const port=Number(process.env.PORT||8080);
 const bucketName=(process.env.FIREBASE_STORAGE_BUCKET||'').trim();
@@ -93,20 +93,14 @@ const handler=createHandler({
   const safeName=name.replace(/[^A-Za-z0-9_.-]/g,'_').slice(-120)||'media.bin';
   const objectPath='users/'+uid+'/media/'+id+'/'+safeName;
   const file=bucket.file(objectPath);
-  let seen=0,uploaded=false;
-  const limit=new Transform({transform(chunk,encoding,callback){
-   seen+=chunk.length;
-   callback(seen>MAX_MEDIA_BYTES||seen>expectedSize?
-    Object.assign(Error('Upload exceeded the expected byte length.'),{status:413}):null,chunk);
-  }});
+  let uploaded=false;
   try{
-   await pipeline(request,limit,file.createWriteStream({
+   const seen=await writeBoundedMedia(request,file.createWriteStream({
     resumable:false,
     preconditionOpts:{ifGenerationMatch:0},
     metadata:{contentType}
-   }));
+   }),expectedSize,MAX_MEDIA_BYTES);
    uploaded=true;
-   if(seen!==expectedSize)throw Object.assign(Error('Incomplete media upload.'),{status:400});
    const media={assetId:id,objectPath,name,contentType,size:seen};
    await users(uid).collection('media').doc(id).create({
     ...media,registeredAt:FieldValue.serverTimestamp()
