@@ -184,12 +184,14 @@ const handler=createHandler({
    return {size:seen,md5Hex};
   }catch(error){
    try{
-    // Only release reserved bytes when the object has been successfully
-    // cleaned up. Leaked reservations fail closed rather than overspend.
-    // A failed create with precondition 412 may indicate another owned object;
-    // do not delete an object the current request did not create.
+    // Release quota only after proving no untracked storage bytes remain.
+    // A failed precondition may mean an older object already owns the path:
+    // NEVER delete bytes this request did not create.
     if(uploaded)await file.delete({ignoreNotFound:true});
-    else cleanupAllowed=false;
+    else {
+     const [exists]=await file.exists();
+     if(exists)cleanupAllowed=false;
+    }
     if(cleanupAllowed)await releaseMediaReservation(uid,id);
    }catch{/* Reserve quota for administrator recovery rather than undercount bytes. */}
    throw error;
