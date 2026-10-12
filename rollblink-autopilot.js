@@ -40,8 +40,13 @@ export function saveStyle(store,style){
 }
 export function loadStyle(store){
  try{
-  const raw=store.getItem(STYLE_KEY);
-  return raw?normalizeStyle(JSON.parse(raw)):null;
+  // Reuse the previously saved VIDNIVO design without forcing users to rebuild it.
+  const current=store.getItem(STYLE_KEY);
+  const raw=current||store.getItem('vidnivo:creator-style:v1');
+  if(!raw)return null;
+  const parsed=normalizeStyle(JSON.parse(raw));
+  if(!current){try{store.setItem(STYLE_KEY,JSON.stringify(parsed))}catch{}}
+  return parsed;
  }catch{return null}
 }
 export function styleCaptions(captions,style){
