@@ -93,19 +93,22 @@
         <div class="info-line"><span>Video format</span><strong id="outputFormat">Detecting browser…</strong></div>
         <label class="field-label" for="quality">Resolution</label><select id="quality"><option value="720">720p — best on mobile</option><option value="1080">1080p — high quality</option></select>
         <div class="export-summary" id="exportSummary">Import a video to calculate the edited runtime.</div>
+        <div class="section-label">LIP SYNC · AUDIO SAFETY</div>
+        <p id="syncStatus" class="status" role="status" aria-live="polite">VIDNIVO checks audio/video timing, encoded tracks, and output duration. If they cannot be checked, export is blocked.</p>
         <button id="export" class="button primary full export-button" disabled>Export finished video ↗</button>
         <div id="exportStatus" class="status" role="status" aria-live="polite"></div>
         <div class="progress"><div id="exportProgress"></div></div>
         <a id="download" class="button secondary full" hidden download>↓ Download video</a>
-        <p class="fine-print">Rendering occurs in real time inside this browser. Keep this tab open. Safari generally exports MP4; Chrome/Firefox may export WebM. Video export depends on browser media support.</p>
+        <p class="fine-print">Audio-safe browser export currently supports one continuous source at 1× speed (including adjacent, unaltered splits). Reordered cuts, audio remixing and speed changes require native timestamped encoding. Keep the browser visible. Timing checks cannot independently verify lip movement — always review the downloaded video.</p>
       </div>
       <div class="footer-note"><b>VIDNIVO STUDIO</b> · Browser preview edition<br />No account required. Original files are never uploaded. This is not yet feature-equivalent to the native mobile editor.</div>
     </aside>
   </main>
   <input id="videoInput" type="file" accept="video/*" hidden />
-  <video id="sourceVideo" playsinline preload="auto" crossorigin="anonymous" style="display:none"></video>
+  <video id="sourceVideo" playsinline preload="auto" crossorigin="anonymous" style="position:fixed;left:0;top:0;width:2px;height:2px;opacity:.001;pointer-events:none;z-index:-1" aria-hidden="true"></video>
   <script type="module">import {drawGradedVideo} from './vidnivo-filters.js';
 import {FaceRetouch} from './vidnivo-face-retouch.js?v=5';
+import {planContinuousExport,PlaybackSyncGuard,inspectRecordedTracks,probeRecordedDuration} from './vidnivo-export-sync.js';
 // VIDNIVO Browser Studio — all source media remains in local object URLs.
 // Exports use the browser's own MediaRecorder; no video is sent to a server.
 const $ = id => document.getElementById(id);
@@ -259,7 +262,7 @@ function tick(now){
    const actual=found.offset+clamp((video.currentTime-found.clip.start)/found.clip.speed,0,duration(found.clip));
    if(!video.paused&&video.readyState>=2&&Math.abs(actual-state.position)<.65)
     state.position=clamp(actual,0,total());
-   else if(!video.paused)state.position=clamp(state.position+Math.min(.12,elapsed),0,total());
+   else if(!video.paused&&!state.exporting)state.position=clamp(state.position+Math.min(.12,elapsed),0,total());
    const end=found.offset+duration(found.clip);
    if(state.position>=end-.05||video.ended||video.currentTime>=found.clip.end-.03){
     if(end>=total()-.05){pause();state.position=total();syncPosition();}
