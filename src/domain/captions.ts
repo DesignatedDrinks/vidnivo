@@ -49,17 +49,17 @@ export function addCaptionCues(p: Project, cues: CaptionCue[], preset: CaptionPr
     Number.isFinite(c.startMs) && Number.isFinite(c.endMs) &&
     c.startMs >= 0 && c.endMs > c.startMs && !!c.text.trim())
     .map(c => ({ id: makeId(), text: c.text.trim().slice(0, 500),
-      startMs: Math.round(c.startMs), endMs: Math.round(c.endMs), ...style }));
+      startMs: Math.round(c.startMs), endMs: Math.round(c.endMs), role: 'caption', ...style }));
   if (!overlays.length) return p;
   const now = new Date().toISOString();
   return { ...p, updatedAt: now, revision: p.revision + 1,
     texts: [...p.texts, ...overlays] };
 }
 export function restyleCaptions(p: Project, preset: CaptionPreset): Project {
-  if (!p.texts.length) return p;
+  if (!p.texts.some(t => t.role !== 'title')) return p;
   const style = CAPTION_PRESETS[preset];
   return { ...p, updatedAt: new Date().toISOString(), revision: p.revision+1,
-    texts: p.texts.map(t => ({ ...t, ...style })) };
+    texts: p.texts.map(t => t.role === 'title' ? t : ({ ...t, ...style })) };
 }
 function stamp(timeMs: number): string {
   const v = Math.max(0, Math.round(timeMs));
@@ -72,7 +72,7 @@ export function serializeSrt(cues: CaptionCue[]): string {
     `${i+1}\n${stamp(cue.startMs)} --> ${stamp(cue.endMs)}\n${cue.text.trim()}\n`).join('\n');
 }
 export function captionsFromProject(p: Project): CaptionCue[] {
-  return p.texts.map(t => ({ startMs:t.startMs, endMs:t.endMs, text:t.text }))
+  return p.texts.filter(t=>t.role !== 'title').map(t => ({ startMs:t.startMs, endMs:t.endMs, text:t.text }))
     .sort((a,b)=>a.startMs-b.startMs);
 }
 

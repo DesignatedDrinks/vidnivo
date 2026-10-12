@@ -50,9 +50,9 @@ const toClip = (p: Project, c: Clip): string[] => [
 ];
 const toText = (p: Project, t: TextLayer): string[] => [
   t.id, p.id, t.text, value(t.startMs), value(t.endMs), value(t.x),
-  value(t.y), value(t.fontSize), t.color, p.updatedAt, 'FALSE'
+  value(t.y), value(t.fontSize), t.color, p.updatedAt, 'FALSE', value(t.role ?? 'caption')
 ];
-function enabled(row: string[], sheet: Table): boolean { return String(row[sheet === 'Projects' ? 7 : row.length - 1]).toUpperCase() !== 'TRUE'; }
+function enabled(row: string[], sheet: Table): boolean { return String(row[sheet === 'Projects' ? 7 : sheet === 'TextLayers' ? 10 : row.length - 1]).toUpperCase() !== 'TRUE'; }
 function n(row: string[], index: number, fallback = 0): number {
   const v = Number(row[index]); return Number.isFinite(v) ? v : fallback;
 }
@@ -82,7 +82,7 @@ export async function loadRemoteProjects(token: string): Promise<Project[]> {
   for (const r of ts.slice(1)) {
     const p = indexed.get(r[1]); if (!p || !r[0] || !enabled(r, 'TextLayers')) continue;
     p.texts.push({ id: r[0], text: r[2] || '', startMs: n(r, 3), endMs: n(r, 4),
-      x: n(r, 5, .5), y: n(r, 6, .75), fontSize: n(r, 7, 32), color: r[8] || '#FFFFFF' });
+      x: n(r, 5, .5), y: n(r, 6, .75), fontSize: n(r, 7, 32), color: r[8] || '#FFFFFF', role: r[11] === 'title' ? 'title' : 'caption' });
   }
   return projects.filter(p => { try { validateProject(p); return true; } catch { return false; } });
 }

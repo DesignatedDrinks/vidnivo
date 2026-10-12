@@ -25,6 +25,7 @@ export interface Clip {
 }
 export interface TextLayer {
   id: string;
+  role?: 'title' | 'caption';
   text: string;
   startMs: number;
   endMs: number;
@@ -119,7 +120,7 @@ export function removeClip(p: Project, id: string): Project {
 }
 export function addText(p: Project, text: string, startMs: number, lengthMs = 3000): Project {
   if (!text.trim()) return p;
-  const layer: TextLayer = { id: makeId(), text: text.trim(), startMs: Math.max(0, startMs), endMs: Math.max(0, startMs) + Math.max(500, lengthMs), x: 0.5, y: 0.75, fontSize: 32, color: '#FFFFFF' };
+  const layer: TextLayer = { id: makeId(), text: text.trim(), startMs: Math.max(0, startMs), endMs: Math.max(0, startMs) + Math.max(500, lengthMs), x: 0.5, y: 0.75, fontSize: 32, color: '#FFFFFF', role: 'title' };
   return touch({ ...p, texts: [...p.texts, layer] });
 }
 export function removeText(p: Project, id: string): Project {
@@ -134,7 +135,7 @@ export function validateProject(p: Project): void {
   const ids = new Set(p.assets.map(a => a.id));
   if (ids.size !== p.assets.length) throw new Error('Duplicate assets');
   if (p.clips.some(c => !ids.has(c.assetId) || c.startMs < 0 || c.inMs < 0 || c.outMs <= c.inMs || c.speed <= 0 || !Number.isFinite(c.speed) || !Number.isFinite(c.startMs))) throw new Error('Invalid clip timeline');
-  if (p.texts.some(t => t.endMs <= t.startMs || t.startMs < 0)) throw new Error('Invalid text timeline');
+  if (p.texts.some(t => t.endMs <= t.startMs || t.startMs < 0 || (t.role !== undefined && t.role !== 'caption' && t.role !== 'title'))) throw new Error('Invalid text timeline');
 }
 
 /**

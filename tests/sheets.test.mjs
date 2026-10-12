@@ -8,7 +8,7 @@ function fakeSheets() {
     Projects: [['project_id','name','aspect_ratio','created_at','updated_at','revision','owner_email','deleted','look_json']],
     Assets: [['asset_id','project_id','kind','filename','uri','duration_ms','width','height','updated_at','deleted']],
     Clips: [['clip_id','project_id','asset_id','track','start_ms','in_ms','out_ms','speed','volume','muted','updated_at','deleted']],
-    TextLayers: [['text_id','project_id','text','start_ms','end_ms','x','y','font_size','color','updated_at','deleted']]
+    TextLayers: [['text_id','project_id','text','start_ms','end_ms','x','y','font_size','color','updated_at','deleted','role']]
   }));
   const requestLog = [];
   const fetchStub = async (url, opts = {}) => {
@@ -97,7 +97,7 @@ test('soft delete marks all project rows and excludes project from cloud load', 
  await softDeleteProjectFromSheets('test',p.id);
  assert.equal((await loadRemoteProjects('test')).length,0);
  for(const name of ['Projects','Assets','Clips','TextLayers']) {
-   assert.equal(fake.sheets.get(name)[1][name === 'Projects' ? 7 : fake.sheets.get(name)[1].length - 1],'TRUE',name+' should be soft-deleted');
+   assert.equal(fake.sheets.get(name)[1][name === 'Projects' ? 7 : name === 'TextLayers' ? 10 : fake.sheets.get(name)[1].length - 1],'TRUE',name+' should be soft-deleted');
  }
 });
 

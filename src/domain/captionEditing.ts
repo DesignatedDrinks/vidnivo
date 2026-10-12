@@ -26,7 +26,7 @@ export function splitCaption(p: Project, id: string): Project {
 export function mergeCaptionWithNext(p: Project, id: string): Project {
   const source=p.texts.find(t=>t.id===id);
   if(!source)return p;
-  const next=p.texts.filter(t=>t.id!==id && t.startMs>=source.startMs)
+  const next=p.texts.filter(t=>t.id!==id && t.startMs>=source.startMs && (t.role==='title')===(source.role==='title'))
     .sort((a,b)=>a.startMs-b.startMs)[0];
   if(!next || next.startMs>source.endMs+1000)return p;
   return updated(p,p.texts.filter(t=>t.id!==next.id).map(t=>t.id===id?
@@ -43,11 +43,13 @@ export function nudgeCaption(p: Project,id: string,deltaMs: number): Project {
 }
 /** Moves every caption without changing individual durations. */
 export function shiftAllCaptions(p: Project,deltaMs: number): Project {
-  if(!p.texts.length || !Number.isFinite(deltaMs) || deltaMs===0)return p;
-  const earliest=Math.min(...p.texts.map(t=>t.startMs));
+  const captions=p.texts.filter(t=>t.role !== 'title');
+  if(!captions.length || !Number.isFinite(deltaMs) || deltaMs===0)return p;
+  const earliest=Math.min(...captions.map(t=>t.startMs));
   const offset=Math.max(-earliest,Math.round(deltaMs));
   if(offset===0)return p;
-  return updated(p,p.texts.map(t=>({...t,startMs:t.startMs+offset,endMs:t.endMs+offset})));
+  return updated(p,p.texts.map(t=>t.role==='title' ? t :
+    {...t,startMs:t.startMs+offset,endMs:t.endMs+offset}));
 }
 /** Only capitalizes clear sentence boundaries; acronyms and existing casing are preserved. */
 export function fixSentenceCase(p: Project): Project {
@@ -55,6 +57,7 @@ export function fixSentenceCase(p: Project): Project {
   let capitalize=true;
   let changed=false;
   const next=p.texts.map(t=>{
+    if(t.role==='title')return t;
     const original=t.text;
     let word='';
     for(const char of original){
