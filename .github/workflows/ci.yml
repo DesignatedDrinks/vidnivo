@@ -19,3 +19,7 @@ jobs:
         run: npm test
       - name: TypeScript typecheck
         run: npm run typecheck
+      - name: Bundle Android JavaScript
+        run: npx expo export --platform android --output-dir dist-android
+      - name: Bundle iOS JavaScript
+        run: npx expo export --platform ios --output-dir dist-ios
