@@ -1,0 +1,101 @@
+name: Deploy VIDNIVO cloud foundation
+# No automatic deploys. A human must explicitly select the deployment tier,
+# authorize the protected environment, and configure a billing-enabled project
+# before any Cloud Run/Storage resources are created.
+on:
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: 'Spark = hosting only; full = Cloud Run + Hosting + security rules'
+        type: choice
+        required: true
+        default: spark
+        options: [spark, full]
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: vidnivo-cloud-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: firebase-production
+    timeout-minutes: 35
+    env:
+      PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+      STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
+      REGION: us-central1
+      VITE_FIREBASE_API_KEY: ${{ vars.FIREBASE_WEB_API_KEY }}
+      VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.FIREBASE_PROJECT_ID }}.firebaseapp.com
+      VITE_FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+      VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
+      VITE_FIREBASE_APP_ID: ${{ vars.FIREBASE_WEB_APP_ID }}
+      VITE_API_BASE_URL: ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate configuration
+        run: |
+          set -eu
+          [[ "$PROJECT_ID" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ ]] || { echo "Configure FIREBASE_PROJECT_ID GitHub variable."; exit 1; }
+          test -n "$VITE_FIREBASE_API_KEY" || { echo "Configure FIREBASE_WEB_API_KEY."; exit 1; }
+          test -n "$VITE_FIREBASE_APP_ID" || { echo "Configure FIREBASE_WEB_APP_ID."; exit 1; }
+          if [[ "${{ inputs.tier }}" == full ]]; then
+            test -n "$STORAGE_BUCKET" || { echo "Configure FIREBASE_STORAGE_BUCKET."; exit 1; }
+            test -n "${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}" || { echo "Configure GCP_RUNTIME_SERVICE_ACCOUNT."; exit 1; }
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Authenticate to Google Cloud using Workload Identity Federation
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Build website
+        run: |
+          npm install --prefix web --no-audit --no-fund
+          npm run build --prefix web
+      - name: Deploy Cloud Run API (billing-approved tier only)
+        if: inputs.tier == 'full'
+        run: |
+          set -eu
+          cat > "$RUNNER_TEMP/vidnivo-env.yaml" <<EOF
+          FIREBASE_STORAGE_BUCKET: "$STORAGE_BUCKET"
+          ALLOWED_ORIGINS: "https://$PROJECT_ID.web.app,https://$PROJECT_ID.firebaseapp.com"
+          EOF
+          gcloud run deploy vidnivo-api \
+            --project "$PROJECT_ID" \
+            --source cloud-run \
+            --region "$REGION" \
+            --service-account "${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
+            --allow-unauthenticated \
+            --min-instances 0 \
+            --max-instances 2 \
+            --cpu 1 \
+            --memory 512Mi \
+            --concurrency 40 \
+            --timeout 25s \
+            --env-vars-file "$RUNNER_TEMP/vidnivo-env.yaml" \
+            --quiet
+          # Cloud Run uses public ingress only for the health endpoint;
+          # all private endpoints require valid Firebase ID tokens.
+      - name: Deploy Hosting (no billing resources in Spark mode)
+        run: |
+          npm install --global firebase-tools
+          if [[ "${{ inputs.tier }}" == spark ]]; then
+            firebase deploy --project "$PROJECT_ID" --config firebase.spark.json --only hosting --non-interactive
+          else
+            firebase deploy --project "$PROJECT_ID" --config firebase.json --only hosting,firestore,storage --non-interactive
+          fi
+      - name: Smoke test Hosting
+        run: |
+          curl --fail --silent --show-error --retry 3 "https://$PROJECT_ID.web.app/" -o "$RUNNER_TEMP/vidnivo.html"
+          grep -q 'VIDNIVO' "$RUNNER_TEMP/vidnivo.html"
+          if [[ "${{ inputs.tier }}" == full ]]; then
+            curl --fail --silent --show-error "https://$PROJECT_ID.web.app/api/healthz" | grep -q '"status":"ok"'
+          fi

@@ -1,0 +1,53 @@
+name: Verify Firebase cloud foundation
+on:
+  push:
+    branches:
+      - main
+      - feat/firebase-cloud-foundation
+    paths:
+      - 'web/**'
+      - 'cloud-run/**'
+      - 'firebase.json'
+      - 'firebase.spark.json'
+      - 'firestore.rules'
+      - 'storage.rules'
+      - '.github/workflows/cloud-foundation-*.yml'
+  pull_request:
+    paths:
+      - 'web/**'
+      - 'cloud-run/**'
+      - 'firebase.json'
+      - 'firebase.spark.json'
+      - 'firestore.rules'
+      - 'storage.rules'
+      - '.github/workflows/cloud-foundation-*.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cloud-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check source syntax
+        run: |
+          node --check cloud-run/src/core.mjs
+          node --check cloud-run/src/index.mjs
+          node --check web/src/main.js
+      - name: Cloud API security and access-control tests
+        run: npm test --prefix cloud-run
+      - name: Static Firebase rule/route guard tests
+        run: node --test infra/tests/*.test.mjs
+      - name: Install web dependencies
+        run: npm install --prefix web --no-audit --no-fund
+      - name: Build production web frontend
+        run: npm run build --prefix web
+      - name: Inspect build output
+        run: |
+          test -s web/dist/index.html
+          find web/dist -maxdepth 3 -type f -print
+          ! grep -r 'BEGIN PRIVATE KEY' web/dist
