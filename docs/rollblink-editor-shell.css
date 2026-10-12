@@ -156,5 +156,5 @@
  .mobile-track-tools button .mobile-tool-icon{font-size:16px!important}
  .mobile-track-tools button span:last-child{font-size:9px!important}
  #mobileAddCaption{grid-row:auto!important}
- @media(max-width:460px) { .topbar .brand-mark{display:none} .topbar .brand{font-size:18px!important} }
 }
+@media(max-width:460px){.topbar .brand-mark{display:none}.topbar .brand{font-size:18px!important}}
