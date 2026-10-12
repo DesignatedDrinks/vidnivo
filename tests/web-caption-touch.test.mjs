@@ -5,8 +5,8 @@ import {spawnSync} from 'node:child_process';
 
 const html=readFileSync('index.html','utf8');
 const pages=readFileSync('docs/index.html','utf8');
-const module=readFileSync('vidnivo-caption-touch.js','utf8');
-const pagesModule=readFileSync('docs/vidnivo-caption-touch.js','utf8');
+const module=readFileSync('rollblink-caption-touch.js','utf8');
+const pagesModule=readFileSync('docs/rollblink-caption-touch.js','utf8');
 const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1]||'';
 const layout=await import('data:text/javascript;base64,'+Buffer.from(module).toString('base64'));
 function checkSyntax(source){

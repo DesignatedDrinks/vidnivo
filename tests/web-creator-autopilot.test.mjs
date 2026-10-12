@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 const html=readFileSync('index.html','utf8');
 const mirror=readFileSync('docs/index.html','utf8');
-const module=readFileSync('vidnivo-autopilot.js','utf8');
-const deploy=readFileSync('docs/vidnivo-autopilot.js','utf8');
+const module=readFileSync('rollblink-autopilot.js','utf8');
+const deploy=readFileSync('docs/rollblink-autopilot.js','utf8');
 const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1]||'';
 const functions=await import('data:text/javascript;base64,'+Buffer.from(module).toString('base64'));
 const parse=code=>{

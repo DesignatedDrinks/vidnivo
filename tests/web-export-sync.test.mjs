@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 const html=readFileSync('index.html','utf8');
 const deployed=readFileSync('docs/index.html','utf8');
-const core=readFileSync('vidnivo-export-sync.js','utf8');
-const deployedCore=readFileSync('docs/vidnivo-export-sync.js','utf8');
+const core=readFileSync('rollblink-export-sync.js','utf8');
+const deployedCore=readFileSync('docs/rollblink-export-sync.js','utf8');
 const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1]||'';
 const sync=await import('data:text/javascript;base64,'+Buffer.from(core).toString('base64'));
 

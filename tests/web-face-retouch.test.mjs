@@ -5,8 +5,8 @@ import {spawnSync} from 'node:child_process';
 
 const html=readFileSync('index.html','utf8');
 const mirror=readFileSync('docs/index.html','utf8');
-const src=readFileSync('vidnivo-face-retouch.js','utf8');
-const deployed=readFileSync('docs/vidnivo-face-retouch.js','utf8');
+const src=readFileSync('rollblink-face-retouch.js','utf8');
+const deployed=readFileSync('docs/rollblink-face-retouch.js','utf8');
 const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1]||'';
 
 function checkSyntax(text){
@@ -20,7 +20,7 @@ test('both web hosting entrypoints deliver identical retouch-capable editor',()=
  assert.match(html,/id="faceRetouch"/);
  assert.match(html,/id="faceRetouchStatus"/);
  assert.match(html,/id="faceRetouchPreset"/);
- assert.match(script,/import \{FaceRetouch\} from '\.\/vidnivo-face-retouch\.js\?v=5'/);
+ assert.match(script,/import \{FaceRetouch\} from '\.\/rollblink-face-retouch\.js\?v=5'/);
  assert.match(script,/faceTracker\.draw\(ctx,video/);
  assert.match(script,/state\.faceRetouch=0/);
  assert.match(script,/faceTracker\.reset\(\)/);

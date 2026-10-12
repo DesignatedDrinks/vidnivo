@@ -4,10 +4,10 @@ import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 const html=readFileSync('index.html','utf8');
 const pages=readFileSync('docs/index.html','utf8');
-const brandCode=readFileSync('vidnivo-branding.js','utf8');
-const deployedBrand=readFileSync('docs/vidnivo-branding.js','utf8');
-const mark=readFileSync('vidnivo-mark.svg','utf8');
-const deployedMark=readFileSync('docs/vidnivo-mark.svg','utf8');
+const brandCode=readFileSync('rollblink-branding.js','utf8');
+const deployedBrand=readFileSync('docs/rollblink-branding.js','utf8');
+const mark=readFileSync('rollblink-mark.svg','utf8');
+const deployedMark=readFileSync('docs/rollblink-mark.svg','utf8');
 const js=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1]||'';
 const branding=await import('data:text/javascript;base64,'+Buffer.from(brandCode).toString('base64'));
 function checkSyntax(src){
@@ -17,12 +17,12 @@ function checkSyntax(src){
 test('premium application and brand assets are identical on both published paths',()=>{
  assert.equal(html,pages);assert.equal(brandCode,deployedBrand);assert.equal(mark,deployedMark);
  checkSyntax(js);checkSyntax(brandCode);
- assert.match(mark,/<svg\b/);assert.match(mark,/<title id="title">VIDNIVO<\/title>/);
+ assert.match(mark,/<svg\b/);assert.match(mark,/<title id="title">ROLLBLINK<\/title>/);
  assert.match(mark,/<path\b/);
- assert.match(html,/href="\.\/vidnivo-mark\.svg"/);
- assert.match(html,/class="brand-mark" src="\.\/vidnivo-mark\.svg"/);
- assert.match(html,/class="empty-symbol"><img src="\.\/vidnivo-mark\.svg"/);
- assert.match(html,/class="footer-note"><img src="\.\/vidnivo-mark\.svg"/);
+ assert.match(html,/href="\.\/rollblink-mark\.svg"/);
+ assert.match(html,/class="brand-mark" src="\.\/rollblink-mark\.svg"/);
+ assert.match(html,/class="empty-symbol"><img src="\.\/rollblink-mark\.svg"/);
+ assert.match(html,/class="footer-note"><img src="\.\/rollblink-mark\.svg"/);
 });
 test('all new processing and watermark controls are real and uniquely wired',()=>{
  const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);
@@ -66,7 +66,7 @@ test('disabled watermark draws nothing, enabled watermark paints true vector and
  assert.equal(calls.length,0);
  const rect=branding.drawBrandWatermark(ctx,{enabled:true,position:'bottom-right'});
  assert.ok(rect&&rect.x>0&&rect.y>0);
- assert.ok(calls.includes('VIDNIVO'));
+ assert.ok(calls.includes('ROLLBLINK'));
  assert.ok(calls.includes('stroke'));
  assert.ok(calls.includes('fill'));
 });
@@ -101,8 +101,8 @@ test('animations represent actual processing states, not invented progress estim
  assert.doesNotMatch(js,/captionProgress'\)\.style\.width=Math\.max/);
 });
 test('spec and developer handoff exist with shipping and limitations stated',()=>{
- const spec=readFileSync('docs/VIDNIVO_DESIGN_SYSTEM_V1.md','utf8');
- const brief=readFileSync('docs/VIDNIVO_DEVELOPER_BUILD_BRIEF.md','utf8');
+ const spec=readFileSync('docs/ROLLBLINK_DESIGN_SYSTEM_V1.md','utf8');
+ const brief=readFileSync('docs/ROLLBLINK_DEVELOPER_BUILD_BRIEF.md','utf8');
  assert.match(spec,/acceptance/i);assert.match(spec,/watermark/i);assert.match(spec,/reduced-motion/i);
  assert.match(brief,/Run existing test suite/);assert.match(brief,/GitHub Pages/);
 });
