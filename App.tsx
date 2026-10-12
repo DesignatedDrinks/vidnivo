@@ -309,7 +309,7 @@ function EditorApp() {
     setBusy(true);
     try {
       const cache=new Map<string,Awaited<ReturnType<typeof transcribeLocalVideo>>>();
-      const captions=[];
+      const captions: ReturnType<typeof groupRecognizedWords> = [];
       for(const clip of videos){
         const asset=project.assets.find(a=>a.id===clip.assetId);
         if(!asset || asset.kind!=='video')continue;
