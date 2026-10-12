@@ -82,13 +82,13 @@ const handler=createHandler({
   if(advice.action==='none'){
    // Aggregate unresolved support signals without user-written text,
    // media names, private files, account email, transcript or token.
-   void users(uid).collection('supportSignals').add({
+   try{await users(uid).collection('supportSignals').add({
     category:advice.category,platform:input.diagnostics.platform,
     screen:input.diagnostics.screen,
     saveFailed:input.diagnostics.saveFailed,
     missingSourceCount:input.diagnostics.missingSourceCount,
     aiAvailable:advice.aiGenerated,createdAt:FieldValue.serverTimestamp()
-   }).catch(()=>{/* Support remains available if telemetry write fails. */});
+   });}catch{/* Support stays available even if telemetry write fails. */}
   }
   return advice;
  },
