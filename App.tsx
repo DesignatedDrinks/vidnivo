@@ -4,6 +4,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import Slider from '@react-native-community/slider';
 import { probeAudioDurationMs } from './src/media/audioProbe';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Google from 'expo-auth-session/providers/google';
@@ -46,6 +47,7 @@ function EditorApp() {
   const [projectName, setProjectName] = useState('');
   const [busy, setBusy] = useState(false);
   const [lastExport, setLastExport] = useState<string | null>(null);
+  const [timelineZoom, setTimelineZoom] = useState(1);
   const [token, setToken] = useState<string | null>(null);
   const undo = useRef<Project[]>([]);
   const redo = useRef<Project[]>([]);
@@ -107,7 +109,7 @@ function EditorApp() {
   };
   const seek = (ms: number) => { setPlaying(false); setPositionMs(Math.max(0, Math.min(total, ms))); setSeekVersion(v => v + 1); };
   const openProject = (p: Project) => {
-    setEditingId(p.id); setSelectedId(null); setPositionMs(0); setPlaying(false); setLastExport(null);
+    setEditingId(p.id); setSelectedId(null); setPositionMs(0); setPlaying(false); setLastExport(null); setTimelineZoom(1);
     undo.current = []; redo.current = [];
   };
   const create = () => {
@@ -246,7 +248,21 @@ function EditorApp() {
         </View>
         <Text style={styles.meta}> {project.aspectRatio}</Text>
       </View>
-      <Timeline project={project} playheadMs={positionMs} selectedId={selectedId}
+      <Slider
+        minimumValue={0} maximumValue={Math.max(total, 1)} step={50} value={positionMs}
+        minimumTrackTintColor={theme.accent} maximumTrackTintColor={theme.border} thumbTintColor={theme.accent}
+        onSlidingStart={() => setPlaying(false)}
+        onValueChange={setPositionMs}
+        onSlidingComplete={seek}
+      />
+      <View style={styles.row}>
+        <Text style={styles.meta}>Timeline zoom: {timelineZoom.toFixed(1)}×</Text>
+        <View style={styles.controls}>
+          <Tool label="− Zoom" disabled={timelineZoom <= 0.5} onPress={() => setTimelineZoom(v => Math.max(.5, v - .5))} />
+          <Tool label="+ Zoom" disabled={timelineZoom >= 3} onPress={() => setTimelineZoom(v => Math.min(3, v + .5))} />
+        </View>
+      </View>
+      <Timeline project={project} playheadMs={positionMs} selectedId={selectedId} zoom={timelineZoom}
         onSelect={(id, start) => { setSelectedId(id); seek(start); }} onSeek={seek} />
       <View style={[styles.controls, { marginTop: 10, paddingHorizontal: 4 }]}>
         <Tool label="+ Video" onPress={importVisual} disabled={busy} />
@@ -269,6 +285,10 @@ function EditorApp() {
           <Tool label="◀ Order" onPress={() => apply(p => reorderClip(p, selected.id, -1))} />
           <Tool label="Order ▶" onPress={() => apply(p => reorderClip(p, selected.id, 1))} />
         </View>
+        <Text style={styles.meta}>Clip volume: {Math.round(selected.volume * 100)}%</Text>
+        <Slider minimumValue={0} maximumValue={1} step={0.05} value={selected.volume}
+          minimumTrackTintColor={theme.accent} maximumTrackTintColor={theme.border} thumbTintColor={theme.accent}
+          onSlidingComplete={volume => apply(p => editClip(p, selected.id, { volume }))} />
         <View style={styles.controls}>
           <Tool label="0.5×" onPress={() => apply(p => editClip(p, selected.id, { speed: .5 }))} />
           <Tool label="1×" onPress={() => apply(p => editClip(p, selected.id, { speed: 1 }))} />
