@@ -77,7 +77,7 @@ export function projectSnapshot(state){
   sources:state.sources.map(s=>({name:s.name,size:s.size,duration:s.duration})),
   clips:state.clips.map(c=>({sourceIndex:state.sources.findIndex(s=>s.id===c.sourceId),start:c.start,end:c.end,speed:c.speed})),
   captions:state.captions.map(c=>({text:c.text,start:c.start,end:c.end,position:c.position,color:c.color,fontScale:c.fontScale,fontId:c.fontId,origin:c.origin,x:c.x,y:c.y})),
-  ratio:state.ratio,look:state.look,voicePolish:Boolean(state.voicePolish),fontId:state.captionFontId||'inter'};
+  ratio:state.ratio,look:state.look,enhancement:state.enhancement||null,cameraMotion:state.cameraMotion||'off',voicePolish:Boolean(state.voicePolish),fontId:state.captionFontId||'inter'};
 }
 export function canRestoreSnapshot(snapshot,sources){
  return Boolean(snapshot&&snapshot.version===2&&Array.isArray(snapshot.sources)&&snapshot.sources.length>0&&
@@ -98,5 +98,28 @@ export function hydrateSnapshot(snapshot,sources,makeId){
   .slice(0,300).map(c=>({...c,id:makeId()}));
  return {clips,captions,ratio:['9:16','1:1','16:9'].includes(snapshot.ratio)?snapshot.ratio:'9:16',
   look:typeof snapshot.look==='string'?snapshot.look:'original',
-  voicePolish:Boolean(snapshot.voicePolish),fontId:fontById(snapshot.fontId).id};
+  voicePolish:Boolean(snapshot.voicePolish),enhancement:snapshot.enhancement||null,cameraMotion:['off','subtle','dynamic'].includes(snapshot.cameraMotion)?snapshot.cameraMotion:'off',fontId:fontById(snapshot.fontId).id};
+}
+
+/** Choose a *continuous* spoken highlight. No discontinuous cuts: browser A/V stays in sync. */
+export function selectContinuousHighlight(captions,duration,targetSeconds=30){
+ if(!Number.isFinite(duration)||duration<targetSeconds+4)return null;
+ const spoken=spokenCaptions(captions);
+ if(spoken.length<3)return null;
+ const length=Math.min(targetSeconds,duration);
+ const candidates=spoken.filter(c=>c.start<=duration-length+.08);
+ if(!candidates.length)return null;
+ const ranked=candidates.map((entry,i)=>{
+  const start=Math.max(0,Math.min(entry.start,duration-length));
+  const within=spoken.filter(c=>c.start>=start&&c.start<start+length);
+  const text=within.map(c=>c.text).join(' ');
+  const useful=within.length;
+  const density=Math.min(useful,14);
+  const hook=(/\b(why|how|mistake|changed|learned|secret|important|never|but|realized)\b/i.test(entry.text)?3:0)
+    +(String(entry.text).includes('?')?2:0);
+  const ending=within.some(c=>/[.!?]\s*$/.test(c.text))?1:0;
+  return {start:Math.round(start*100)/100,end:Math.round((start+length)*100)/100,
+   score:density+hook+ending-i*.01,reason:'A continuous spoken section with a strong opening.'};
+ }).sort((a,b)=>b.score-a.score||a.start-b.start);
+ const winner=ranked[0];return winner&&{start:winner.start,end:winner.end,reason:winner.reason};
 }
