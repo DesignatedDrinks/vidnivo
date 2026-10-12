@@ -1768,16 +1768,52 @@ const RB_DRAFT='rollblink:metadata-draft:v2';
 let rbPending=null,rbPrevious=null,rbLastFix=null;
 try{rbPending=JSON.parse(localStorage.getItem(RB_DRAFT)||'null')}catch{}
 try{state.captionFontId=fontById(localStorage.getItem('rollblink:font')||'inter').id}catch{}
-for(const font of FONT_CHOICES){const o=document.createElement('option');o.value=font.id;o.textContent=font.name;o.style.fontFamily=font.family;$('rb-font').append(o)}
+for(const font of FONT_CHOICES){
+ const option=document.createElement('option');
+ option.value=font.id;option.textContent=font.name;option.style.fontFamily=font.family;
+ $('rb-font').append(option);
+}
 $('rb-font').value=state.captionFontId;
-async function rbFontReady(){try{await document.fonts.load('900 30px '+fontById(state.captionFontId).family)}catch{}requestDraw()}
-$('rb-font').onchange=()=>{
- state.captionFontId=fontById($('rb-font').value).id;
- state.captions.forEach(c=>c.fontId=state.captionFontId);
+function rbUpdateFontPreview(){
+ const font=fontById(state.captionFontId);
+ const sample=state.captions.find(isSubtitleCaption);
+ const preview=$('rb-font-preview');
+ preview.style.fontFamily=font.family;
+ preview.textContent=sample?.text?.trim().slice(0,80)||'Make the moment.';
+ $('rb-font').value=font.id;
+ document.querySelectorAll('[data-rb-font]').forEach(button=>
+  button.setAttribute('aria-pressed',String(button.dataset.rbFont===font.id)));
+}
+async function rbFontReady(){
+ const font=fontById(state.captionFontId);
+ const status=$('rb-font-status');
+ rbUpdateFontPreview();
+ status.textContent='Loading '+font.name+'…';
+ try{
+  const ready=await Promise.race([
+   document.fonts.load('700 32px '+font.family),
+   new Promise(resolve=>setTimeout(()=>resolve(null),7000))
+  ]);
+  if(state.captionFontId!==font.id)return;
+  status.textContent=ready===null?'Font is still loading; using fallback for now.':
+   'Applied '+font.name+' to all subtitles.';
+ }catch(error){
+  if(state.captionFontId===font.id)status.textContent='Font download unavailable. Using device fallback.';
+ }
+ requestDraw();
+}
+function rbApplyFont(fontId){
+ if(state.exporting||state.captioning||state.creatorBusy)return;
+ state.captionFontId=fontById(fontId).id;
+ for(const c of state.captions)if(isSubtitleCaption(c))c.fontId=state.captionFontId;
  try{localStorage.setItem('rollblink:font',state.captionFontId)}catch{}
- void rbFontReady();rbSave();
-};
-void rbFontReady();
+ rbUpdateFontPreview();void rbFontReady();rbSave();
+}
+$('rb-font').onchange=()=>rbApplyFont($('rb-font').value);
+document.querySelectorAll('[data-rb-font]').forEach(button=>{
+ button.onclick=()=>rbApplyFont(button.dataset.rbFont);
+});
+rbUpdateFontPreview();void rbFontReady();
 function rbCheckVideo(){
  const report=inspectEdit({clips:state.clips,captions:state.captions,sources:state.sources,duration:total(),ratio:state.ratio});
  const exportPlan=planContinuousExport(state.clips);
