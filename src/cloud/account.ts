@@ -51,7 +51,7 @@ export async function signInCloud(email:string,password:string,create=false):Pro
  });
  return save(parseCredentials(await responseJson(reply)));
 }
-async function refreshToken(uid?:string,email?:string):Promise<Credentials>{
+async function refreshToken():Promise<Credentials>{
  configured();
  const saved=await SecureStore.getItemAsync(TOKEN_KEY);
  if(!saved)throw Error('Sign in to VIDNIVO Cloud first.');
