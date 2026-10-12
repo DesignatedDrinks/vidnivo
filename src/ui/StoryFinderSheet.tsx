@@ -21,7 +21,7 @@ export function StoryFinderSheet({visible,moments,onClose,onPreview,onCreate}:Pr
      <Pressable accessibilityLabel="Close story finder" onPress={onClose}>
       <Ionicons name="close" color="#FFFFFF" size={26}/></Pressable>
     </View>
-    <Text style={styles.warning}>VIDNIVO suggests sentence-bounded moments using your existing captions.
+    <Text style={styles.warning}>ROLLBLINK suggests sentence-bounded moments using your existing captions.
       It doesn't claim to judge emotion, virality or what your audience will like.
       Watch each suggestion before using it.</Text>
     <ScrollView style={{maxHeight:420}} contentContainerStyle={{gap:10,paddingVertical:5}}>

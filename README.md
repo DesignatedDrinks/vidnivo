@@ -1,8 +1,8 @@
-# VIDNIVO — mobile-first video editor
+# ROLLBLINK — mobile-first video editor
 
 ## Open the working browser editor
 
-**[▶ Launch VIDNIVO Studio — tap here to edit a video](https://designateddrinks.github.io/vidnivo/)**
+**[▶ Launch ROLLBLINK Studio — tap here to edit a video](https://designateddrinks.github.io/vidnivo/)**
 
 This is the **browser-based preview**: import videos from your device, trim/split,
 change speed, add timed captions, and export where your browser supports MP4
@@ -15,10 +15,10 @@ app is still under development; a README page is not an app.
 
 ---
 
-VIDNIVO is an independently built short-form video editor for iPhone and Android, developed in Expo / React Native.
+ROLLBLINK is an independently built short-form video editor for iPhone and Android, developed in Expo / React Native.
 
 ## Status
-**In development.** VIDNIVO is an independent mobile video editor. Editing, native rendering, and Google Sheets persistence are under active development.
+**In development.** ROLLBLINK is an independent mobile video editor. Editing, native rendering, and Google Sheets persistence are under active development.
 
 ## Architecture
 - **Mobile app:** React Native with Expo SDK 57 (compatible with current Expo Go for iOS and Android).
@@ -53,7 +53,7 @@ Do not embed Google account passwords, OAuth client secrets, API keys with write
 
 ## New: iOS MP4 export (native development build)
 
-The iOS AVFoundation export module is located in `modules/vidnivo-export`.
+The iOS AVFoundation export module is located in `modules/rollblink-export`.
 It assembles consecutive source-video segments, applies source trims and constant
 speed, mixes unmuted video audio and imported audio, adds timed text overlays,
 and renders a local MP4 file. Export is intentionally disabled in Expo Go
@@ -71,7 +71,7 @@ The Android native export implementation remains a separate milestone.
 
 ## Android native video export (development)
 Native MP4 export now has a Media3 Transformer implementation in
-`modules/vidnivo-export/android`. It supports consecutive video clips,
+`modules/rollblink-export/android`. It supports consecutive video clips,
 source trimming, constant speed, mute, and fitted output aspect ratio.
 The Android implementation supports timed text overlays. It **explicitly rejects separately imported soundtracks and custom volume** rather than silently dropping those edits.
 Build an Android development APK (not Expo Go) to access native export.
@@ -111,7 +111,7 @@ remain reversible using Undo. The timeline editor now uses picker durations in
 milliseconds rather than incorrectly treating source seconds as milliseconds.
 
 ## Autosave recovery
-VIDNIVO persists the active project collection in two AsyncStorage slots:
+ROLLBLINK persists the active project collection in two AsyncStorage slots:
 a validated primary and a last-good backup. If the primary becomes corrupt
 or interrupted, the app tries its backup, restores the primary and reports an
 error when neither copy is safe. Old project metadata is never silently treated

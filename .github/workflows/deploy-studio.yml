@@ -1,16 +1,16 @@
-name: Deploy VIDNIVO Studio Web
+name: Deploy ROLLBLINK Studio Web
 on:
   push:
     branches: [main]
     paths:
       - 'docs/index.html'
-      - 'docs/vidnivo-filters.js'
-      - 'docs/vidnivo-face-retouch.js'
-      - 'docs/vidnivo-export-sync.js'
-      - 'docs/vidnivo-caption-touch.js'
-      - 'docs/vidnivo-autopilot.js'
-      - 'docs/vidnivo-branding.js'
-      - 'docs/vidnivo-mark.svg'
+      - 'docs/rollblink-filters.js'
+      - 'docs/rollblink-face-retouch.js'
+      - 'docs/rollblink-export-sync.js'
+      - 'docs/rollblink-caption-touch.js'
+      - 'docs/rollblink-autopilot.js'
+      - 'docs/rollblink-branding.js'
+      - 'docs/rollblink-mark.svg'
       - '.github/workflows/deploy-studio.yml'
   workflow_dispatch:
 permissions:
@@ -18,7 +18,7 @@ permissions:
   pages: write
   id-token: write
 concurrency:
-  group: vidnivo-pages-production
+  group: rollblink-pages-production
   cancel-in-progress: true
 jobs:
   deploy:
@@ -27,7 +27,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Check out VIDNIVO
+      - name: Check out ROLLBLINK
         uses: actions/checkout@v4
       - name: Validate standalone editor
         run: |
@@ -36,10 +36,10 @@ jobs:
           grep -q 'startExport()' docs/index.html
           grep -q 'MediaRecorder' docs/index.html
       - name: Validate browser editor and Safari shader
-        run: node --test tests/web-studio.test.mjs tests/web-face-retouch.test.mjs tests/web-export-sync.test.mjs tests/web-caption-touch.test.mjs tests/web-creator-autopilot.test.mjs tests/web-brand-motion.test.mjs tests/web-editorial-ui.test.mjs
+        run: node --test tests/web-studio.test.mjs tests/web-face-retouch.test.mjs tests/web-export-sync.test.mjs tests/web-caption-touch.test.mjs tests/web-creator-autopilot.test.mjs tests/web-brand-motion.test.mjs tests/web-editorial-ui.test.mjs tests/rollblink-brand.test.mjs
       - name: Prepare GitHub Pages
         uses: actions/configure-pages@v5
-      - name: Upload VIDNIVO Studio
+      - name: Upload ROLLBLINK Studio
         uses: actions/upload-pages-artifact@v4
         with:
           path: docs

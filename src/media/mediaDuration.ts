@@ -1,5 +1,5 @@
 /**
- * ImagePickerAsset.duration is measured in seconds, while VIDNIVO's
+ * ImagePickerAsset.duration is measured in seconds, while ROLLBLINK's
  * timeline stores integer milliseconds. Fail clearly instead of creating
  * incorrect 0.5-second timelines when metadata is unavailable.
  */

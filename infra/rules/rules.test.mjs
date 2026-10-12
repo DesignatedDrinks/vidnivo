@@ -12,7 +12,7 @@ const mediaId='0123456789abcdef';
 const assetPath='users/'+owner+'/media/'+mediaId+'/sample.mp4';
 before(async()=>{
  testEnv=await initializeTestEnvironment({
-  projectId:'demo-vidnivo',
+  projectId:'demo-rollblink',
   firestore:{rules:readFileSync(new URL('../../firestore.rules',import.meta.url),'utf8')},
   storage:{rules:readFileSync(new URL('../../storage.rules',import.meta.url),'utf8')}
  });

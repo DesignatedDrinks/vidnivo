@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 const root=readFileSync('index.html','utf8');
 const mirror=readFileSync('docs/index.html','utf8');
-const shader=readFileSync('vidnivo-filters.js','utf8');
-const shaderMirror=readFileSync('docs/vidnivo-filters.js','utf8');
+const shader=readFileSync('rollblink-filters.js','utf8');
+const shaderMirror=readFileSync('docs/rollblink-filters.js','utf8');
 const source=root.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1]||'';
 function checkModule(text){
  const r=spawnSync(process.execPath,['--check','--input-type=module'],{input:text,encoding:'utf8'});

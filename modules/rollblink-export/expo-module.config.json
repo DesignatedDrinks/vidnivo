@@ -1,0 +1,17 @@
+{
+  "platforms": [
+    "ios",
+    "android"
+  ],
+  "apple": {
+    "modules": [
+      "RollblinkExportModule",
+      "RollblinkSpeechModule"
+    ]
+  },
+  "android": {
+    "modules": [
+      "com.rollblink.export.RollblinkExportModule"
+    ]
+  }
+}
