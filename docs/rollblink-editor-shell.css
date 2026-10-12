@@ -146,3 +146,15 @@
  .mobile-context-actions button{min-height:54px}
 }
 @media(prefers-reduced-motion:reduce){.mobile-timeline-scroll{scroll-behavior:auto!important}}
+
+/* Keep the timeline rail aligned with the three synchronized tracks. */
+.mobile-aspect-ratio{display:none}
+@media(max-width:770px){
+ .mobile-aspect-ratio{display:block}
+ .mobile-track-tools{grid-template-rows:24px repeat(4,37px)!important;gap:4px!important}
+ .mobile-track-tools button{min-height:35px!important;padding:3px 1px!important;gap:2px!important;border-radius:8px!important}
+ .mobile-track-tools button .mobile-tool-icon{font-size:16px!important}
+ .mobile-track-tools button span:last-child{font-size:9px!important}
+ #mobileAddCaption{grid-row:auto!important}
+ @media(max-width:460px) { .topbar .brand-mark{display:none} .topbar .brand{font-size:18px!important} }
+}
