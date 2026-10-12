@@ -623,7 +623,7 @@ function drawFrame(){
  const captions=state.captions.filter(c=>state.position>=c.start&&state.position<c.end);
  captionHitBoxes=[];
  for(const cap of captions){
-  const layout=captionLayout(ctx,cap,W,H);
+  const layout=captionLayout(ctx,{...cap,fontId:cap.fontId||state.captionFontId},W,H);
   const {x,y,size,leading,lines,bounds}=layout;
   captionHitBoxes.push({id:cap.id,bounds});
   ctx.textAlign='center';ctx.textBaseline='middle';
@@ -1448,7 +1448,7 @@ function renderCreatorHooks(){
    const style=creatorSelectedStyle();
    state.captions.push({
     id:key(),text:hook.text,start:0,end:Math.min(2.3,total()),origin:'opening-hook',
-    position:'custom',x:.5,y:.24,fontScale:Math.min(1.5,style.size*1.18),color:'#FFE178'
+    position:'custom',x:.5,y:.24,fontScale:Math.min(1.5,style.size*1.18),color:'#FFE178',fontId:state.captionFontId
    });
    state.captions.sort((a,b)=>a.start-b.start);
    renderCaptions();renderTimeline();void seekTimeline(.25);
@@ -1481,7 +1481,8 @@ function creatorSelectedStyle(){
 function configureCreatorStyle(style){
  const preset=style;
  if(state.playing)pause();
- setRatio(preset.ratio);
+ state.captionFontId=fontById(preset.fontId).id;$('rb-font').value=state.captionFontId;
+ void rbFontReady();setRatio(preset.ratio);
  state.look=preset.look;
  document.querySelectorAll('[data-look]').forEach(x=>x.classList.toggle('active',x.dataset.look===preset.look));
  state.enhancement=null;
@@ -1552,6 +1553,7 @@ function storeCurrentCreatorStyle(){
   ratio:state.clips.length?state.ratio:base.ratio,
   x:anchor.x,y:anchor.y,size:cap?fontScale(cap.fontScale):Number($('captionFontSize').value)/100,
   color:cap?.color||$('captionColor').value||base.color,
+  fontId:cap?.fontId||state.captionFontId,
   voice:$('creatorVoice').checked,
   enhance:state.clips.length?Boolean(state.enhancement):base.enhance,
   retouch:state.faceRetouch
