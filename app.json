@@ -1,23 +1,23 @@
 {
   "expo": {
-    "name": "VIDNIVO",
-    "slug": "vidnivo",
-    "scheme": "vidnivo",
+    "name": "ROLLBLINK",
+    "slug": "rollblink",
+    "scheme": "rollblink",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
-      "bundleIdentifier": "com.vidnivo.editor",
+      "bundleIdentifier": "com.rollblink.editor",
       "supportsTablet": true,
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "VIDNIVO uses videos and photos you choose for editing.",
-        "NSPhotoLibraryAddUsageDescription": "VIDNIVO saves completed videos to your library.",
-        "NSSpeechRecognitionUsageDescription": "VIDNIVO transcribes spoken words from the video you select to create editable captions on this device."
+        "NSPhotoLibraryUsageDescription": "ROLLBLINK uses videos and photos you choose for editing.",
+        "NSPhotoLibraryAddUsageDescription": "ROLLBLINK saves completed videos to your library.",
+        "NSSpeechRecognitionUsageDescription": "ROLLBLINK transcribes spoken words from the video you select to create editable captions on this device."
       }
     },
     "android": {
-      "package": "com.vidnivo.editor",
+      "package": "com.rollblink.editor",
       "permissions": [
         "READ_MEDIA_VIDEO",
         "READ_MEDIA_IMAGES"
@@ -31,7 +31,7 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "Allow VIDNIVO to record voiceovers for your videos.",
+          "microphonePermission": "Allow ROLLBLINK to record voiceovers for your videos.",
           "enableBackgroundRecording": false,
           "enableBackgroundPlayback": false
         }
