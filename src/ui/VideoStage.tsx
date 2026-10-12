@@ -35,7 +35,9 @@ export function VideoStage({ project, playheadMs, playing, seekVersion }:
     {!asset ? <View style={styles.placeholder}><Text style={styles.mark}>V</Text><Text style={styles.placeholderLabel}>Import video to begin</Text></View> : null}
     {asset?.kind === 'image' ? <Image source={{ uri: asset.uri }} resizeMode="contain" style={styles.full} /> : null}
     {asset?.kind === 'video' && clip ? <VideoClip key={clip.id} uri={asset.uri} clip={clip} sourceSeconds={seconds} playing={playing} seekVersion={seekVersion} /> : null}
-    {visible.map(layer => <View key={layer.id} pointerEvents="none" style={[styles.textHolder, { top: `${layer.y * 100}%`, left: `${layer.x * 100 - 45}%` }]}>
+    {visible.map(layer => <View key={layer.id} pointerEvents="none" style={[styles.textHolder, { top: `${layer.y * 100}%`,
+      left: previewWidth * layer.x - previewWidth * 0.45, width: previewWidth * 0.9,
+      right: undefined, transform: [{ translateY: -Math.max(14, layer.fontSize) * 0.6 }] }]}>
       <Text style={[styles.overlay, { color: layer.color, fontSize: Math.max(14, layer.fontSize) }]}>{layer.text}</Text>
     </View>)}
   </View>;

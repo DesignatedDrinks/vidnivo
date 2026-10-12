@@ -78,8 +78,12 @@ private func makeTextLayer(_ text: RenderText, size: CGSize, duration: Double) -
   layer.alignmentMode = .center
   layer.isWrapped = true
   layer.foregroundColor = color(text.color)
-  layer.font = UIFont.systemFont(ofSize: CGFloat(max(14, text.fontSize)), weight: .bold)
-  layer.fontSize = CGFloat(max(14, text.fontSize))
+  // Font sizes are authored against a ~355pt phone preview. Scale relative to
+  // the longest export edge so typography matches the editing preview.
+  let exportScale = max(size.width, size.height) / 355.0
+  let finalFont = CGFloat(max(14.0, text.fontSize)) * exportScale
+  layer.font = UIFont.systemFont(ofSize: finalFont, weight: .bold)
+  layer.fontSize = finalFont
   let w = size.width * 0.9
   let h = max(60.0, min(300.0, Double(size.height) * 0.18))
   layer.frame = CGRect(x: size.width * max(0, min(1, text.x)) - w / 2.0,
