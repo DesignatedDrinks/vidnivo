@@ -10,6 +10,7 @@
  .looks-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}.look-chip{display:flex;align-items:center;gap:9px;padding:10px;border-radius:10px;border:1px solid #49515c;background:#252c34;color:#dce4ed;text-align:left;min-height:48px}.look-chip.active{border-color:#32d7e7;background:#16424c;color:#e8fdff;box-shadow:inset 0 0 0 1px #36c9d7}.look-dot{display:block;width:27px;height:27px;flex:none;border-radius:7px;border:1px solid #ffffff45}.quick-actions{margin-bottom:17px}.quick-actions .button{white-space:normal;min-height:45px}.caption-item>div{min-width:0;flex:1}.caption-item button{flex:none}@media(max-width:360px){.inspector-tab{padding:11px 5px;font-size:12px}}
 .touch-caption-hint{display:flex;flex-direction:column;gap:6px;margin:0 0 15px}.touch-caption-hint strong{color:#eaf5fa;font-size:13px}.touch-caption-hint span{font-size:12px}.caption-active{border-color:#2de3f2;box-shadow:inset 0 0 0 1px #2de3f2}.caption-item .caption-item-actions{display:flex;gap:6px;flex:none}.caption-touch-ready{touch-action:none;cursor:move}.caption-item.selected-caption{outline:2px solid #27d2e5;outline-offset:-2px}
 .autopilot-card{border:1px solid #2c6572;background:linear-gradient(130deg,#18333b,#1b1d24 70%);padding:19px}.autopilot-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}.autopilot-heading h2{font-size:20px;margin:6px 0}.autopilot-icon{font-size:32px;color:#3ddcea}.autopilot-options{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 12px}.autopilot-options label{display:flex;align-items:center;gap:6px;font-size:12px;color:#d6e3eb;cursor:pointer}.autopilot-options input{width:17px;height:17px;accent-color:var(--accent)}.autopilot-run{flex:2!important;min-width:160px!important}.autopilot-card .button-row>*{min-width:0}.autopilot-card select{margin-top:2px}.autopilot-card .fine-print{margin-top:7px}
+.creator-hooks{padding:14px 0 8px;margin-top:11px;border-top:1px solid #345962}.creator-hook-choices{display:flex;flex-direction:column;gap:7px;margin:12px 0}.creator-hook-choices button{background:#263d44;color:#e7f9ff;border:1px solid #46808a;border-radius:9px;padding:10px 12px;text-align:left;white-space:normal;font-size:12px;font-weight:650}.creator-hook-choices button:hover{background:#31525b}
 </style>
 </head>
 <body>
@@ -32,6 +33,12 @@
         <div class="autopilot-options"><label><input id="creatorCaptions" type="checkbox" checked /> Auto captions</label><label><input id="creatorTighten" type="checkbox" checked /> Trim silent edges</label><label><input id="creatorVoice" type="checkbox" checked /> Voice clarity</label></div>
         <div class="button-row"><button id="creatorRun" type="button" class="button primary autopilot-run" disabled>✦ Finish My Video</button><button id="creatorSave" type="button" class="button ghost" title="Remember my selected colours, caption size and position for future clips">Save My Style</button></div>
         <div id="creatorStatus" class="status" aria-live="polite" role="status">Import a video, choose a style, then select Finish My Video.</div>
+        <div id="creatorHookPanel" class="creator-hooks" hidden>
+          <div class="section-label">OPENING HOOKS FROM YOUR OWN WORDS</div>
+          <p class="fine-print">Choose a spoken phrase as an editable 2-second opening title. No invented claims.</p>
+          <div id="creatorHookChoices" class="creator-hook-choices"></div>
+          <button id="creatorHookRemove" class="button ghost small" type="button">Remove opening title</button>
+        </div>
         <div class="progress" aria-label="Creator Autopilot progress"><div id="creatorProgress"></div></div>
         <p class="fine-print">Colour, format and speech styles can be applied immediately. Caption transcription runs locally, may need a model download and takes longer on phones. Only beginning/end silence is trimmed to preserve synchronized speech.</p>
       </section>
@@ -132,7 +139,7 @@
 import {FaceRetouch} from './vidnivo-face-retouch.js?v=5';
 import {planContinuousExport,PlaybackSyncGuard,inspectRecordedTracks,probeRecordedDuration} from './vidnivo-export-sync.js';
 import {fontScale,captionAnchor,captionLayout,clampedCaptionAnchor,pointInCaption,gestureDistance,midpoint} from './vidnivo-caption-touch.js';
-import {STYLES,getStyle,loadStyle,saveStyle,styleCaptions,planSpeechEdgeTrim,shiftTimedCaptions} from './vidnivo-autopilot.js';
+import {STYLES,getStyle,loadStyle,saveStyle,styleCaptions,planSpeechEdgeTrim,shiftTimedCaptions,suggestOpeningHooks} from './vidnivo-autopilot.js';
 // VIDNIVO Browser Studio — all source media remains in local object URLs.
 // Exports use the browser's own MediaRecorder; no video is sent to a server.
 const $ = id => document.getElementById(id);
@@ -806,7 +813,7 @@ function setTab(tab){state.selectedTab=tab;document.querySelectorAll('[data-tab]
 function reset(){
  if(state.exporting||state.captioning){toast('Finish exporting or auto captions before starting a new project.',true);return}
  if(state.clips.length&&!confirm('Start a new project? This removes the current timeline and captions (not the original files).'))return;
- pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.faceRetouch=0;state.voicePolish=false;applyVoicePolish();faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;touchPointers.clear();dragAnchor=null;pinchOrigin=null;$('captionFontSize').value='100';$('captionFontSizeLabel').textContent='100%';$('captionTouchStatus').textContent='Select a caption and drag or pinch to edit it.';$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
+ pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];$('creatorHookPanel').hidden=true;state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.faceRetouch=0;state.voicePolish=false;applyVoicePolish();faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;touchPointers.clear();dragAnchor=null;pinchOrigin=null;$('captionFontSize').value='100';$('captionFontSizeLabel').textContent='100%';$('captionTouchStatus').textContent='Select a caption and drag or pinch to edit it.';$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
  video.removeAttribute('src');video.load();ui.empty.hidden=false;ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();renderEditor();renderCaptions();toast('Ready for a new project.');
 }
 function canvasGesturePoint(event){
@@ -934,6 +941,36 @@ $('captionPosition').addEventListener('change',event=>{
  $('captionTouchStatus').textContent='Position preset applied. Drag it directly on the preview to place it precisely.';
 });
 
+function renderCreatorHooks(){
+ const phrases=suggestOpeningHooks(state.captions);
+ const panel=$('creatorHookPanel'),choices=$('creatorHookChoices');
+ choices.replaceChildren();
+ panel.hidden=phrases.length===0;
+ for(const [index,hook] of phrases.entries()){
+  const button=document.createElement('button');
+  button.type='button';
+  button.textContent=(index+1)+'. “'+hook.text+'”';
+  button.onclick=()=>{
+   if(state.exporting||state.captioning||state.creatorBusy)return;
+   state.captions=state.captions.filter(c=>c.origin!=='opening-hook');
+   const style=creatorSelectedStyle();
+   state.captions.push({
+    id:key(),text:hook.text,start:0,end:Math.min(2.3,total()),origin:'opening-hook',
+    position:'custom',x:.5,y:.24,fontScale:Math.min(1.5,style.size*1.18),color:'#FFE178'
+   });
+   state.captions.sort((a,b)=>a.start-b.start);
+   renderCaptions();renderTimeline();void seekTimeline(.25);
+   $('creatorStatus').textContent='Opening title added from your actual words. Tap the title to move or resize it.';
+  };
+  choices.append(button);
+ }
+}
+$('creatorHookRemove').onclick=()=>{
+ if(state.exporting||state.captioning||state.creatorBusy)return;
+ state.captions=state.captions.filter(c=>c.origin!=='opening-hook');
+ renderCaptions();renderTimeline();requestDraw();
+ $('creatorStatus').textContent='Opening title removed.';
+};
 function creatorStatus(message,progress=0,error=false){
  $('creatorStatus').textContent=message;
  $('creatorStatus').style.color=error?'#ffaca9':'#d9edf4';
@@ -992,7 +1029,7 @@ async function runCreatorAutopilot(){
   }else{
    steps.push('manual captions kept');
   }
-  renderTimeline();renderEditor();renderCaptions();
+  renderTimeline();renderEditor();renderCaptions();renderCreatorHooks();
   creatorStatus('✓ '+style.name+' finished: '+steps.join(' · ')+'. Review captions and export.',100);
   toast('One-tap finish completed. Review the preview and export.');
   setTab(captionResult?.captions?.length?'captions':'export');
