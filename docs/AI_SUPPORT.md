@@ -32,6 +32,11 @@ strictly bounded schema, and a max output budget. It does not upload original
 media or app secret credentials. App users must be signed into VIDNIVO Cloud
 to receive model assistance; local help works without an account.
 
+Unresolved support attempts automatically record a bounded technical category,
+device platform and screen under the account for trend analysis. Neither the
+customer's written description nor any project contents are persisted as
+support telemetry. No automated source-code rewrite/deploy is triggered.
+
 AI requests are limited to 12 per authenticated account per hour with
 Firestore transactions. Errors fall back to local guidance without claiming
 AI succeeded. The support provider and storage/retention disclosures must
