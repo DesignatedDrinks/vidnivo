@@ -13,8 +13,13 @@ import { Directory, File, Paths } from 'expo-file-system';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { AudioStage } from './src/ui/AudioStage';
+import * as Sharing from 'expo-sharing';
+import { addCaptionCues, groupRecognizedWords, mapWordsToTimeline,
+  parseCaptions, restyleCaptions, captionsFromProject, serializeSrt,
+  type CaptionPreset } from './src/domain/captions';
+import { speechRecognitionAvailable, transcribeLocalVideo } from './src/media/speech';
 import { canExportNatively, exportMp4, shareExport } from './src/export/native';
-import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot, editTextLayer } from './src/domain/timeline';
+import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot, editTextLayer, rippleSpeedClip } from './src/domain/timeline';
 import { loadLocalProjects, saveLocalProjects } from './src/data/storage';
 import { loadRemoteProjects, saveProjectToSheets, softDeleteProjectFromSheets } from './src/data/sheets';
 import { VideoStage } from './src/ui/VideoStage';
@@ -56,6 +61,8 @@ function EditorApp() {
   const [canvasHeight, setCanvasHeight] = useState(355);
   const [exportQuality, setExportQuality] = useState<720 | 1080>(1080);
   const [fullPreview, setFullPreview] = useState(false);
+  const [captionPanelOpen, setCaptionPanelOpen] = useState(false);
+  const [captionStylesOpen, setCaptionStylesOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const voiceRecorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, directory: 'document' });
@@ -207,6 +214,72 @@ function EditorApp() {
     } catch (error) { Alert.alert('Audio import failed', String(error)); }
     finally { setBusy(false); }
   };
+
+  const importSubtitles = async () => {
+    if (!project) return;
+    setCaptionPanelOpen(false);
+    try {
+      const chosen = await DocumentPicker.getDocumentAsync({ type: '*/*', multiple: false, copyToCacheDirectory: true });
+      if (chosen.canceled) return;
+      const picked = chosen.assets[0];
+      if (!/\.(srt|vtt)$/i.test(picked.name))
+        throw new Error('Please select a .srt or .vtt subtitle file.');
+      setBusy(true);
+      const content = await new File(picked.uri).text();
+      const cues = parseCaptions(content);
+      if (!cues.length) throw new Error('No valid subtitles found. Check the file timestamps.');
+      apply(p => addCaptionCues(p, cues, 'classic'));
+      Alert.alert('Subtitles imported', cues.length + ' timed captions added. Tap an orange caption in the timeline to edit it.');
+    } catch (e) { Alert.alert('Subtitle import failed', String(e)); }
+    finally { setBusy(false); }
+  };
+  const generateAutoCaptions = async () => {
+    if (!project || busy) return;
+    setCaptionPanelOpen(false);
+    if (!speechRecognitionAvailable()) {
+      Alert.alert('Offline transcription needs the iPhone build',
+        'Use a VIDNIVO iPhone development build to generate captions on-device. You can import SRT or VTT files right now.');
+      return;
+    }
+    const target = (selected && selected.track === 'video' ? selected : undefined)
+      || activeClip(project, positionMs) || project.clips.find(c => c.track === 'video');
+    const asset = project.assets.find(a => a.id === target?.assetId);
+    if (!target || asset?.kind !== 'video') {
+      Alert.alert('Add a video first', 'Select a video clip to transcribe.'); return;
+    }
+    setBusy(true);
+    try {
+      const words = await transcribeLocalVideo(asset.uri);
+      const mapped = mapWordsToTimeline(words, target);
+      const captions = groupRecognizedWords(mapped);
+      if (!captions.length) throw new Error('No spoken words could be recognized in this clip.');
+      apply(p => addCaptionCues(p, captions, 'punch'));
+      Alert.alert('Captions generated', captions.length +
+        ' editable caption groups were created locally. Review wording and timing before exporting.');
+    } catch (e) { Alert.alert('Could not generate captions', String(e)); }
+    finally { setBusy(false); }
+  };
+  const exportSubtitleFile = async () => {
+    if (!project) return;
+    setCaptionPanelOpen(false);
+    if (!project.texts.length) {
+      Alert.alert('No captions yet', 'Add text, import a subtitle file, or generate captions first.'); return;
+    }
+    try {
+      const target = new File(Paths.cache, 'vidnivo-' + project.id + '-captions.srt');
+      target.create({ overwrite: true });
+      target.write(serializeSrt(captionsFromProject(project)));
+      if (!await Sharing.isAvailableAsync()) throw new Error('Sharing is not available.');
+      await Sharing.shareAsync(target.uri, { mimeType: 'application/x-subrip',
+        dialogTitle: 'Share VIDNIVO subtitles' });
+    } catch (e) { Alert.alert('Subtitle export failed', String(e)); }
+  };
+  const applyCaptionStyle = (preset: CaptionPreset) => {
+    if (project?.texts.length) apply(p => restyleCaptions(p, preset));
+    else Alert.alert('No captions yet', 'Add captions before selecting a style.');
+    setCaptionStylesOpen(false);
+    setCaptionPanelOpen(false);
+  };
   const renderVideo = async () => {
     if (!project) return;
     try {
@@ -319,9 +392,9 @@ function EditorApp() {
     { id: 'trim-right', label: 'Trim end', icon: 'play-forward-outline', onPress: () => apply(p => rippleTrimClip(p, selected.id, 'right', -500)) },
     { id: 'before', label: 'Earlier', icon: 'arrow-back-circle-outline', onPress: () => apply(p => reorderClip(p, selected.id, -1)) },
     { id: 'after', label: 'Later', icon: 'arrow-forward-circle-outline', onPress: () => apply(p => reorderClip(p, selected.id, 1)) },
-    { id: 'slow', label: '0.5×', icon: 'speedometer-outline', onPress: () => apply(p => editClip(p, selected.id, { speed: .5 })) },
-    { id: 'normal', label: '1×', icon: 'speedometer-outline', onPress: () => apply(p => editClip(p, selected.id, { speed: 1 })) },
-    { id: 'fast', label: '2×', icon: 'flash-outline', onPress: () => apply(p => editClip(p, selected.id, { speed: 2 })) },
+    { id: 'slow', label: '0.5×', icon: 'speedometer-outline', onPress: () => apply(p => rippleSpeedClip(p, selected.id, .5)) },
+    { id: 'normal', label: '1×', icon: 'speedometer-outline', onPress: () => apply(p => rippleSpeedClip(p, selected.id, 1)) },
+    { id: 'fast', label: '2×', icon: 'flash-outline', onPress: () => apply(p => rippleSpeedClip(p, selected.id, 2)) },
     { id: 'mute', label: selected.muted ? 'Unmute' : 'Mute', icon: selected.muted ? 'volume-high-outline' : 'volume-mute-outline',
       onPress: () => apply(p => editClip(p, selected.id, { muted: !selected.muted })) },
     { id: 'delete', label: 'Delete', icon: 'trash-outline', onPress: () => {
@@ -351,7 +424,7 @@ function EditorApp() {
     { id: 'text', label: 'Text', icon: 'text-outline', onPress: () => { setTitleText(''); setTextPrompt(true); } },
     { id: 'effects', label: 'Effects', icon: 'sparkles-outline', onPress: () => comingSoon('Effects'), hint: 'Soon' },
     { id: 'overlay', label: 'Add video', icon: 'albums-outline', onPress: importVisual },
-    { id: 'captions', label: 'Captions', icon: 'chatbox-ellipses-outline', onPress: () => comingSoon('Automatic captions'), hint: 'Soon' },
+    { id: 'captions', label: 'Captions', icon: 'chatbox-ellipses-outline', onPress: () => setCaptionPanelOpen(true) },
     { id: 'voiceover', label: recordingState.isRecording ? 'Stop voice' : 'Voiceover',
       icon: recordingState.isRecording ? 'stop-circle-outline' : 'mic-outline', onPress: toggleVoiceover },
     { id: 'ratio', label: 'Aspect ratio', icon: 'crop-outline', onPress: showRatioMenu },
@@ -448,6 +521,52 @@ function EditorApp() {
     {lastExport ? <Pressable accessibilityRole="button" onPress={() => shareExport(lastExport).catch(e => Alert.alert('Sharing failed', String(e)))}
       style={styles.shareResult}><Text style={styles.shareResultText}>✓ MP4 ready — Share</Text></Pressable> : null}
 
+    <Modal visible={captionPanelOpen} animationType="slide" transparent
+      onRequestClose={() => { setCaptionPanelOpen(false); setCaptionStylesOpen(false); }}>
+      <View style={styles.captionBackdrop}>
+        <View style={styles.captionSheet}>
+          <View style={styles.row}>
+            <Text style={styles.captionSheetTitle}>{captionStylesOpen ? 'Caption appearance' : 'Captions & subtitles'}</Text>
+            <Pressable accessibilityLabel="Close caption tools" onPress={() => {
+              if (captionStylesOpen) setCaptionStylesOpen(false);
+              else setCaptionPanelOpen(false);
+            }}><Ionicons name="close" color="#F3F4F6" size={25}/></Pressable>
+          </View>
+          {captionStylesOpen ?
+            (['classic','punch','minimal','neon','documentary'] as CaptionPreset[]).map(preset =>
+              <Pressable key={preset} style={styles.captionChoice} onPress={() => applyCaptionStyle(preset)}>
+                <Ionicons name="color-palette-outline" size={24} color="#23D4E9" />
+                <Text style={styles.captionChoiceLabel}>{preset[0].toUpperCase()+preset.slice(1)}</Text>
+                <Ionicons name="chevron-forward" color="#7E858E" size={16}/>
+              </Pressable>) :
+            <>
+              <Pressable style={styles.captionChoice} onPress={generateAutoCaptions} disabled={busy}>
+                <Ionicons name="sparkles-outline" size={24} color="#23D4E9" />
+                <View style={{flex:1}}>
+                  <Text style={styles.captionChoiceLabel}>Generate captions</Text>
+                  <Text style={styles.captionChoiceSub}>Offline speech recognition · iPhone native build</Text>
+                </View>
+              </Pressable>
+              <Pressable style={styles.captionChoice} onPress={importSubtitles}>
+                <Ionicons name="document-text-outline" size={24} color="#23D4E9" />
+                <View style={{flex:1}}>
+                  <Text style={styles.captionChoiceLabel}>Import subtitle file</Text>
+                  <Text style={styles.captionChoiceSub}>SRT and WebVTT · iOS and Android</Text>
+                </View>
+              </Pressable>
+              <Pressable style={styles.captionChoice} onPress={() => setCaptionStylesOpen(true)}>
+                <Ionicons name="color-palette-outline" size={24} color="#23D4E9" />
+                <Text style={styles.captionChoiceLabel}>Caption appearance</Text>
+              </Pressable>
+              <Pressable style={styles.captionChoice} onPress={exportSubtitleFile}>
+                <Ionicons name="share-outline" size={24} color="#23D4E9" />
+                <Text style={styles.captionChoiceLabel}>Share subtitle file (.srt)</Text>
+              </Pressable>
+            </>}
+        </View>
+      </View>
+    </Modal>
+
     <Modal visible={fullPreview} animationType="fade" onRequestClose={() => setFullPreview(false)}>
       <View style={[styles.fullPreview, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 20 }]}>
         <Pressable accessibilityLabel="Close fullscreen preview" onPress={() => setFullPreview(false)} style={{ alignSelf: 'flex-end', padding: 12 }}>
@@ -531,6 +650,14 @@ function clipDurationSafe(c: { inMs: number; outMs: number; speed: number }): nu
 export default function App() { return <SafeAreaProvider><EditorApp /></SafeAreaProvider>; }
 const styles = StyleSheet.create({
 
+  captionBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: '#000000AA' },
+  captionSheet: { backgroundColor: '#222528', borderTopLeftRadius: 22,
+    borderTopRightRadius: 22, paddingTop: 16, paddingBottom: 36, paddingHorizontal: 20 },
+  captionSheetTitle: { fontSize: 18, fontWeight: '800', color: '#F9FBFD' },
+  captionChoice: { flexDirection: 'row', gap: 16, alignItems: 'center',
+    minHeight: 60, borderBottomWidth: 1, borderBottomColor: '#34373B' },
+  captionChoiceLabel: { color: '#F4F6F8', fontSize: 15, fontWeight: '600' },
+  captionChoiceSub: { color: '#8B939C', fontSize: 11, marginTop: 3 },
   editorScreen: { flex: 1, backgroundColor: '#111214' },
   mobileHeader: { height: 57, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center',
     gap: 7, backgroundColor: '#111214' },
