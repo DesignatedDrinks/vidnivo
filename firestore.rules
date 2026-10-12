@@ -6,6 +6,10 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if request.auth != null && request.auth.uid == userId;
       allow list, create, update, delete: if false;
+      match /projects/{projectId} {
+        allow get, list: if request.auth != null && request.auth.uid == userId;
+        allow create, update, delete: if false;
+      }
       match /media/{assetId} {
         allow get, list: if request.auth != null && request.auth.uid == userId;
         allow create, update, delete: if false;
