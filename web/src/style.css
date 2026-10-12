@@ -20,3 +20,20 @@ li{margin-bottom:8px;color:#c2d0d7;overflow-wrap:anywhere}.file-list{padding-lef
 footer{max-width:1120px;padding:35px 24px;color:#7b929d;margin:auto;border-top:1px solid #2e3940;font-size:12px}
 [hidden]{display:none!important}
 @media(max-width:760px){.cards{grid-template-columns:1fr}.hero{padding:26px 0 48px}.dashboard{padding:18px}.tag{font-size:10px}h1{font-size:clamp(45px,12vw,70px)}}
+
+/* Media controls stay accessible on narrow phones and never expose links. */
+.file-list{list-style:none;padding:0;margin:12px 0}
+.file-entry{display:flex;align-items:center;justify-content:space-between;gap:12px;
+ border-top:1px solid #34454f;padding:14px 0;margin:0}
+.file-details{display:flex;flex-direction:column;min-width:0;gap:5px}
+.file-details strong{overflow-wrap:anywhere;font-size:14px}
+.file-details span{font-size:12px;color:#9db5c1}
+.file-actions{display:flex;gap:8px;flex-shrink:0}
+.btn.small{padding:9px 12px;min-height:40px;font-size:12px}
+.btn.danger{border-color:#b56e76;color:#ffd3d8}
+.btn.danger:hover{background:#42252d}
+@media(max-width:520px){
+ .file-entry{align-items:stretch;flex-direction:column}
+ .file-actions{width:100%}
+ .file-actions .btn{flex:1}
+}
