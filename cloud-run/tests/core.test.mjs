@@ -52,23 +52,13 @@ test('health is public but private routes require Firebase Auth',async t=>{
  assert.equal(valid.status,200);
  assert.equal((await valid.json()).uid,user);
 });
-test('media registration checks owner path, object and prevents asset ID collisions',async t=>{
+test('legacy unmetered media registration is disabled',async t=>{
  const base=await fixture(t,fakeDeps());
- const post=async body=>fetch(base+'/api/v1/media/register',{
-  method:'POST',headers,body:JSON.stringify(body)
- });
- let reply=await post({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'});
- assert.equal(reply.status,200);
+ const response=await fetch(base+'/api/v1/media/register',{method:'POST',headers,
+  body:JSON.stringify({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'})});
+ assert.equal(response.status,410);
  const list=await fetch(base+'/api/v1/media',{headers});
- assert.equal((await list.json()).media.length,1);
- reply=await post({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'});
- assert.equal(reply.status,200);
- reply=await post({assetId:'0123456789ABCDEF',
-  objectPath:'users/'+user+'/media/0123456789ABCDEF/other.mp4',name:'other.mp4'});
- assert.equal(reply.status,409);
- reply=await post({assetId:'0123456789ABCDEF',
-  objectPath:'users/other_user/media/0123456789ABCDEF/example.mp4',name:'example.mp4'});
- assert.equal(reply.status,403);
+ assert.equal((await list.json()).media.length,0);
 });
 test('refuses attempts to register private media outside owner folders',()=>{
  for(const invalid of ['users/other/media/0123456789ABCDEF/clip.mp4',
@@ -92,27 +82,26 @@ test('CORS protects browser origins and JSON payload size is bounded',async t=>{
   body:JSON.stringify({displayName:'A'.repeat(600000)})});
  assert.equal(huge.status,413);
 });
-test('invalid uploads are rejected without exposing backend details',async t=>{
- const base=await fixture(t,fakeDeps({
-  checkObject:async()=>({size:500*1024*1024,contentType:'video/mp4'})
- }));
- const req=await fetch(base+'/api/v1/media/register',{method:'POST',headers,
-  body:JSON.stringify({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'})});
- assert.equal(req.status,400);
+test('oversized or misconfigured streamed media uploads fail closed',async t=>{
+ const base=await fixture(t,fakeDeps());
+ const tooLarge=await fetch(base+'/api/v1/media/0123456789ABCDEF/upload',{
+  method:'PUT',headers:{Authorization:'Bearer valid-token','Content-Type':'video/mp4',
+   'X-VIDNIVO-FILENAME':'example.mp4','X-VIDNIVO-SIZE':String(201*1024*1024)},
+  body:Buffer.alloc(1)});
+ assert.equal(tooLarge.status,400);
  const noBucket=await fixture(t,fakeDeps({storageReady:false}));
- const r=await fetch(noBucket+'/api/v1/media/register',{method:'POST',headers,
-  body:JSON.stringify({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'})});
- assert.equal(r.status,503);
+ const refused=await fetch(noBucket+'/api/v1/media/0123456789ABCDEF/upload',{
+  method:'PUT',headers:{Authorization:'Bearer valid-token','Content-Type':'video/mp4',
+   'X-VIDNIVO-FILENAME':'example.mp4','X-VIDNIVO-SIZE':'4'},
+  body:'abcd'});
+ assert.equal(refused.status,503);
 });
-
 test('signed-in owner can remove a registered file; deletion is retry-safe for missing cloud bytes',async t=>{
  const dependencies=fakeDeps();
  let deletedPath='';
  dependencies.deleteObject=async objectPath=>{deletedPath=objectPath;};
  const base=await fixture(t,dependencies);
- const created=await fetch(base+'/api/v1/media/register',{method:'POST',headers,
-  body:JSON.stringify({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'})});
- assert.equal(created.status,200);
+ await dependencies.registerMedia(user,{assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4',size:1024});
  const before=await fetch(base+'/api/v1/media',{headers});
  assert.equal((await before.json()).media[0].objectPath,path);
  const rejected=await fetch(base+'/api/v1/media/0123456789ABCDEF',{method:'DELETE',
@@ -143,8 +132,7 @@ test('deletion never crosses user boundaries or removes a file for a malformed r
 test('storage removal failures retain metadata for safe retries',async t=>{
  const deps=fakeDeps({deleteObject:async()=>{throw Error('Storage failure: private');}});
  const base=await fixture(t,deps);
- await fetch(base+'/api/v1/media/register',{method:'POST',headers,
-  body:JSON.stringify({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'})});
+ await deps.registerMedia(user,{assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4',size:1024});
  const failed=await fetch(base+'/api/v1/media/0123456789ABCDEF',{method:'DELETE',headers});
  assert.equal(failed.status,500);
  assert.doesNotMatch((await failed.json()).error,/Storage failure: private/);
