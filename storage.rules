@@ -1,19 +1,12 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Private per-user, per-asset originals. Filename and asset ID are
-    // unguessable metadata, not authorization; Firebase Auth is the boundary.
+    // Read-only from signed-in clients. All writes and deletion must go through
+    // Cloud Run, which verifies Firebase identity and reserves storage quota.
+    // Firebase Admin SDK does not use client Storage security rules.
     match /users/{userId}/media/{assetId}/{fileName} {
       allow read: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null &&
-        request.auth.uid == userId &&
-        assetId.matches('^[A-Za-z0-9_-]{8,80}$') &&
-        fileName.matches('^[A-Za-z0-9_.-]{1,120}$') &&
-        request.resource.size > 0 &&
-        request.resource.size <= 200 * 1024 * 1024 &&
-        request.resource.contentType.matches('^(video|image|audio)/[A-Za-z0-9.+-]+$');
-      allow update: if false;
-      allow delete: if request.auth != null && request.auth.uid == userId;
+      allow create, update, delete: if false;
     }
     match /{object=**} {
       allow read, write: if false;
