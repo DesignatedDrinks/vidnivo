@@ -4,7 +4,13 @@
  * Skin softening is applied only inside a face-oval mask with eyes, brows and lips excluded.
  * The same drawFrame path supplies the preview and browser MediaRecorder export.
  */
-const PACKAGE='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22';
+// MediaPipe 0.10.22 (without an -rc suffix) does not exist on npm.
+// Pin a published stable release so mobile Safari receives JavaScript, not a CDN 404.
+const MEDIAPIPE_VERSION='0.10.21';
+const ASSET_HOSTS=[
+ 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@'+MEDIAPIPE_VERSION,
+ 'https://unpkg.com/@mediapipe/tasks-vision@'+MEDIAPIPE_VERSION
+];
 const MODEL='https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
 const FACE=[10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109];
 const EYES=[[33,160,158,133,153,144],[362,385,387,263,373,380]];
@@ -73,16 +79,32 @@ export class FaceRetouch {
   if(this.landmarker)return;
   if(this.loading)return this.loading;
   this.loading=(async()=>{
-   onProgress('Downloading private on-device face tracker…');
-   const {FaceLandmarker,FilesetResolver}=await import(PACKAGE+'/vision_bundle.mjs');
-   const vision=await FilesetResolver.forVisionTasks(PACKAGE+'/wasm');
-   onProgress('Preparing face landmarks…');
-   this.landmarker=await FaceLandmarker.createFromOptions(vision,{
-    baseOptions:{modelAssetPath:MODEL,delegate:'CPU'},
-    runningMode:'VIDEO',numFaces:1,minFaceDetectionConfidence:.55,
-    minFacePresenceConfidence:.55,minTrackingConfidence:.55
-   });
-   this.supported=true;
+   let lastError=null;
+   for(const [index,host] of ASSET_HOSTS.entries()){
+    onProgress(index?'Retrying face tracker from backup source…':'Loading on-device face tracker…');
+    try{
+     // Import only actual ESM; using a missing version produces "Importing a module script failed" on Safari.
+     const loaded=await import(host+'/vision_bundle.mjs');
+     const {FaceLandmarker,FilesetResolver}=loaded;
+     if(typeof FaceLandmarker?.createFromOptions!=='function'||typeof FilesetResolver?.forVisionTasks!=='function')
+      throw Error('Face tracker module has an unexpected format.');
+     onProgress('Loading face tracking engine…');
+     const vision=await FilesetResolver.forVisionTasks(host+'/wasm');
+     onProgress('Downloading face landmark model…');
+     const landmarker=await FaceLandmarker.createFromOptions(vision,{
+      baseOptions:{modelAssetPath:MODEL,delegate:'CPU'},
+      runningMode:'VIDEO',numFaces:1,minFaceDetectionConfidence:.55,
+      minFacePresenceConfidence:.55,minTrackingConfidence:.55
+     });
+     this.landmarker=landmarker;this.supported=true;
+     onProgress('Face tracking ready.');
+     return;
+    }catch(error){
+     lastError=error;
+     this.landmarker=null;
+    }
+   }
+   throw Error('Face tracker download failed from both sources. Check your internet connection or Safari content blockers, then try again. ('+(lastError?.message||'Model unavailable')+')');
   })();
   try{await this.loading}
   catch(e){this.loading=null;this.supported=false;throw e}

@@ -33,3 +33,21 @@ jobs:
           node-version: '22'
       - name: Test real browser editor, subtitle mapping and Safari filters
         run: node --test tests/web-studio.test.mjs tests/web-face-retouch.test.mjs
+      - name: Verify real face-tracking assets resolve over HTTPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=0.10.21
+          package_ok=0
+          for origin in "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${version}" "https://unpkg.com/@mediapipe/tasks-vision@${version}"; do
+            if curl --fail --silent --show-error --location --head --retry 2 --max-time 25 "${origin}/vision_bundle.mjs" > /dev/null && \
+               curl --fail --silent --show-error --location --head --retry 2 --max-time 25 "${origin}/wasm/vision_wasm_internal.wasm" > /dev/null; then
+              echo "Verified MediaPipe model runtime from ${origin}"
+              package_ok=1
+              break
+            fi
+          done
+          test "${package_ok}" -eq 1
+          curl --fail --silent --show-error --location --head --retry 2 --max-time 25 \
+            "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task" > /dev/null
+          echo "Face landmark model is reachable"
