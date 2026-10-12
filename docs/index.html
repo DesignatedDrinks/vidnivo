@@ -602,6 +602,7 @@ import {planContinuousExport,PlaybackSyncGuard,inspectRecordedTracks,probeRecord
 import {fontScale,captionAnchor,captionLayout,clampedCaptionAnchor,pointInCaption,gestureDistance,midpoint,isSubtitleCaption,setSubtitleAnchor,subtitleSafeArea,clampSubtitleAnchor} from './rollblink-caption-touch.js';
 import {STYLES,getStyle,loadStyle,saveStyle,styleCaptions,planSpeechEdgeTrim,shiftTimedCaptions,suggestOpeningHooks} from './rollblink-autopilot.js';
 import {drawBrandWatermark,normalizeWatermark} from './rollblink-branding.js';
+import {createRollblinkMobileShell} from './rollblink-mobile-shell.js';
 import {FONT_CHOICES,fontById,transcriptText,draftSocialCopy,EDIT_DIRECTIONS,applyDirection,inspectEdit,projectSnapshot,canRestoreSnapshot,hydrateSnapshot,selectContinuousHighlight} from './rollblink-creator-kit.js';
 // ROLLBLINK Browser Studio — all source media remains in local object URLs.
 // Exports use the browser's own MediaRecorder; no video is sent to a server.
@@ -612,7 +613,7 @@ const canvas = $('preview');
 const ctx = canvas.getContext('2d', {alpha: false});
 const ui = {videoInput:$('videoInput'),play:$('play'),scrubber:$('scrubber'),timeline:$('timeline'),empty:$('emptyState'),trimStart:$('trimStart'),trimEnd:$('trimEnd'),speed:$('speed'),export:$('export'),status:$('exportStatus'),progress:$('exportProgress'),download:$('download')};
 const state = {
- sources:[], clips:[], captions:[], captionFontId:'inter', captionGroupAnchor:null, cameraMotion:'off', selected:null, position:0,
+ sources:[], clips:[], captions:[], captionFontId:'inter', captionGroupAnchor:null, cameraMotion:'off', sourceMuted:false, selected:null, position:0,
  ratio:'9:16', playing:false, exporting:false, captioning:false, selectedTab:'edit',
   look:'original', enhancement:null, editCaptionId:null, faceRetouch:0, faceLoading:false,
   voicePolish:false, creatorBusy:false, creatorStyle:null, creatorCustom:null,
@@ -620,6 +621,7 @@ const state = {
  objectUrl:null, sourceId:null, pendingSeek:0, clock:0,
  audioContext:null, audioInput:null, audioDestination:null
 };
+let rbMobileShell=null;
 const MIN_CLIP=0.2;
 const LOOKS={
  original:{brightness:1,contrast:1,saturate:1,sepia:0,hue:0,grayscale:0},
@@ -804,6 +806,7 @@ function syncPosition(){
  ui.scrubber.value=String(clamp(state.position,0,Math.max(.01,all)));
  $('currentTime').textContent=fmt(state.position);$('totalTime').textContent=fmt(all);
  ui.play.textContent=state.playing?'❚❚':'▶';ui.play.setAttribute('aria-label',state.playing?'Pause video':'Play video');
+ rbMobileShell?.updatePosition();
 }
 function pause(){state.playing=false;video.pause();syncPosition()}
 async function play(){
@@ -858,6 +861,7 @@ function renderTimeline(){
  $('creatorRun').disabled=!state.clips.length||state.exporting||state.captioning||state.creatorBusy||state.faceLoading;
  $('exportSummary').textContent=state.clips.length?`${fmt(total())} edited runtime · ${state.clips.length} clip${state.clips.length===1?'':'s'} · ${state.captions.length} caption${state.captions.length===1?'':'s'} · ${state.ratio}`:'Import a video to calculate the edited runtime.';
  syncPosition();
+ rbMobileShell?.refreshTimeline();
 }
 function renderEditor(){
  const c=selected(),src=c&&sourceById(c.sourceId);
@@ -896,7 +900,7 @@ function toggleEnhancement(){
  $('enhanceStatus').textContent='Enhanced · Tap again to undo';
  requestDraw();
 }
-function setRatio(r){if(!['9:16','1:1','16:9'].includes(r))return;state.ratio=r;document.querySelectorAll('[data-ratio]').forEach(e=>e.classList.toggle('active',e.dataset.ratio===r));drawFrame();renderTimeline()}
+function setRatio(r){if(!['9:16','1:1','16:9'].includes(r))return;state.ratio=r;document.querySelectorAll('[data-ratio]').forEach(e=>e.classList.toggle('active',e.dataset.ratio===r));if($('mobileRatio'))$('mobileRatio').value=r;drawFrame();renderTimeline()}
 const safeFileName=(name)=>name.replace(/[^a-z0-9_.-]+/gi,'-').slice(0,75)||'untitled';
 async function importFile(file){
  if(!file)return;
@@ -919,7 +923,7 @@ async function importFile(file){
   const oldTotal=total();state.clips.push(clip);state.selected=clip.id;
   ui.empty.hidden=true;
   renderTimeline();renderEditor();void seekTimeline(oldTotal);
-  toast('Imported '+file.name+'. Select a clip to trim or split.');rbCheckRecovery();
+  toast('Imported '+file.name+'. Select a clip to trim or split.');rbCheckRecovery();void rbMobileShell?.prepareThumbnails(source);
  }catch(e){URL.revokeObjectURL(url);toast(e.message||String(e),true)}
  finally{probe.removeAttribute('src');probe.load();hideProcessing('import')}
 }
@@ -966,7 +970,7 @@ function showCaptionOnScreen(cap){
 }
 function renderCaptions(){
  const node=$('captionsList');node.replaceChildren();
- if(!state.captions.length){const empty=document.createElement('div');empty.className='muted';empty.textContent='No captions yet.';node.append(empty);return}
+ if(!state.captions.length){const empty=document.createElement('div');empty.className='muted';empty.textContent='No captions yet.';node.append(empty);rbMobileShell?.refreshCaptions();return}
  state.captions.forEach(cap=>{
   const item=document.createElement('div');item.className='caption-item'+(state.editCaptionId===cap.id?' selected-caption':'');
   const detail=document.createElement('div');const text=document.createElement('strong');text.textContent=cap.text;
@@ -1002,6 +1006,7 @@ function renderCaptions(){
   controls.prepend(fix);
   controls.append(edit,remove);item.append(detail,controls);node.append(item);
  });
+ rbMobileShell?.refreshCaptions();
 }
 
 let localSpeechModel=null;
@@ -1220,7 +1225,7 @@ function applyVoicePolish(){
  const now=state.audioContext.currentTime;
  state.audioCompressor.threshold.setTargetAtTime(state.voicePolish?-18:0,now,.02);
  state.audioCompressor.ratio.setTargetAtTime(state.voicePolish?2.5:1,now,.02);
- state.audioMaster.gain.setTargetAtTime(state.voicePolish?1.08:1,now,.02);
+ state.audioMaster.gain.setTargetAtTime(state.sourceMuted?0:state.voicePolish?1.08:1,now,.02);
 }
 function setupAudio(){
  if(state.audioContext){applyVoicePolish();return}
@@ -1236,6 +1241,7 @@ function setupAudio(){
  source.connect(compressor);compressor.connect(master);
  master.connect(destination);master.connect(monitor);monitor.connect(context.destination);
  state.audioContext=context;state.audioDestination=destination;state.audioInput=source;
+ video.muted=false; // WebAudio master gain owns mute after connection.
  state.audioCompressor=compressor;state.audioMaster=master;state.audioMonitor=monitor;
  applyVoicePolish();
 }
@@ -1404,7 +1410,7 @@ function setTab(tab){state.selectedTab=tab;document.querySelectorAll('[data-tab]
 function reset(){
  if(state.exporting||state.captioning||state.creatorBusy){toast('Finish the current edit before starting a new project.',true);return}
  if(state.clips.length&&!confirm('Start a new project? This removes the current timeline and captions (not the original files).'))return;
- pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];$('creatorHookPanel').hidden=true;state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.captionGroupAnchor=null;state.cameraMotion='off';$('rb-camera').value='off';state.faceRetouch=0;state.voicePolish=false;applyVoicePolish();faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;touchPointers.clear();dragAnchor=null;pinchOrigin=null;$('captionFontSize').value='100';$('captionFontSizeLabel').textContent='100%';$('captionTouchStatus').textContent='';$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
+ pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];$('creatorHookPanel').hidden=true;state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.captionGroupAnchor=null;state.cameraMotion='off';$('rb-camera').value='off';state.faceRetouch=0;state.voicePolish=false;state.sourceMuted=false;video.muted=false;applyVoicePolish();faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;touchPointers.clear();dragAnchor=null;pinchOrigin=null;$('captionFontSize').value='100';$('captionFontSizeLabel').textContent='100%';$('captionTouchStatus').textContent='';$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
  video.removeAttribute('src');video.load();ui.empty.hidden=false;ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();renderEditor();renderCaptions();rbDiscard(false);toast('Ready for a new project.');
 }
 function canvasGesturePoint(event){
@@ -2061,6 +2067,14 @@ $('rb-cover').onclick=async()=>{
  }catch(e){$('rb-message').textContent='Cover failed: '+(e.message||String(e))}
  finally{state.editCaptionId=editing;await seekTimeline(Math.min(prior,total()));requestDraw()}
 };
+
+
+rbMobileShell=createRollblinkMobileShell({
+ $,state,video,total,duration,sourceById,setTab,reset,pause,seekTimeline,
+ selectCaptionForEditing,renderCaptions,renderTimeline,renderEditor,requestDraw,
+ startExport,runAutoCaptions,toast,key,rbSave,applyVoicePolish,setRatio,drawFrame
+});
+rbMobileShell.mount();
 
 </script>
 
