@@ -152,6 +152,39 @@ public class VidnivoExportModule: Module {
         }
       }
     }
+    AsyncFunction("inspectExport") { (uri: String, promise: Promise) in
+      Task {
+        do {
+          let url = try sourceURL(uri)
+          let asset = AVURLAsset(url: url)
+          let duration = try await asset.load(.duration)
+          let tracks = try await asset.loadTracks(withMediaType: .video)
+          guard let video = tracks.first, CMTimeGetSeconds(duration).isFinite,
+                CMTimeGetSeconds(duration) > 0 else {
+            throw RenderError.exportFailed("Exported MP4 is missing a readable video track.")
+          }
+          let natural = try await video.load(.naturalSize)
+          let transform = try await video.load(.preferredTransform)
+          let oriented = CGRect(origin: .zero, size: natural).applying(transform).standardized
+          let audio = try await asset.loadTracks(withMediaType: .audio)
+          let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
+          let bytes = (attrs[.size] as? NSNumber)?.int64Value ?? 0
+          guard bytes > 1024, oriented.width > 0, oriented.height > 0 else {
+            throw RenderError.exportFailed("Exported MP4 is empty or unreadable.")
+          }
+          promise.resolve([
+            "durationMs": Int((CMTimeGetSeconds(duration) * 1000.0).rounded()),
+            "width": Int(oriented.width.rounded()),
+            "height": Int(oriented.height.rounded()),
+            "videoTracks": tracks.count,
+            "audioTracks": audio.count,
+            "bytes": bytes
+          ] as [String: Any])
+        } catch {
+          promise.reject("VIDNIVO_INSPECT", error.localizedDescription)
+        }
+      }
+    }
   }
 
   private func createMovie(_ request: RenderRequest) async throws -> URL {
@@ -278,7 +311,10 @@ public class VidnivoExportModule: Module {
     guard let export = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetHighestQuality) else {
       throw RenderError.exportFailed("Unable to initialize the iOS video exporter.")
     }
-    let destination = FileManager.default.temporaryDirectory
+    let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    let exportsDirectory = documents.appendingPathComponent("vidnivo-exports", isDirectory: true)
+    try FileManager.default.createDirectory(at: exportsDirectory, withIntermediateDirectories: true)
+    let destination = exportsDirectory
       .appendingPathComponent("vidnivo-\(UUID().uuidString)").appendingPathExtension("mp4")
     export.outputURL = destination
     export.outputFileType = .mp4
@@ -292,11 +328,14 @@ public class VidnivoExportModule: Module {
         case .completed:
           continuation.resume(returning: destination)
         case .failed:
+          try? FileManager.default.removeItem(at: destination)
           continuation.resume(throwing: RenderError.exportFailed(
             export.error?.localizedDescription ?? "MP4 export failed."))
         case .cancelled:
+          try? FileManager.default.removeItem(at: destination)
           continuation.resume(throwing: RenderError.exportFailed("MP4 export was cancelled."))
         default:
+          try? FileManager.default.removeItem(at: destination)
           continuation.resume(throwing: RenderError.exportFailed("MP4 export stopped unexpectedly."))
         }
       }

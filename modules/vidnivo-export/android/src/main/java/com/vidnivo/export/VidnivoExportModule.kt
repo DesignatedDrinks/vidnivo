@@ -1,6 +1,9 @@
 package com.vidnivo.export
 
 import android.net.Uri
+import android.media.MediaExtractor
+import android.media.MediaFormat
+import android.media.MediaMetadataRetriever
 import android.graphics.Color
 import android.graphics.Bitmap
 import androidx.media3.effect.BitmapOverlay
@@ -48,6 +51,63 @@ import kotlin.math.max
 class VidnivoExportModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("VidnivoExport")
+    AsyncFunction("inspectExport") { uri: String, promise: Promise ->
+      try {
+        val context = appContext.reactContext
+          ?: throw IllegalStateException("Android application context is unavailable.")
+        val path = Uri.parse(uri).path
+          ?: throw IllegalArgumentException("Invalid MP4 file location.")
+        val file = File(path)
+        if (!uri.startsWith("file://") || !file.isFile || file.length() <= 1024L)
+          throw IllegalArgumentException("Exported MP4 is missing or incomplete.")
+        val media = MediaMetadataRetriever()
+        val extractor = MediaExtractor()
+        try {
+          media.setDataSource(path)
+          extractor.setDataSource(path)
+          val durationMs = media.extractMetadata(
+            MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+          var videoTracks = 0
+          var audioTracks = 0
+          var width = 0
+          var height = 0
+          for (i in 0 until extractor.trackCount) {
+            val track = extractor.getTrackFormat(i)
+            val mime = track.getString(MediaFormat.KEY_MIME) ?: ""
+            if (mime.startsWith("video/")) {
+              videoTracks += 1
+              if (width == 0) {
+                width = track.getInteger(MediaFormat.KEY_WIDTH)
+                height = track.getInteger(MediaFormat.KEY_HEIGHT)
+              }
+            }
+            if (mime.startsWith("audio/")) audioTracks += 1
+          }
+          val rotation = media.extractMetadata(
+            MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
+          if (rotation == 90 || rotation == 270) {
+            val oldWidth = width
+            width = height
+            height = oldWidth
+          }
+          if (durationMs <= 0 || width <= 0 || height <= 0 || videoTracks <= 0)
+            throw IllegalArgumentException("Exported MP4 has no readable video track.")
+          promise.resolve(mapOf(
+            "durationMs" to durationMs,
+            "width" to width,
+            "height" to height,
+            "videoTracks" to videoTracks,
+            "audioTracks" to audioTracks,
+            "bytes" to file.length()
+          ))
+        } finally {
+          extractor.release()
+          media.release()
+        }
+      } catch (e: Exception) {
+        promise.reject("VIDNIVO_INSPECT", e.message ?: "Cannot inspect exported MP4.", e)
+      }
+    }
     AsyncFunction("exportProject") { payload: String, promise: Promise ->
       val context = appContext.reactContext
       if (context == null) {
@@ -221,7 +281,10 @@ class VidnivoExportModule : Module() {
             compositionBuilder.setEffects(Effects(emptyList(),listOf(OverlayEffect(overlays))))
           }
           val composition=compositionBuilder.build()
-          val file = File(context.cacheDir, "vidnivo-${UUID.randomUUID()}.mp4")
+          val exportsFolder = File(context.filesDir, "vidnivo-exports")
+          if (!exportsFolder.exists() && !exportsFolder.mkdirs())
+            throw IllegalStateException("Cannot create permanent exports folder.")
+          val file = File(exportsFolder, "vidnivo-${UUID.randomUUID()}.mp4")
           val transformer = Transformer.Builder(context)
             .setVideoMimeType(MimeTypes.VIDEO_H264)
             .setAudioMimeType(MimeTypes.AUDIO_AAC)

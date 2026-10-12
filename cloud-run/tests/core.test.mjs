@@ -29,6 +29,7 @@ function fakeDeps(overrides={}){
   uploadMedia:async()=>({size:1024}),
   downloadMedia:async()=>{},
    resolveSupport:async()=>({answer:'Retry a save safely.',action:'retry-save',category:'storage',aiGenerated:true,available:true}),
+   resolveStoryRank:async()=>({aiRanked:false,rankings:[]}),
   deleteObject:async()=>{},
   deleteMedia:async(id,assetId)=>{existing.delete(assetId);},
   ...overrides
@@ -280,4 +281,24 @@ test('AI support is private, validates diagnostics and never executes device cod
   body:JSON.stringify({issue:'hi',diagnostics:{screen:'editor'}})});
  assert.equal(invalid.status,400);
  assert.equal(calls,1);
+});
+
+test('creator AI ranking validates eligible excerpts and requires authentication',async t=>{
+ let callCount=0;
+ const base=await fixture(t,fakeDeps({resolveStoryRank:async(uid,input)=>{
+  callCount++;assert.equal(uid,user);assert.equal(input.moments.length,1);
+  assert.equal(input.moments[0].privateFile,undefined);
+  return {aiRanked:false,rankings:[]};
+ }}));
+ const request={moments:[{id:'moment:1000:16000',
+  preview:'A clear complete beginning and outcome.',durationMs:15000,privateFile:'file:///private/secret.mov'}]};
+ const denied=await fetch(base+'/api/v1/creator/rank-moments',{
+  method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)});
+ assert.equal(denied.status,401);
+ const accepted=await fetch(base+'/api/v1/creator/rank-moments',{
+  method:'POST',headers,body:JSON.stringify(request)});
+ assert.equal(accepted.status,200);assert.equal(callCount,1);
+ const invalid=await fetch(base+'/api/v1/creator/rank-moments',{
+  method:'POST',headers,body:JSON.stringify({moments:[]})});
+ assert.equal(invalid.status,400);assert.equal(callCount,1);
 });

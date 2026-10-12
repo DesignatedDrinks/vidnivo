@@ -45,6 +45,11 @@ import {CloudWorkspace} from './src/ui/CloudWorkspace';
 import {HelpDesk} from './src/ui/HelpDesk';
 import {restoreCloudSession,type CloudSession} from './src/cloud/account';
 import {backUpCloudProject} from './src/cloud/transfer';
+import {VideoView,useVideoPlayer} from 'expo-video';
+import {cloudRequest} from './src/cloud/account';
+import {applyAiMomentRanking} from './src/domain/aiMomentRanking';
+import {listSavedVideos,deleteSavedVideo,formatExportSize,saveVideoDetails,type SavedVideo} from './src/export/library';
+import {createExportPlan} from './src/export/plan';
 
 WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_ANDROID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
@@ -59,6 +64,28 @@ function Tool({ label, onPress, disabled = false, primary = false }: { label: st
     style={[styles.tool, primary && styles.primaryTool, disabled && { opacity: .35 }]}>
     <Text style={[styles.toolText, primary && { color: theme.accentText }]}>{label}</Text>
   </Pressable>;
+}
+function SavedExportPreview({uri,onClose}:{uri:string;onClose:()=>void}){
+  const player=useVideoPlayer(uri);
+  useEffect(()=>{
+    player.play();
+    return ()=>{player.pause();};
+  },[player]);
+  return <Modal visible animationType="slide" onRequestClose={onClose}>
+    <View style={{flex:1,backgroundColor:'#08090D',paddingTop:55,paddingBottom:26,paddingHorizontal:12}}>
+      <View style={{flexDirection:'row',justifyContent:'space-between',
+        alignItems:'center',paddingHorizontal:8,paddingBottom:12}}>
+        <Text style={{color:'#FFFFFF',fontSize:20,fontWeight:'800'}}>Finished video</Text>
+        <Tool label="Close" onPress={onClose}/>
+      </View>
+      <VideoView player={player} nativeControls contentFit="contain"
+        surfaceType={Platform.OS==='android'?'textureView':undefined}
+        style={{flex:1,borderRadius:10,backgroundColor:'#000'}}/>
+      <Tool primary label="Share MP4" onPress={()=>{
+        void shareExport(uri).catch(error=>Alert.alert('Unable to share',String(error)));
+      }}/>
+    </View>
+  </Modal>;
 }
 function EditorApp() {
   const insets = useSafeAreaInsets();
@@ -79,7 +106,11 @@ function EditorApp() {
   const [namePrompt, setNamePrompt] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [busy, setBusy] = useState(false);
+  const [rendering,setRendering]=useState(false);
   const [lastExport, setLastExport] = useState<string | null>(null);
+  const [savedVideos,setSavedVideos]=useState<SavedVideo[]>([]);
+  const [showAllExports,setShowAllExports]=useState(false);
+  const [previewSavedUri,setPreviewSavedUri]=useState<string|null>(null);
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [canvasHeight, setCanvasHeight] = useState(355);
   const [exportQuality, setExportQuality] = useState<720 | 1080>(1080);
@@ -91,6 +122,7 @@ function EditorApp() {
   const [creatorReviewOpen,setCreatorReviewOpen]=useState(false);
   const [storyFinderOpen,setStoryFinderOpen]=useState(false);
   const [storySuggestions,setStorySuggestions]=useState<StoryMoment[]>([]);
+  const [storyRankingBusy,setStoryRankingBusy]=useState(false);
   const [storySourceRevision,setStorySourceRevision]=useState<number|null>(null);
   const [advancedToolsOpen,setAdvancedToolsOpen]=useState(false);
   const [speechReviewVisible,setSpeechReviewVisible]=useState(false);
@@ -117,6 +149,23 @@ function EditorApp() {
   const undo = useRef<Project[]>([]);
   const redo = useRef<Project[]>([]);
   const writeQueue = useRef<Promise<void>>(Promise.resolve());
+  useEffect(()=>{
+    try{setSavedVideos(listSavedVideos());}
+    catch{/* Export storage might be temporarily unavailable; don't crash editor. */}
+  },[editingId,lastExport]);
+  const removeSavedVideo=(video:SavedVideo)=>{
+    Alert.alert('Delete exported MP4?',
+      'This permanently deletes the finished video from this phone, not the project or original footage.',[
+      {text:'Cancel',style:'cancel'},
+      {text:'Delete MP4',style:'destructive',onPress:()=>{
+        try{
+          deleteSavedVideo(video.uri);
+          setSavedVideos(listSavedVideos());
+          if(lastExport===video.uri)setLastExport(null);
+        }catch(e){Alert.alert('Cannot delete export',String(e));}
+      }}
+    ]);
+  };
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: GOOGLE_IOS || 'not-configured.apps.googleusercontent.com',
     androidClientId: GOOGLE_ANDROID || 'not-configured.apps.googleusercontent.com',
@@ -463,16 +512,21 @@ function EditorApp() {
     const audit=analyzeCreatorProject(project,Platform.OS==='android'?'android':'ios',exportQuality);
     if(!audit.canExport){setCreatorReviewOpen(true);return;}
     try {
-      setPlaying(false); setBusy(true);
+      setPlaying(false); setBusy(true); setRendering(true);
       const uri = await exportMp4(project, exportQuality);
+      try{
+        saveVideoDetails(uri,{title:project.name,
+          durationMs:createExportPlan(project,exportQuality).durationMs,
+          quality:exportQuality,ratio:project.aspectRatio});
+      }catch{/* The verified video is still saved; metadata can be rebuilt. */}
       setLastExport(uri);
-      Alert.alert('Video exported', 'Your MP4 is ready to share.', [
+      Alert.alert('Export verified', 'The MP4 passed native video, duration and format checks, and was saved in VIDNIVO’s finished-video library.', [
         { text: 'Done' },
         { text: 'Share', onPress: () => { void shareExport(uri).catch(err => Alert.alert('Could not share', String(err))); } }
       ]);
     } catch (e) {
       Alert.alert('Export unavailable', e instanceof Error ? e.message : String(e));
-    } finally { setBusy(false); }
+    } finally { setBusy(false);setRendering(false); }
   };
   const showStoryFinder=()=>{
     if(!project)return;
@@ -483,6 +537,32 @@ function EditorApp() {
       setPlaying(false);
       setStoryFinderOpen(true);
     }catch(e){Alert.alert('Story Finder',e instanceof Error?e.message:String(e));}
+  };
+  const rankAiStoryMoments=()=>{
+    if(!cloudSession||!project||storyRankingBusy||!storySuggestions.length)return;
+    Alert.alert('Rank Story Finder moments with AI?',
+      'VIDNIVO will send up to eight short caption excerpts to its AI provider. Original videos, filenames and complete project metadata are not shared. No edits happen automatically.',[
+        {text:'Cancel',style:'cancel'},
+        {text:'Rank moments',onPress:()=>{
+          void (async()=>{
+            try{
+              setStoryRankingBusy(true);
+              const current=storySuggestions;
+              const result=await cloudRequest('/api/v1/creator/rank-moments',{
+                method:'POST',body:JSON.stringify({moments:current.map(m=>({
+                  id:m.id,preview:m.preview,
+                  durationMs:m.endMs-m.startMs
+                }))})
+              });
+              if(!result.aiRanked)throw Error(
+                'AI ranking is not configured or is temporarily unavailable. The local suggestions are still valid.');
+              const ranked=applyAiMomentRanking(current,result);
+              setStorySuggestions(ranked);
+            }catch(e){Alert.alert('AI Story Finder',e instanceof Error?e.message:String(e));}
+            finally{setStoryRankingBusy(false);}
+          })();
+        }}
+      ]);
   };
   const createShortFromMoment=(moment:StoryMoment)=>{
     if(!project)return;
@@ -600,6 +680,36 @@ function EditorApp() {
         <Tool label="Copy" disabled={busy} onPress={() => duplicateSavedProject(p)} />
         <Tool label="Delete" disabled={busy} onPress={() => deleteProject(p)} />
       </View>)}
+      <View style={{marginTop:18,marginBottom:12,gap:9}}>
+        <View style={styles.row}>
+          <Text style={styles.section}>FINISHED VIDEOS</Text>
+          <Text style={styles.meta}>{savedVideos.length} on this phone</Text>
+        </View>
+        {savedVideos.length===0?<Text style={styles.meta}>Your verified MP4 exports will appear here and remain available after you close VIDNIVO.</Text>:null}
+        {(showAllExports?savedVideos:savedVideos.slice(0,5)).map(video=>
+          <View key={video.uri} style={styles.projectCard}>
+            <View style={{flex:1,gap:3}}>
+              <Text style={styles.projectName} numberOfLines={1}>{video.title}</Text>
+              <Text style={styles.meta}>
+                {video.resolution} · {video.durationMs?fmt(video.durationMs)+' · ':''}
+                {formatExportSize(video.sizeBytes)}
+              </Text>
+              <Text style={styles.meta}>{video.updatedAt?
+                new Date(video.updatedAt).toLocaleDateString():'Saved on device'}</Text>
+            </View>
+            <Tool label="Play" disabled={busy} onPress={()=>setPreviewSavedUri(video.uri)}/>
+            <Tool label="Share" disabled={busy} onPress={()=>{
+              void shareExport(video.uri).catch(e=>Alert.alert('Cannot share video',String(e)));
+            }}/>
+            <Tool label="Delete" disabled={busy} onPress={()=>removeSavedVideo(video)}/>
+          </View>
+        )}
+        {savedVideos.length>5?
+          <Tool label={showAllExports?'Show fewer videos':'Show all '+savedVideos.length+' videos'}
+            onPress={()=>setShowAllExports(value=>!value)}/>:null}
+      </View>
+      {previewSavedUri?<SavedExportPreview uri={previewSavedUri}
+        onClose={()=>setPreviewSavedUri(null)}/>:null}
       <CloudWorkspace session={cloudSession} setSession={setCloudSession}
         setProjects={setProjects}/>
     </ScrollView>
@@ -834,6 +944,8 @@ function EditorApp() {
         setPlaying(false);setPositionMs(0);setSeekVersion(v=>v+1);
       }} onLowerExportQuality={()=>setExportQuality(720)}/>
     <StoryFinderSheet visible={storyFinderOpen} moments={storySuggestions}
+      canRankWithAI={!!cloudSession} rankingBusy={storyRankingBusy}
+      onRankWithAI={rankAiStoryMoments}
       onClose={()=>setStoryFinderOpen(false)}
       onPreview={m=>{
         setStoryFinderOpen(false);
@@ -1202,7 +1314,18 @@ function EditorApp() {
         </View>
       </View>
     </Modal>
-    {busy && <View style={styles.busy}><ActivityIndicator color={theme.accent} /></View>}
+    {busy && <View style={styles.busy}>
+      <ActivityIndicator color={theme.accent} size="large"/>
+      {rendering?<View style={{maxWidth:270,alignItems:'center',gap:7}}>
+        <Text style={{color:theme.text,fontSize:15,fontWeight:'800',textAlign:'center'}}>
+          Rendering and verifying your MP4
+        </Text>
+        <Text style={{color:theme.muted,fontSize:12,textAlign:'center',lineHeight:17}}>
+          Keep VIDNIVO open. Your original clips are safe. The finished video
+          will appear in your library after its tracks and timing are checked.
+        </Text>
+      </View>:null}
+    </View>}
     <StatusBar style="light" />
   </View>;
 }

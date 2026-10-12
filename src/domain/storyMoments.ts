@@ -3,6 +3,8 @@ import {createExportPlan} from '../export/plan.ts';
 
 export interface StoryMoment {
   id:string;startMs:number;endMs:number;preview:string;explanation:string;
+  /** Optional AI editorial assessment of caption excerpts, not viral prediction. */
+  aiScore?:number;
 }
 export interface StoryOptions {minMs?:number;maxMs?:number;limit?:number}
 const finished=(text:string)=>/[.!?…]["'”’)]?$/.test(text.trim());

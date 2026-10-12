@@ -7,8 +7,12 @@ import * as Sharing from 'expo-sharing';
 import { File } from 'expo-file-system';
 import { assertExportFileMetadata } from './fileCheck';
 import { assertAvailableSourceMedia } from './sourceMedia';
+import { assertPlayableExport,expectedExport,type NativeExportMetadata } from './qualityGate';
 
-interface ExportModule { exportProject(payload: string): Promise<string>; }
+interface ExportModule {
+ exportProject(payload: string): Promise<string>;
+ inspectExport(uri:string):Promise<NativeExportMetadata>;
+}
 export function canExportNatively(): boolean {
   return (Platform.OS === 'ios' || Platform.OS === 'android') && Boolean(requireOptionalNativeModule<ExportModule>('VidnivoExport'));
 }
@@ -21,7 +25,22 @@ export async function exportMp4(project: Project, quality: 720 | 1080 = 1080): P
   assertAvailableSourceMedia(project, uri => new File(uri).exists);
   const output = await native.exportProject(JSON.stringify(plan));
   const file = new File(output);
-  assertExportFileMetadata(output, file.exists, file.size);
+  // Source assets must never be deleted. Only the new owned output is eligible
+  // for cleanup if inspection proves the renderer produced an invalid movie.
+  try{
+   assertExportFileMetadata(output,file.exists,file.size);
+   if(typeof native.inspectExport!=='function')
+    throw Error('This VIDNIVO development build is missing MP4 verification. Update the app before exporting.');
+   const metadata=await native.inspectExport(output);
+   assertPlayableExport(metadata,expectedExport(plan));
+  }catch(error){
+   // Fail closed: don't share or publish an invalid MP4.
+   try{
+    if(output.startsWith('file://')&&output.includes('/vidnivo-exports/')&&file.exists)
+     file.delete();
+   }catch{/* Keep the original export failure. */}
+   throw error;
+  }
   return output;
 }
 export async function shareExport(uri: string): Promise<void> {
