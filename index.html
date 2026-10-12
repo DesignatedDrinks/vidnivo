@@ -122,55 +122,61 @@ textarea,input[type=number],select{background:#192538;border:1px solid rgba(168,
 <body>
   <header class="topbar">
     <div class="brand"><img class="brand-mark" src="./vidnivo-mark.svg" alt="VIDNIVO icon" width="37" height="37" /><span class="wordmark"><span>VIDNI</span><span class="brand-accent">VO</span></span><div class="brand-pill">STUDIO</div></div>
-    <div class="header-actions"><span class="privacy"><span class="privacy-dot"></span> Local editing</span><button id="resetProject" class="button ghost small" title="Start a new project">New project</button></div>
+    <div class="header-actions"><span class="privacy" title="Videos remain on your device"><span class="privacy-dot"></span> Local</span><button id="resetProject" class="button ghost small" title="Start a new project">New project</button></div>
   </header>
   <main class="app">
     <section class="workbench">
-      <div class="stage-top"><div><div class="eyebrow">CREATOR WORKSPACE</div><h1>Your story. Your edit.</h1><p class="muted subheading">A real editor you can use in your browser.</p></div><div class="tag">PRIVATE BETA</div></div>
-      <section class="panel autopilot-card" aria-label="One-click Creator Autopilot">
-        <div class="autopilot-heading"><div><div class="eyebrow">VIDNIVO CREATOR AUTOPILOT</div><h2>Make this clip ready to post.</h2><p class="subheading">Finish the repetitive edits with one tap. Review the result before exporting.</p></div><span class="autopilot-icon">✦</span></div>
-        <label class="field-label" for="creatorStyle">Finishing style</label>
-        <select id="creatorStyle" aria-label="Choose a creator finishing style">
-          <option value="talking">On Camera · natural talking-head</option>
-          <option value="product">Product Demo · punchy colours</option>
-          <option value="story">Story Mode · cinematic</option>
-          <option value="custom" disabled>My Style · save yours first</option>
-        </select>
-        <div class="autopilot-options"><label><input id="creatorCaptions" type="checkbox" checked /> Auto captions</label><label><input id="creatorTighten" type="checkbox" checked /> Trim silent edges</label><label><input id="creatorVoice" type="checkbox" checked /> Voice clarity</label></div>
-        <div class="button-row"><button id="creatorRun" type="button" class="button primary autopilot-run" disabled>✦ Finish My Video</button><button id="creatorSave" type="button" class="button ghost" title="Remember my selected colours, caption size and position for future clips">Save My Style</button></div>
-        <div id="creatorStatus" class="status" aria-live="polite" role="status">Import a video, choose a style, then select Finish My Video.</div>
-        <div id="creatorHookPanel" class="creator-hooks" hidden>
-          <div class="section-label">OPENING HOOKS FROM YOUR OWN WORDS</div>
-          <p class="fine-print">Choose a spoken phrase as an editable 2-second opening title. No invented claims.</p>
-          <div id="creatorHookChoices" class="creator-hook-choices"></div>
-          <button id="creatorHookRemove" class="button ghost small" type="button">Remove opening title</button>
-        </div>
-        <div class="progress" aria-label="Creator Autopilot progress"><div id="creatorProgress"></div></div>
-        <p class="fine-print">Colour, format and speech styles can be applied immediately. Caption transcription runs locally, may need a model download and takes longer on phones. Only beginning/end silence is trimmed to preserve synchronized speech.</p>
-      </section>
+      <div class="stage-top"><h1>Studio<span class="studio-dot">.</span></h1><span class="stage-subtitle">Create something good.</span></div>
       <div class="viewer">
-        <div class="viewer-toolbar"><span class="section-label">PREVIEW</span><div class="ratio-pills" role="group" aria-label="Video aspect ratio"><button data-ratio="9:16" class="pill active">9:16</button><button data-ratio="1:1" class="pill">1:1</button><button data-ratio="16:9" class="pill">16:9</button></div></div>
+        <div class="viewer-toolbar"><span class="preview-title">Preview</span><div class="ratio-pills" role="group" aria-label="Video aspect ratio"><button data-ratio="9:16" class="pill active">9:16</button><button data-ratio="1:1" class="pill">1:1</button><button data-ratio="16:9" class="pill">16:9</button></div></div>
         <div id="previewWrap" class="preview-wrap">
           <canvas id="preview" width="540" height="960" aria-label="Video and captions preview"></canvas>
           <div id="processingOverlay" class="processing-overlay" hidden role="status" aria-live="polite">
             <div class="processing-sheet">
               <div class="processing-emblem" aria-hidden="true"><span class="processing-ring"></span><img src="./vidnivo-mark.svg" width="55" height="55" alt="" /></div>
-              <div class="processing-eyebrow">VIDNIVO WORKING</div>
+              <div class="processing-eyebrow" aria-hidden="true"></div>
               <div id="processHeadline" class="processing-headline">Preparing your clip</div>
               <p id="processDetail" class="processing-detail">Reading local media.</p>
-              <div class="processing-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="processing-wave" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
               <div id="processStages" class="processing-stages" aria-label="Real processing stages"></div>
-              <div class="processing-privacy"><span aria-hidden="true">●</span> Original footage stays on this device</div>
+              <div class="processing-privacy">On-device</div>
             </div>
           </div>
-          <div id="emptyState" class="empty-state"><div class="empty-symbol"><img src="./vidnivo-mark.svg" width="67" height="67" alt="VIDNIVO" /></div><h2>Make something worth watching.</h2><p>Choose a video from your phone or computer to start editing.</p><label for="videoInput" class="button primary upload-label">+ Import video</label><div class="tiny">Your footage stays on your device.</div></div>
+          <div id="emptyState" class="empty-state"><div class="empty-symbol"><img src="./vidnivo-mark.svg" width="56" height="56" alt="VIDNIVO" /></div><h2>Your next great cut.</h2><label for="videoInput" class="button primary upload-label">Import video <span aria-hidden="true">↗</span></label></div>
         </div>
         <div class="transport"><button id="back5" class="icon-button" aria-label="Back five seconds" disabled>↶ <span>5s</span></button><button id="play" class="play-button" aria-label="Play video" disabled>▶</button><button id="forward5" class="icon-button" aria-label="Forward five seconds" disabled><span>5s</span> ↷</button><div class="timecounter"><b id="currentTime">00:00.0</b> <span>/</span> <span id="totalTime">00:00.0</span></div></div>
       </div>
-      <div class="timeline-card"><div class="section-head"><div><div class="section-label">TIMELINE</div><p class="section-desc">Select a clip to trim, split, move or remove it.</p></div><div class="section-actions"><label for="videoInput" class="button ghost small">+ Import</label><button id="split" class="button secondary small" disabled>✂ Split</button></div></div>
+      <section class="autopilot-card" aria-label="Quick finish">
+        <div class="autopilot-heading"><h2>Make the cut.</h2><span class="autopilot-indicator" aria-hidden="true">↗</span></div>
+        <div class="autopilot-core">
+          <select id="creatorStyle" aria-label="Video style">
+            <option value="talking">On camera</option>
+            <option value="product">Product</option>
+            <option value="story">Story</option>
+            <option value="custom" disabled>My style</option>
+          </select>
+          <button id="creatorRun" class="button primary autopilot-run" type="button" disabled>Auto-finish <span aria-hidden="true">↗</span></button>
+          <button id="creatorSave" class="button ghost" type="button" title="Remember your current style">Save style</button>
+        </div>
+        <details class="quiet-details"><summary>Customize</summary>
+          <div class="autopilot-options">
+            <label><input id="creatorCaptions" type="checkbox" checked /> Captions</label>
+            <label><input id="creatorTighten" type="checkbox" checked /> Trim silence</label>
+            <label><input id="creatorVoice" type="checkbox" checked /> Voice</label>
+          </div>
+        </details>
+        <div id="creatorStatus" class="status" aria-live="polite" role="status"></div>
+        <div id="creatorHookPanel" class="creator-hooks" hidden>
+          <h3>Opening line</h3>
+          <div id="creatorHookChoices" class="creator-hook-choices"></div>
+          <button id="creatorHookRemove" class="button ghost small" type="button">Remove title</button>
+        </div>
+        <div class="progress" aria-label="Auto-finish progress"><div id="creatorProgress"></div></div>
+      </section>
+      <div class="timeline-card"><div class="section-head"><div><h2 class="timeline-title">Timeline</h2></div><div class="section-actions"><label for="videoInput" class="button ghost small">+ Import</label><button id="split" class="button secondary small" disabled>✂ Split</button></div></div>
         <input id="scrubber" type="range" min="0" max="0" value="0" step="0.05" aria-label="Video playhead" disabled />
         <div id="timeline" class="clip-track"><div class="blank-track">Import a video to see your timeline</div></div>
-        <div class="timeline-help"><span>◀ &nbsp; tap clips to select</span><span id="clipCount">0 clips</span></div>
+        <div class="timeline-help"><span id="clipCount">0 clips</span></div>
       </div>
     </section>
     <aside class="inspector">
