@@ -102,3 +102,13 @@ or interrupted, the app tries its backup, restores the primary and reports an
 error when neither copy is safe. Old project metadata is never silently treated
 as empty on a malformed JSON record. Local media files still live in the app's
 separate documents folder and cannot survive uninstall without an explicit backup.
+
+
+## Optional Firebase/Google Cloud foundation (October 2026)
+
+An additional Firebase Hosting account dashboard and owner-isolated cloud media
+API are under development in `web/` and `cloud-run/`. This supplements, but
+does **not replace**, the existing Google Sheets editor metadata store.
+Configuration, deployment approval and cost safeguards:
+[docs/FIREBASE_CLOUD_SETUP.md](docs/FIREBASE_CLOUD_SETUP.md).
+No live Firebase/Cloud Run deployment is implied by committed source files.

@@ -10,3 +10,11 @@ ios/
 android/
 .DS_Store
 coverage/
+
+# Cloud build output, local credentials and temporary deployment files
+web/dist/
+web/.env.local
+cloud-run/.env.local
+*.service-account.json
+firebase-debug.log
+.firebaserc
