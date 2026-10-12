@@ -18,6 +18,7 @@ before(async()=>{
  });
  await testEnv.withSecurityRulesDisabled(async ctx=>{
   await setDoc(doc(ctx.firestore(),'users',owner),{displayName:'Creator A'});
+  await setDoc(doc(ctx.firestore(),'users',owner,'projects','project_001'),{name:'A draft',version:1});
   await setDoc(doc(ctx.firestore(),'users',owner,'media',mediaId),{name:'sample.mp4',size:8});
  });
 });
@@ -52,4 +53,18 @@ test('Storage blocks unsupported MIME and path traversal',async()=>{
   new Uint8Array(8),{contentType:'text/plain'}));
  await assertFails(uploadBytes(ref(a,'users/'+owner+'/media/x/clip.mp4'),
   new Uint8Array(8),{contentType:'video/mp4'}));
+});
+
+test('Firestore cloud projects are strictly isolated by account',async()=>{
+ const ownerDb=testEnv.authenticatedContext(owner).firestore();
+ const otherDb=testEnv.authenticatedContext(stranger).firestore();
+ const anonymous=testEnv.unauthenticatedContext().firestore();
+ const project=doc(ownerDb,'users',owner,'projects','project_001');
+ await assertSucceeds(getDoc(project));
+ await assertSucceeds(getDocs(collection(ownerDb,'users',owner,'projects')));
+ await assertFails(getDoc(doc(otherDb,'users',owner,'projects','project_001')));
+ await assertFails(getDocs(collection(otherDb,'users',owner,'projects')));
+ await assertFails(getDoc(doc(anonymous,'users',owner,'projects','project_001')));
+ await assertFails(setDoc(doc(ownerDb,'users',owner,'projects','project_001'),
+  {name:'Unauthorized rewrite',version:100}));
 });
