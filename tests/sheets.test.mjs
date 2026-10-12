@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addAsset, addText, createProject, removeClip } from '../src/domain/timeline.ts';
+import { addAsset, addText, createProject, removeClip, setProjectLook } from '../src/domain/timeline.ts';
 import { loadRemoteProjects, saveProjectToSheets, softDeleteProjectFromSheets } from '../src/data/sheets.ts';
 
 function fakeSheets() {
   const sheets = new Map(Object.entries({
-    Projects: [['project_id','name','aspect_ratio','created_at','updated_at','revision','owner_email','deleted']],
+    Projects: [['project_id','name','aspect_ratio','created_at','updated_at','revision','owner_email','deleted','look_json']],
     Assets: [['asset_id','project_id','kind','filename','uri','duration_ms','width','height','updated_at','deleted']],
     Clips: [['clip_id','project_id','asset_id','track','start_ms','in_ms','out_ms','speed','volume','muted','updated_at','deleted']],
     TextLayers: [['text_id','project_id','text','start_ms','end_ms','x','y','font_size','color','updated_at','deleted']]
@@ -97,6 +97,18 @@ test('soft delete marks all project rows and excludes project from cloud load', 
  await softDeleteProjectFromSheets('test',p.id);
  assert.equal((await loadRemoteProjects('test')).length,0);
  for(const name of ['Projects','Assets','Clips','TextLayers']) {
-   assert.equal(fake.sheets.get(name)[1].at(-1),'TRUE',name+' should be soft-deleted');
+   assert.equal(fake.sheets.get(name)[1][name === 'Projects' ? 7 : fake.sheets.get(name)[1].length - 1],'TRUE',name+' should be soft-deleted');
  }
+});
+
+test('look selection round trips in Google Sheets without hiding soft deleted projects', async t => {
+ const oldFetch=globalThis.fetch, fake=fakeSheets();globalThis.fetch=fake.fetchStub;
+ t.after(()=>{globalThis.fetch=oldFetch;});
+ let p=setProjectLook(createProject('Filter test'),'sunset',65);
+ await saveProjectToSheets('test',p);
+ const rows=await loadRemoteProjects('test');
+ assert.equal(rows.length,1);
+ assert.deepEqual(rows[0].look,{preset:'sunset',intensity:65});
+ await softDeleteProjectFromSheets('test',p.id);
+ assert.equal((await loadRemoteProjects('test')).length,0);
 });

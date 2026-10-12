@@ -1,5 +1,6 @@
 import type { Asset, Clip, Project, TextLayer } from '../domain/timeline.ts';
 import { validateProject } from '../domain/timeline.ts';
+import { resolveLook, parseLook } from '../domain/looks.ts';
 
 /**
  * Google Sheets is the remote database. Media bytes remain on the phone.
@@ -38,7 +39,7 @@ async function appendRows(token: string, sheet: Table, rows: Rows): Promise<void
   });
 }
 const toProject = (p: Project): string[] => [
-  p.id, p.name, p.aspectRatio, p.createdAt, p.updatedAt, value(p.revision), '', 'FALSE'
+  p.id, p.name, p.aspectRatio, p.createdAt, p.updatedAt, value(p.revision), '', 'FALSE', JSON.stringify(resolveLook(p.look))
 ];
 const toAsset = (p: Project, a: Asset): string[] => [
   a.id, p.id, a.kind, a.filename, a.uri, value(a.durationMs), value(a.width), value(a.height), p.updatedAt, 'FALSE'
@@ -51,35 +52,35 @@ const toText = (p: Project, t: TextLayer): string[] => [
   t.id, p.id, t.text, value(t.startMs), value(t.endMs), value(t.x),
   value(t.y), value(t.fontSize), t.color, p.updatedAt, 'FALSE'
 ];
-function enabled(row: string[]): boolean { return String(row[row.length - 1]).toUpperCase() !== 'TRUE'; }
+function enabled(row: string[], sheet: Table): boolean { return String(row[sheet === 'Projects' ? 7 : row.length - 1]).toUpperCase() !== 'TRUE'; }
 function n(row: string[], index: number, fallback = 0): number {
   const v = Number(row[index]); return Number.isFinite(v) ? v : fallback;
 }
 function parsedProject(row: string[]): Project {
   return { id: row[0], name: row[1] || 'Untitled', aspectRatio: row[2] === '1:1' || row[2] === '16:9' ? row[2] : '9:16',
     createdAt: row[3] || '', updatedAt: row[4] || '', revision: n(row, 5, 1),
-    assets: [], clips: [], texts: [] };
+    assets: [], clips: [], texts: [], look: parseLook(row[8]) };
 }
 export async function loadRemoteProjects(token: string): Promise<Project[]> {
   const [ps, as, cs, ts] = await Promise.all([
     readTable(token, 'Projects'), readTable(token, 'Assets'),
     readTable(token, 'Clips'), readTable(token, 'TextLayers')
   ]);
-  const projects = ps.slice(1).filter(r => r[0] && enabled(r)).map(parsedProject);
+  const projects = ps.slice(1).filter(r => r[0] && enabled(r, 'Projects')).map(parsedProject);
   const indexed = new Map(projects.map(p => [p.id, p]));
   for (const r of as.slice(1)) {
-    const p = indexed.get(r[1]); if (!p || !r[0] || !enabled(r)) continue;
+    const p = indexed.get(r[1]); if (!p || !r[0] || !enabled(r, 'Assets')) continue;
     p.assets.push({ id: r[0], kind: r[2] === 'audio' || r[2] === 'image' ? r[2] : 'video',
       filename: r[3] || '', uri: r[4] || '', durationMs: n(r, 5), width: n(r, 6), height: n(r, 7) });
   }
   for (const r of cs.slice(1)) {
-    const p = indexed.get(r[1]); if (!p || !r[0] || !enabled(r)) continue;
+    const p = indexed.get(r[1]); if (!p || !r[0] || !enabled(r, 'Clips')) continue;
     p.clips.push({ id: r[0], assetId: r[2], track: r[3] === 'audio' ? 'audio' : 'video',
       startMs: n(r, 4), inMs: n(r, 5), outMs: n(r, 6), speed: n(r, 7, 1),
       volume: n(r, 8, 1), muted: String(r[9]).toLowerCase() === 'true' });
   }
   for (const r of ts.slice(1)) {
-    const p = indexed.get(r[1]); if (!p || !r[0] || !enabled(r)) continue;
+    const p = indexed.get(r[1]); if (!p || !r[0] || !enabled(r, 'TextLayers')) continue;
     p.texts.push({ id: r[0], text: r[2] || '', startMs: n(r, 3), endMs: n(r, 4),
       x: n(r, 5, .5), y: n(r, 6, .75), fontSize: n(r, 7, 32), color: r[8] || '#FFFFFF' });
   }
@@ -117,7 +118,7 @@ function columnName(index: number): string {
 export async function saveProjectToSheets(token: string, p: Project): Promise<void> {
   validateProject(p);
   const existing = await readTable(token, 'Projects');
-  const remote = existing.slice(1).find(r => r[0] === p.id && enabled(r));
+  const remote = existing.slice(1).find(r => r[0] === p.id && enabled(r, 'Projects'));
   if (remote && (n(remote, 5) > p.revision ||
     (n(remote, 5) === p.revision && remote[4] !== p.updatedAt))) {
     throw new Error('This project changed in Google Sheets. Import the newer version before saving to avoid overwriting edits.');

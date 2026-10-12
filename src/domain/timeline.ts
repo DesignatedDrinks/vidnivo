@@ -1,3 +1,5 @@
+import type { LookSetting } from './looks.ts';
+import { resolveLook } from './looks.ts';
 export type MediaKind = 'video' | 'image' | 'audio';
 export type Track = 'video' | 'audio';
 export type AspectRatio = '9:16' | '16:9' | '1:1';
@@ -41,6 +43,7 @@ export interface Project {
   assets: Asset[];
   clips: Clip[];
   texts: TextLayer[];
+  look?: LookSetting;
 }
 const stamp = () => new Date().toISOString();
 export const makeId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`;
@@ -127,6 +130,7 @@ export function activeClip(p: Project, t: number, track: Track = 'video'): Clip 
     .sort((a, b) => b.startMs - a.startMs)[0];
 }
 export function validateProject(p: Project): void {
+  if (p.look) resolveLook(p.look);
   const ids = new Set(p.assets.map(a => a.id));
   if (ids.size !== p.assets.length) throw new Error('Duplicate assets');
   if (p.clips.some(c => !ids.has(c.assetId) || c.startMs < 0 || c.inMs < 0 || c.outMs <= c.inMs || c.speed <= 0 || !Number.isFinite(c.speed) || !Number.isFinite(c.startMs))) throw new Error('Invalid clip timeline');
@@ -289,4 +293,12 @@ export function setClipSourceEdge(p:Project,id:string,edge:'left'|'right',source
   const current=edge==='left'?clip.inMs:clip.outMs;
   if(Math.abs(value-current)<0.1)return p;
   return rippleTrimClip(p,id,edge,(value-current)/clip.speed);
+}
+
+/** Apply an adjustable whole-project colour look. Resetting uses a neutral look. */
+export function setProjectLook(p:Project, preset: import('./looks.ts').LookPreset, intensity = 100):Project {
+  const look = resolveLook({preset,intensity});
+  if ((p.look?.preset ?? 'none')===look.preset &&
+      (p.look?.intensity ?? 100)===look.intensity) return p;
+  return touch({...p,look});
 }

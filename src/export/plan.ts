@@ -1,5 +1,6 @@
 import type { Project, TextLayer, Clip } from '../domain/timeline.ts';
 import { clipDurationMs, durationMs, validateProject } from '../domain/timeline.ts';
+import { resolveLook, type LookSetting } from '../domain/looks.ts';
 
 export interface RenderClip {
   uri: string;
@@ -17,6 +18,7 @@ export interface ExportPlan {
   durationMs: number;
   clips: RenderClip[];
   texts: TextLayer[];
+  look: LookSetting;
 }
 export function createExportPlan(project: Project, quality: 720 | 1080 = 1080): ExportPlan {
   validateProject(project);
@@ -56,5 +58,5 @@ export function createExportPlan(project: Project, quality: 720 | 1080 = 1080): 
     throw new Error('Export currently supports videos up to 15 minutes.');
   const texts = project.texts.filter(t => t.startMs < videoDurationMs)
     .map(t => ({ ...t, endMs: Math.min(t.endMs, videoDurationMs) }));
-  return { ...dimensions, durationMs: videoDurationMs, clips, texts };
+  return { ...dimensions, durationMs: videoDurationMs, clips, texts, look: resolveLook(project.look) };
 }
