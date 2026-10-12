@@ -58,7 +58,7 @@
         <div id="touchCaptionHint" class="hint-block touch-caption-hint"><strong><icon aria-hidden="true"></icon> Edit captions with your fingers</strong><span>Tap a caption on the video, drag it anywhere, or use two fingers to pinch it bigger or smaller. You can also select a caption below.</span></div>
         <label class="field-label" for="captionText">Caption text</label><textarea id="captionText" rows="3" maxlength="240" placeholder="What should appear on screen?"></textarea>
         <div class="button-row two-cols"><label class="field-label">Start (seconds)<input type="number" id="captionStart" min="0" step="0.1" value="0" /></label><label class="field-label">End (seconds)<input type="number" id="captionEnd" min="0" step="0.1" value="3" /></label></div>
-        <div class="button-row two-cols"><label class="field-label">Position preset<select id="captionPosition"><option value="bottom">Bottom</option><option value="middle">Middle</option><option value="top">Top</option></select></label><label class="field-label">Colour<select id="captionColor"><option value="#FFFFFF">White</option><option value="#23D4E9">Cyan</option><option value="#FFE178">Yellow</option></select></label></div>
+        <div class="button-row two-cols"><label class="field-label">Position preset<select id="captionPosition"><option value="bottom">Bottom</option><option value="middle">Middle</option><option value="top">Top</option><option value="custom">Custom (dragged)</option></select></label><label class="field-label">Colour<select id="captionColor"><option value="#FFFFFF">White</option><option value="#23D4E9">Cyan</option><option value="#FFE178">Yellow</option></select></label></div>
         <div class="field-group"><label for="captionFontSize">Caption size <b id="captionFontSizeLabel">100%</b></label><input id="captionFontSize" type="range" min="55" max="240" step="5" value="100" aria-label="Caption font size percentage" /></div>
         <div class="button-row"><button id="captionSmaller" type="button" class="button ghost">A− Smaller</button><button id="captionLarger" type="button" class="button ghost">A+ Larger</button></div>
         <div class="button-row"><button id="captionCenter" type="button" class="button ghost full">Center selected caption</button></div>
@@ -380,24 +380,55 @@ async function importFile(file){
  }catch(e){URL.revokeObjectURL(url);toast(e.message||String(e),true)}
  finally{probe.removeAttribute('src');probe.load()}
 }
+function activeCaption(){
+ return state.captions.find(c=>c.id===state.editCaptionId)||null;
+}
+function syncCaptionSizeControls(cap){
+ const percent=Math.round(fontScale(cap?.fontScale||Number($('captionFontSize').value)/100)*100);
+ $('captionFontSize').value=String(percent);
+ $('captionFontSizeLabel').textContent=percent+'%';
+}
+function selectCaptionForEditing(cap,{seek=false}={}){
+ if(!cap||state.exporting||state.captioning)return;
+ state.editCaptionId=cap.id;
+ $('captionText').value=cap.text;
+ $('captionStart').value=Number(cap.start).toFixed(2);
+ $('captionEnd').value=Number(cap.end).toFixed(2);
+ $('captionPosition').value=cap.position||'bottom';
+ $('captionColor').value=cap.color||'#FFFFFF';
+ syncCaptionSizeControls(cap);
+ $('addCaption').textContent='Save caption changes';
+ $('captionTouchStatus').textContent='Selected: drag this caption on the preview to move it. Pinch with two fingers to resize. The export uses exactly this position and size.';
+ setTab('captions');
+ renderCaptions();
+ requestDraw();
+ if(seek)void seekTimeline(Math.min(cap.end-.025,cap.start+.08));
+}
+function updateCaptionFont(percent){
+ const clampedPercent=Math.round(fontScale(Number(percent)/100)*100);
+ $('captionFontSize').value=String(clampedPercent);
+ $('captionFontSizeLabel').textContent=clampedPercent+'%';
+ const cap=activeCaption();
+ if(cap&&!state.exporting&&!state.captioning){
+  cap.fontScale=clampedPercent/100;
+  $('captionTouchStatus').textContent='Caption size: '+clampedPercent+'%. Pinch on the preview or use the slider.';
+  requestDraw();
+ }
+}
+function showCaptionOnScreen(cap){
+ selectCaptionForEditing(cap,{seek:true});
+}
 function renderCaptions(){
  const node=$('captionsList');node.replaceChildren();
  if(!state.captions.length){const empty=document.createElement('div');empty.className='muted';empty.textContent='No captions yet.';node.append(empty);return}
  state.captions.forEach(cap=>{
-  const item=document.createElement('div');item.className='caption-item';
+  const item=document.createElement('div');item.className='caption-item'+(state.editCaptionId===cap.id?' selected-caption':'');
   const detail=document.createElement('div');const text=document.createElement('strong');text.textContent=cap.text;
-  const timing=document.createElement('span');timing.textContent=`${fmt(cap.start)} – ${fmt(cap.end)}`;
+  const timing=document.createElement('span');timing.textContent=`${fmt(cap.start)} – ${fmt(cap.end)} · ${Math.round(fontScale(cap.fontScale)*100)}%`;
   detail.append(text,timing);
   const controls=document.createElement('div');controls.style.cssText='display:flex;gap:5px;flex-shrink:0';
   const edit=document.createElement('button');edit.textContent='Edit';edit.setAttribute('aria-label','Edit caption');
-  edit.onclick=()=>{
-   if(state.exporting||state.captioning)return;
-   state.editCaptionId=cap.id;$('captionText').value=cap.text;
-   $('captionStart').value=cap.start.toFixed(2);$('captionEnd').value=cap.end.toFixed(2);
-   $('captionPosition').value=cap.position;$('captionColor').value=cap.color;
-   $('addCaption').textContent='Save caption changes';
-   void seekTimeline(cap.start);
-  };
+  edit.onclick=()=>showCaptionOnScreen(cap);
   const remove=document.createElement('button');remove.textContent='Remove';remove.setAttribute('aria-label','Remove caption');
   remove.onclick=()=>{
    if(state.exporting||state.captioning)return;
