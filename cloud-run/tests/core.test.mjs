@@ -17,6 +17,8 @@ function fakeDeps(overrides={}){
   getMedia:async(id,assetId)=>existing.get(assetId)||null,
   checkObject:async()=>({size:1024,contentType:'video/mp4'}),
   registerMedia:async(id,media)=>{existing.set(media.assetId,media);},
+  deleteObject:async()=>{},
+  deleteMedia:async(id,assetId)=>{existing.delete(assetId);},
   ...overrides
  };
 }
@@ -90,4 +92,57 @@ test('invalid uploads are rejected without exposing backend details',async t=>{
  const r=await fetch(noBucket+'/api/v1/media/register',{method:'POST',headers,
   body:JSON.stringify({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'})});
  assert.equal(r.status,503);
+});
+
+test('signed-in owner can remove a registered file; deletion is retry-safe for missing cloud bytes',async t=>{
+ const dependencies=fakeDeps();
+ let deletedPath='';
+ dependencies.deleteObject=async objectPath=>{deletedPath=objectPath;};
+ const base=await fixture(t,dependencies);
+ const created=await fetch(base+'/api/v1/media/register',{method:'POST',headers,
+  body:JSON.stringify({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'})});
+ assert.equal(created.status,200);
+ const before=await fetch(base+'/api/v1/media',{headers});
+ assert.equal((await before.json()).media[0].objectPath,path);
+ const rejected=await fetch(base+'/api/v1/media/0123456789ABCDEF',{method:'DELETE',
+  headers:{Authorization:'Bearer wrong'}});
+ assert.equal(rejected.status,401);
+ const removed=await fetch(base+'/api/v1/media/0123456789ABCDEF',{method:'DELETE',headers});
+ assert.equal(removed.status,200);
+ assert.deepEqual(await removed.json(),{assetId:'0123456789ABCDEF',deleted:true});
+ assert.equal(deletedPath,path);
+ const after=await fetch(base+'/api/v1/media',{headers});
+ assert.equal((await after.json()).media.length,0);
+ const notFound=await fetch(base+'/api/v1/media/0123456789ABCDEF',{method:'DELETE',headers});
+ assert.equal(notFound.status,404);
+});
+test('deletion never crosses user boundaries or removes a file for a malformed registry record',async t=>{
+ let removed=0;
+ const base=await fixture(t,fakeDeps({
+  getMedia:async()=>({objectPath:'users/another_user/media/0123456789ABCDEF/example.mp4',
+   name:'example.mp4'}),
+  deleteObject:async()=>{removed++;}
+ }));
+ const response=await fetch(base+'/api/v1/media/0123456789ABCDEF',{method:'DELETE',headers});
+ assert.equal(response.status,403);
+ assert.equal(removed,0);
+ const invalid=await fetch(base+'/api/v1/media/not-valid!id',{method:'DELETE',headers});
+ assert.equal(invalid.status,404);
+});
+test('storage removal failures retain metadata for safe retries',async t=>{
+ const deps=fakeDeps({deleteObject:async()=>{throw Error('Storage failure: private');}});
+ const base=await fixture(t,deps);
+ await fetch(base+'/api/v1/media/register',{method:'POST',headers,
+  body:JSON.stringify({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'})});
+ const failed=await fetch(base+'/api/v1/media/0123456789ABCDEF',{method:'DELETE',headers});
+ assert.equal(failed.status,500);
+ assert.doesNotMatch((await failed.json()).error,/Storage failure: private/);
+ const after=await fetch(base+'/api/v1/media',{headers});
+ assert.equal((await after.json()).media.length,1);
+ const offline=await fixture(t,fakeDeps({storageReady:false}));
+ const refused=await fetch(offline+'/api/v1/media/0123456789ABCDEF',{method:'DELETE',headers});
+ assert.equal(refused.status,503);
+ const preflight=await fetch(base+'/api/v1/media/0123456789ABCDEF',{
+  method:'OPTIONS',headers:{Origin:allow[0]}});
+ assert.match(preflight.headers.get('access-control-allow-methods'),/DELETE/);
 });
