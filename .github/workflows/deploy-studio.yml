@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'docs/index.html'
+      - 'docs/vidnivo-filters.js'
       - '.github/workflows/deploy-studio.yml'
   workflow_dispatch:
 permissions:
@@ -28,6 +29,8 @@ jobs:
           grep -q 'Your story. Your edit.' docs/index.html
           grep -q 'startExport()' docs/index.html
           grep -q 'MediaRecorder' docs/index.html
+      - name: Validate browser editor and Safari shader
+        run: node --test tests/web-studio.test.mjs
       - name: Prepare GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload VIDNIVO Studio
