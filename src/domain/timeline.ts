@@ -176,3 +176,22 @@ export function restoreHistorySnapshot(current: Project, snapshot: Project): Pro
   validateProject(revived);
   return revived;
 }
+
+/** Change caption text, styling, position or timing without losing history. */
+export function editTextLayer(p: Project, id: string, changes: Partial<Omit<TextLayer, 'id'>>): Project {
+  const previous = p.texts.find(t => t.id === id);
+  if (!previous) return p;
+  const text = changes.text === undefined ? previous.text : changes.text.trim();
+  if (!text) return p;
+  const start = Math.max(0, Math.round(changes.startMs ?? previous.startMs));
+  const end = Math.max(start + 250, Math.round(changes.endMs ?? previous.endMs));
+  const color = changes.color && /^#[0-9a-fA-F]{6}$/.test(changes.color) ? changes.color.toUpperCase() : previous.color;
+  const modified: TextLayer = {
+    ...previous, text, startMs: start, endMs: end,
+    x: bound(changes.x ?? previous.x, 0.1, 0.9),
+    y: bound(changes.y ?? previous.y, 0.1, 0.9),
+    fontSize: Math.round(bound(changes.fontSize ?? previous.fontSize, 14, 96)),
+    color
+  };
+  return touch({ ...p, texts: p.texts.map(t => t.id === id ? modified : t) });
+}

@@ -82,7 +82,7 @@ private func makeTextLayer(_ text: RenderText, size: CGSize, duration: Double) -
   layer.fontSize = CGFloat(max(14, text.fontSize))
   let w = size.width * 0.9
   let h = max(60.0, min(300.0, Double(size.height) * 0.18))
-  layer.frame = CGRect(x: size.width * 0.05,
+  layer.frame = CGRect(x: size.width * max(0, min(1, text.x)) - w / 2.0,
                        y: size.height * (1 - min(1, max(0, text.y))) - h / 2,
                        width: w, height: h)
   let start = max(0, min(1, text.startMs / duration))

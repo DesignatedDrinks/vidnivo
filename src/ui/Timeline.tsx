@@ -17,8 +17,8 @@ function lane({ project, track, selectedId, onSelect, pxPerSecond }:
     </Pressable>;
   });
 }
-export function Timeline({ project, selectedId, playheadMs, onSelect, onSeek, zoom = 1 }:
-  { project: Project; selectedId: string | null; playheadMs: number; onSelect: (id: string, start: number) => void; onSeek: (ms: number) => void; zoom?: number }) {
+export function Timeline({ project, selectedId, selectedTextId, playheadMs, onSelect, onSelectText, onSeek, zoom = 1 }:
+  { project: Project; selectedId: string | null; selectedTextId: string | null; playheadMs: number; onSelect: (id: string, start: number) => void; onSelectText: (id: string, start: number) => void; onSeek: (ms: number) => void; zoom?: number }) {
   const pxPerSecond = 31 * zoom;
   const length = Math.max(600, durationMs(project) / 1000 * pxPerSecond + 90);
   return <View style={styles.wrap}>
@@ -41,10 +41,10 @@ export function Timeline({ project, selectedId, playheadMs, onSelect, onSeek, zo
         </View>
         <View style={styles.lane}>
           <Text style={styles.laneMark}>T</Text>
-          {project.texts.map(t => <View key={t.id} style={[styles.titleClip, {
+          {project.texts.map(t => <Pressable key={t.id} onPress={() => onSelectText(t.id, t.startMs)} style={[styles.titleClip, selectedTextId === t.id && styles.selected, {
             left: t.startMs / 1000 * pxPerSecond,
             width: Math.max(28, (t.endMs - t.startMs) / 1000 * pxPerSecond)
-          }]}><Text style={styles.clipLabel} numberOfLines={1}>{t.text}</Text></View>)}
+          }]}><Text style={styles.clipLabel} numberOfLines={1}>{t.text}</Text></Pressable>)}
         </View>
         <View pointerEvents="none" style={[styles.playhead, { left: playheadMs / 1000 * pxPerSecond }]} />
       </View>

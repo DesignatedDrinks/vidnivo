@@ -11,7 +11,7 @@ import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { AudioStage } from './src/ui/AudioStage';
 import { canExportNatively, exportMp4, shareExport } from './src/export/native';
-import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot } from './src/domain/timeline';
+import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot, editTextLayer } from './src/domain/timeline';
 import { loadLocalProjects, saveLocalProjects } from './src/data/storage';
 import { loadRemoteProjects, saveProjectToSheets } from './src/data/sheets';
 import { VideoStage } from './src/ui/VideoStage';
@@ -38,10 +38,12 @@ function EditorApp() {
   const [ready, setReady] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [positionMs, setPositionMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [seekVersion, setSeekVersion] = useState(0);
   const [textPrompt, setTextPrompt] = useState(false);
+  const [editTextPrompt, setEditTextPrompt] = useState(false);
   const [titleText, setTitleText] = useState('');
   const [namePrompt, setNamePrompt] = useState(false);
   const [projectName, setProjectName] = useState('');
@@ -70,6 +72,7 @@ function EditorApp() {
   }, [ready, projects]);
   const project = projects.find(p => p.id === editingId) ?? null;
   const selected = project?.clips.find(c => c.id === selectedId) ?? null;
+  const selectedText = project?.texts.find(t => t.id === selectedTextId) ?? null;
   const total = project ? durationMs(project) : 0;
   const timelinePosition = useRef(positionMs);
   useEffect(() => { timelinePosition.current = positionMs; }, [positionMs]);
@@ -109,7 +112,7 @@ function EditorApp() {
   };
   const seek = (ms: number) => { setPlaying(false); setPositionMs(Math.max(0, Math.min(total, ms))); setSeekVersion(v => v + 1); };
   const openProject = (p: Project) => {
-    setEditingId(p.id); setSelectedId(null); setPositionMs(0); setPlaying(false); setLastExport(null); setTimelineZoom(1);
+    setEditingId(p.id); setSelectedId(null); setSelectedTextId(null); setPositionMs(0); setPlaying(false); setLastExport(null); setTimelineZoom(1);
     undo.current = []; redo.current = [];
   };
   const create = () => {
@@ -262,8 +265,11 @@ function EditorApp() {
           <Tool label="+ Zoom" disabled={timelineZoom >= 3} onPress={() => setTimelineZoom(v => Math.min(3, v + .5))} />
         </View>
       </View>
-      <Timeline project={project} playheadMs={positionMs} selectedId={selectedId} zoom={timelineZoom}
-        onSelect={(id, start) => { setSelectedId(id); seek(start); }} onSeek={seek} />
+      <Timeline project={project} playheadMs={positionMs} selectedId={selectedId}
+        selectedTextId={selectedTextId} zoom={timelineZoom}
+        onSelect={(id, start) => { setSelectedId(id); setSelectedTextId(null); seek(start); }}
+        onSelectText={(id, start) => { setSelectedTextId(id); setSelectedId(null); seek(start); }}
+        onSeek={seek} />
       <View style={[styles.controls, { marginTop: 10, paddingHorizontal: 4 }]}>
         <Tool label="+ Video" onPress={importVisual} disabled={busy} />
         <Tool label="+ Audio" onPress={importAudio} disabled={busy} />
@@ -271,6 +277,31 @@ function EditorApp() {
         <Tool label="Undo" onPress={undoAction} disabled={!undo.current.length} />
         <Tool label="Redo" onPress={redoAction} disabled={!redo.current.length} />
       </View>
+      {selectedText ? <View style={styles.toolsPanel}>
+        <View style={styles.row}><Text style={styles.section}>TEXT OVERLAY</Text><Text style={styles.meta}>{fmt(selectedText.startMs)} – {fmt(selectedText.endMs)}</Text></View>
+        <Text style={styles.projectName}>{selectedText.text}</Text>
+        <View style={styles.controls}>
+          <Tool label="Edit wording" onPress={() => { setTitleText(selectedText.text); setEditTextPrompt(true); }} />
+          <Tool label="Delete text" onPress={() => { apply(p => removeText(p, selectedText.id)); setSelectedTextId(null); }} />
+          <Tool label="Duration −" onPress={() => apply(p => editTextLayer(p, selectedText.id, { endMs: selectedText.endMs - 500 }))} />
+          <Tool label="Duration +" onPress={() => apply(p => editTextLayer(p, selectedText.id, { endMs: selectedText.endMs + 500 }))} />
+        </View>
+        <View style={styles.controls}>
+          <Tool label="Size −" onPress={() => apply(p => editTextLayer(p, selectedText.id, { fontSize: selectedText.fontSize - 4 }))} />
+          <Tool label="Size +" onPress={() => apply(p => editTextLayer(p, selectedText.id, { fontSize: selectedText.fontSize + 4 }))} />
+          <Tool label="↑" onPress={() => apply(p => editTextLayer(p, selectedText.id, { y: selectedText.y - 0.05 }))} />
+          <Tool label="↓" onPress={() => apply(p => editTextLayer(p, selectedText.id, { y: selectedText.y + 0.05 }))} />
+          <Tool label="←" onPress={() => apply(p => editTextLayer(p, selectedText.id, { x: selectedText.x - 0.05 }))} />
+          <Tool label="→" onPress={() => apply(p => editTextLayer(p, selectedText.id, { x: selectedText.x + 0.05 }))} />
+        </View>
+        <View style={styles.controls}>
+          {['#FFFFFF', '#BBF65A', '#FFDD57', '#FF647C', '#65D7FA'].map(color =>
+            <Pressable key={color} accessibilityLabel={'Text color ' + color}
+              onPress={() => apply(p => editTextLayer(p, selectedText.id, { color }))}
+              style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: color, marginHorizontal: 6,
+                borderWidth: selectedText.color.toUpperCase() === color ? 3 : 0, borderColor: theme.text }} />)}
+        </View>
+      </View> : null}
       {selected ? <View style={styles.toolsPanel}>
         <View style={styles.row}><Text style={styles.section}>SELECTED CLIP</Text><Text style={styles.meta}>{fmt(clipDurationSafe(selected))}</Text></View>
         <View style={styles.controls}>
@@ -318,6 +349,22 @@ function EditorApp() {
           <View style={styles.controls}>
             <Tool label="Cancel" onPress={() => setTextPrompt(false)} />
             <Tool label="Add to timeline" primary onPress={() => { apply(p => addText(p, titleText, positionMs)); setTitleText(''); setTextPrompt(false); }} />
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+    <Modal visible={editTextPrompt} transparent animationType="fade" onRequestClose={() => setEditTextPrompt(false)}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalBackdrop}>
+        <View style={styles.modalPanel}>
+          <Text style={styles.section}>EDIT TEXT</Text>
+          <TextInput placeholder="Caption text" placeholderTextColor={theme.muted} value={titleText}
+            onChangeText={setTitleText} multiline style={styles.field} />
+          <View style={styles.controls}>
+            <Tool label="Cancel" onPress={() => setEditTextPrompt(false)} />
+            <Tool label="Save changes" primary onPress={() => {
+              if (selectedText) apply(p => editTextLayer(p, selectedText.id, { text: titleText }));
+              setEditTextPrompt(false);
+            }} />
           </View>
         </View>
       </KeyboardAvoidingView>
