@@ -45,6 +45,7 @@ function EditorApp() {
   const [token, setToken] = useState<string | null>(null);
   const undo = useRef<Project[]>([]);
   const redo = useRef<Project[]>([]);
+  const writeQueue = useRef<Promise<void>>(Promise.resolve());
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: GOOGLE_IOS || 'not-configured.apps.googleusercontent.com',
     androidClientId: GOOGLE_ANDROID || 'not-configured.apps.googleusercontent.com',
@@ -56,7 +57,11 @@ function EditorApp() {
   useEffect(() => {
     loadLocalProjects().then(p => setProjects(p)).catch(e => Alert.alert('Could not load local projects', String(e))).finally(() => setReady(true));
   }, []);
-  useEffect(() => { if (ready) saveLocalProjects(projects).catch(e => console.error('Local save failed', e)); }, [ready, projects]);
+  useEffect(() => {
+    if (!ready) return;
+    writeQueue.current = writeQueue.current.catch(() => {}).then(() => saveLocalProjects(projects));
+    writeQueue.current.catch(e => console.error('Local save failed', e));
+  }, [ready, projects]);
   const project = projects.find(p => p.id === editingId) ?? null;
   const selected = project?.clips.find(c => c.id === selectedId) ?? null;
   const total = project ? durationMs(project) : 0;
@@ -127,8 +132,8 @@ function EditorApp() {
       if (picker.canceled) return;
       setBusy(true);
       const assets = await Promise.all(picker.assets.map(async item => ({
-        id: makeId(), uri: await savedMedia(item.uri, item.fileName || 'media.mp4'),
-        filename: item.fileName || 'Untitled media', kind: item.type === 'video' ? 'video' as const : 'image' as const,
+        id: makeId(), uri: await savedMedia(item.uri, item.fileName || (item.type === 'video' ? 'video.mp4' : 'photo.jpg')),
+        filename: item.fileName || (item.type === 'video' ? 'video.mp4' : 'photo.jpg'), kind: item.type === 'video' ? 'video' as const : 'image' as const,
         durationMs: item.type === 'video' ? Math.max(500, item.duration ?? 5000) : 5000,
         width: item.width || 0, height: item.height || 0
       })));
