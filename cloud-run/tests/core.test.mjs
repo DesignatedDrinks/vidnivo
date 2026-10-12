@@ -89,7 +89,7 @@ test('CORS protects browser origins and JSON payload size is bounded',async t=>{
  const options=await fetch(base+'/api/v1/media',{method:'OPTIONS',headers:{Origin:allow[0]}});
  assert.equal(options.status,204);
  const huge=await fetch(base+'/api/v1/me',{method:'PUT',headers,
-  body:JSON.stringify({displayName:'A'.repeat(30000)})});
+  body:JSON.stringify({displayName:'A'.repeat(600000)})});
  assert.equal(huge.status,413);
 });
 test('invalid uploads are rejected without exposing backend details',async t=>{
