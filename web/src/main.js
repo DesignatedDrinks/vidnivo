@@ -17,13 +17,13 @@ const config={
 const configured=Object.values(config).every(v=>typeof v==='string'&&v.trim());
 const root=document.querySelector('#app');
 root.innerHTML=`
-<header><a href="/" aria-label="VIDNIVO home" class="logo">VIDNI<b>VO</b></a>
+<header><a href="/" aria-label="ROLLBLINK home" class="logo">ROLL<b>BLINK</b></a>
  <span class="tag">PRIVATE DEVELOPMENT PREVIEW</span></header>
 <main>
  <section class="hero">
   <div class="eyebrow">Create with clarity</div>
   <h1>Your story. <span>Your edit.</span></h1>
-  <p class="lead">VIDNIVO is building a mobile-first video studio for purposeful edits, accurate captions, and creator-controlled publishing. The mobile editor is in active development; this site is a secure account and cloud-media foundation, not a finished browser editor.</p>
+  <p class="lead">ROLLBLINK is building a mobile-first video studio for purposeful edits, accurate captions, and creator-controlled publishing. The mobile editor is in active development; this site is a secure account and cloud-media foundation, not a finished browser editor.</p>
   <div class="actions"><a class="btn" href="#account">Open your cloud dashboard</a>
    <a class="btn secondary" href="#about">Explore the vision</a></div>
  </section>
@@ -35,9 +35,9 @@ root.innerHTML=`
    <div class="card"><h3>Own your work</h3><p>Private per-account cloud media storage designed to complement the mobile editing workflow.</p></div>
   </div>
  </section>
- <section id="account" class="dashboard" aria-label="VIDNIVO account">
+ <section id="account" class="dashboard" aria-label="ROLLBLINK account">
   <div class="eyebrow">Account dashboard</div>
-  <h2 class="section-heading">Your VIDNIVO workspace</h2>
+  <h2 class="section-heading">Your ROLLBLINK workspace</h2>
   <p class="muted">Firebase Authentication identifies your account. Uploaded files are private to that user. Cloud media and the API require a configured paid-plan Firebase project even when usage is within no-cost quotas.</p>
   <div id="configuration" class="message warning" hidden role="status"></div>
   <div id="signed-out">
@@ -56,7 +56,7 @@ root.innerHTML=`
     <strong id="account-email"></strong>
     <button id="sign-out" class="btn secondary" type="button">Sign out</button>
    </div>
-   <p class="muted">Only the account signed in can view and upload its own files. Project timelines remain in the current VIDNIVO local/Google Sheets workflow.</p>
+   <p class="muted">Only the account signed in can view and upload its own files. Project timelines remain in the current ROLLBLINK local/Google Sheets workflow.</p>
    <div class="panel">
     <h3>Private media library</h3>
     <label for="media-file">Video, audio or photo (maximum 200 MB per upload)</label>
@@ -72,7 +72,7 @@ root.innerHTML=`
   <div id="message" role="status" aria-live="polite" class="message" hidden></div>
  </section>
 </main>
-<footer>© VIDNIVO · In development · No public subscription or production hosting claimed. Third-party services may incur charges.</footer>
+<footer>© ROLLBLINK · In development · No public subscription or production hosting claimed. Third-party services may incur charges.</footer>
 `;
 const el=id=>document.getElementById(id);
 let app,auth,storage,currentUser=null;
@@ -116,7 +116,7 @@ async function downloadCloudFile(file,button){
   if(currentUser?.uid!==uid)return;
   const url=URL.createObjectURL(blob);
   const link=document.createElement('a');
-  link.href=url;link.download=file.name||'vidnivo-media';
+  link.href=url;link.download=file.name||'rollblink-media';
   document.body.append(link);
   link.click();link.remove();
   setTimeout(()=>URL.revokeObjectURL(url),60000);
