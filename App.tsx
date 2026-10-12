@@ -22,7 +22,7 @@ import { planSilenceRemoval, applySilenceRemoval } from './src/domain/silenceCut
 import { splitCaption, mergeCaptionWithNext, nudgeCaption, shiftAllCaptions,
   fixSentenceCase } from './src/domain/captionEditing';
 import { canExportNatively, exportMp4, shareExport } from './src/export/native';
-import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot, editTextLayer, rippleSpeedClip } from './src/domain/timeline';
+import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot, editTextLayer, rippleSpeedClip, duplicateProject } from './src/domain/timeline';
 import { loadLocalProjects, saveLocalProjects } from './src/data/storage';
 import { loadRemoteProjects, saveProjectToSheets, softDeleteProjectFromSheets } from './src/data/sheets';
 import { VideoStage } from './src/ui/VideoStage';
@@ -328,6 +328,11 @@ function EditorApp() {
       Alert.alert('Export unavailable', e instanceof Error ? e.message : String(e));
     } finally { setBusy(false); }
   };
+  const duplicateSavedProject = (source: Project) => {
+    const copy=duplicateProject(source);
+    setProjects(items=>[copy,...items]);
+    Alert.alert('Project duplicated', 'The new draft uses the same local media files. Original edits remain unchanged.');
+  };
   const deleteProject = (p: Project) => {
     Alert.alert('Delete project?', 'This removes the project and its edits from VIDNIVO. Imported media files remain on the device.', [
       { text: 'Cancel', style: 'cancel' },
@@ -377,6 +382,7 @@ function EditorApp() {
           <View style={styles.projectThumbnail}><Text style={{ fontSize: 25, color: theme.accent }}>▶</Text></View>
           <View style={{ flex: 1 }}><Text style={styles.projectName}>{p.name}</Text><Text style={styles.meta}>{p.aspectRatio} · {fmt(durationMs(p))} · {p.clips.length} clips</Text></View>
         </Pressable>
+        <Tool label="Copy" disabled={busy} onPress={() => duplicateSavedProject(p)} />
         <Tool label="Delete" disabled={busy} onPress={() => deleteProject(p)} />
       </View>)}
     </ScrollView>
@@ -546,10 +552,15 @@ function EditorApp() {
     {selected ? <View style={styles.contextBar}>
       <Text style={styles.contextTitle}>CLIP  ·  {fmt(clipDurationSafe(selected))}  ·  {selected.speed}× SPEED</Text>
       <Text style={styles.contextVolume}>{selected.muted ? 'Muted' : 'Volume ' + Math.round(selected.volume * 100) + '%'}</Text>
-      <Slider style={{ height: 22 }} minimumValue={0} maximumValue={1}
+      <Slider style={{ height: 20 }} minimumValue={0} maximumValue={1}
         step={.05} value={selected.volume} minimumTrackTintColor="#27D3E7"
         maximumTrackTintColor="#575B60" thumbTintColor="#27D3E7"
         onSlidingComplete={volume => apply(p => editClip(p, selected.id, { volume }))} />
+      <Text style={styles.contextVolume}>Playback speed {selected.speed.toFixed(2)}×</Text>
+      <Slider style={{ height: 23 }} minimumValue={.25} maximumValue={4}
+        step={.25} value={selected.speed} minimumTrackTintColor="#27D3E7"
+        maximumTrackTintColor="#575B60" thumbTintColor="#27D3E7"
+        onSlidingComplete={speed => apply(p => rippleSpeedClip(p, selected.id, speed))} />
     </View> : null}
     {selectedText ? <View style={styles.contextBar}>
       <Text style={styles.contextTitle}>TEXT  ·  {selectedText.text}</Text>
@@ -746,7 +757,7 @@ const styles = StyleSheet.create({
   playControl: { height: 46, width: 76, alignItems: 'center', justifyContent: 'center' },
   transportRight: { width: 100, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
   contextBar: { backgroundColor: '#1D1F22', paddingHorizontal: 14, paddingTop: 5, paddingBottom: 2,
-    height: 59, justifyContent: 'center' },
+    height: 102, justifyContent: 'center' },
   contextTitle: { color: '#F1F3F4', fontSize: 12, fontWeight: '700' },
   contextVolume: { color: '#92999E', fontSize: 11, marginTop: 2 },
   recordingBanner: { height: 28, alignItems: 'center', justifyContent: 'center', gap: 8,

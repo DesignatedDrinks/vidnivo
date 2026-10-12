@@ -213,3 +213,19 @@ export function rippleSpeedClip(p: Project, id: string, speed: number): Project 
     c.track === 'video' && c.id !== id && c.startMs >= end - 0.01
       ? { ...c, startMs: Math.max(0, c.startMs + shift) } : c) };
 }
+
+/** Make a new reusable editing draft without changing the original project's IDs. */
+export function duplicateProject(p: Project): Project {
+  validateProject(p);
+  const copy=createProject(p.name+' (copy)',p.aspectRatio);
+  const remap=new Map<string,string>();
+  const assets=p.assets.map(asset=>{
+    const id=makeId();remap.set(asset.id,id);
+    return {...asset,id};
+  });
+  return {...copy,
+    assets,
+    clips:p.clips.map(c=>({...c,id:makeId(),assetId:remap.get(c.assetId)!})),
+    texts:p.texts.map(t=>({...t,id:makeId()}))
+  };
+}
