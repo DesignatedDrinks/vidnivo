@@ -26,8 +26,33 @@ test('speed adjustment changes exported duration and clips',()=>{
  assert.equal(plan.durationMs,2500);assert.equal(plan.width,720);
  assert.equal(plan.height,1280);assert.equal(plan.clips[0].volume,.4);
 });
-test('rejects still images and nonexistent local paths',()=>{
+test('supports a still-photo montage and rejects nonlocal media',()=>{
  const image={id:'pic',kind:'image',uri:'file:///tmp/pic.jpg',filename:'pic.jpg',durationMs:3000,width:1080,height:1920};
- assert.throws(()=>createExportPlan(addAsset(createProject(),image)),/Photo rendering/);
- assert.throws(()=>createExportPlan(addAsset(createProject(),{...video('a'),uri:'https://example.com/a.mp4'})),/local video/);
+ const still=createExportPlan(addAsset(createProject(),image));
+ assert.equal(still.durationMs,3000);
+ assert.equal(still.clips[0].kind,'image');
+ assert.equal(still.clips[0].outMs,3000);
+ let mixed=addAsset(addAsset(createProject(),video('opening')),image);
+ mixed=addAsset(mixed,video('outro'));
+ const montage=createExportPlan(mixed);
+ assert.deepEqual(montage.clips.map(c=>c.kind),['video','image','video']);
+ assert.equal(montage.durationMs,13000);
+ assert.equal(montage.clips[1].startMs,5000);
+ assert.throws(()=>createExportPlan(addAsset(createProject(),{...video('a'),uri:'https://example.com/a.mp4'})),/local video or photo/);
+});
+
+test('photo trims and playback speed preserve still-frame duration',()=>{
+ const image={id:'photo',kind:'image',uri:'file:///tmp/portrait.png',filename:'portrait.png',
+  durationMs:5000,width:1440,height:1920};
+ let p=addAsset(createProject(),image);
+ p=editClip(p,p.clips[0].id,{speed:2});
+ const result=createExportPlan(p,720);
+ assert.equal(result.durationMs,2500);
+ assert.equal(result.clips[0].kind,'image');
+ assert.equal(result.clips[0].speed,2);
+});
+test('excessively long static image display is rejected before encoding',()=>{
+ const still={id:'still',kind:'image',uri:'file:///tmp/still.jpg',filename:'still.jpg',
+  durationMs:130000,width:1920,height:1080};
+ assert.throws(()=>createExportPlan(addAsset(createProject(),still)),/two minutes/);
 });

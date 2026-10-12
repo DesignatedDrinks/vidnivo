@@ -5,6 +5,7 @@ import { resolveLook, type LookSetting } from '../domain/looks.ts';
 export interface RenderClip {
   uri: string;
   track: 'video' | 'audio';
+  kind: 'video' | 'image' | 'audio';
   startMs: number;
   inMs: number;
   outMs: number;
@@ -27,14 +28,17 @@ export function createExportPlan(project: Project, quality: 720 | 1080 = 1080): 
     : project.aspectRatio === '1:1'
       ? { width: quality, height: quality }
       : { width: quality, height: Math.round(quality * 16 / 9) };
-  const videoClips = project.clips.filter(c => c.track === 'video')
+  const visualClips = project.clips.filter(c => c.track === 'video')
     .sort((a, b) => a.startMs - b.startMs);
-  if (!videoClips.length) throw new Error('Add at least one video before exporting.');
+  if (!visualClips.length) throw new Error('Add a video or photo before exporting.');
   let cursor = 0;
-  for (const clip of videoClips) {
+  for (const clip of visualClips) {
     const asset = project.assets.find(a => a.id === clip.assetId);
-    if (asset?.kind !== 'video') throw new Error('Photo rendering is not supported by the current exporter.');
-    if (!asset.uri.startsWith('file://')) throw new Error('A local video file is required to export.');
+    if (asset?.kind !== 'video' && asset?.kind !== 'image')
+      throw new Error('The visual track must reference a video or photo.');
+    if (asset.kind === 'image' && clipDurationMs(clip) > 120000)
+      throw new Error('An individual photo cannot be displayed for more than two minutes.');
+    if (!asset.uri.startsWith('file://')) throw new Error('A local video or photo file is required to export.');
     if (clip.outMs > asset.durationMs + 50) throw new Error('A video clip exceeds the source duration.');
     if (Math.abs(clip.startMs - cursor) > 33) {
       throw new Error(clip.startMs > cursor ? 'Remove timeline gaps before exporting.' : 'Overlapping video clips are not yet supported.');
@@ -48,9 +52,9 @@ export function createExportPlan(project: Project, quality: 720 | 1080 = 1080): 
     if (asset?.kind !== 'audio' || !asset.uri.startsWith('file://'))
       throw new Error('An audio clip must reference a local audio file.');
   }
-  const clips = [...videoClips, ...audio].map((clip: Clip): RenderClip => {
+  const clips = [...visualClips, ...audio].map((clip: Clip): RenderClip => {
     const asset = project.assets.find(a => a.id === clip.assetId)!;
-    return { uri: asset.uri, track: clip.track, startMs: Math.round(clip.startMs),
+    return { uri: asset.uri, track: clip.track, kind: asset.kind, startMs: Math.round(clip.startMs),
       inMs: Math.round(clip.inMs), outMs: Math.round(clip.outMs),
       speed: clip.speed, volume: clip.volume, muted: clip.muted };
   });

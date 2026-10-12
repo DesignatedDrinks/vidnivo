@@ -81,19 +81,27 @@ class VidnivoExportModule : Module() {
             if (speed <= 0.0 || inMs < 0 || outMs <= inMs || abs(startMs - cursorMs) > 40.0) {
               throw IllegalArgumentException("Timeline contains invalid trims, gaps or overlaps.")
             }
-            val muted = clip.getBoolean("muted")
+            val isImage = clip.optString("kind", "video") == "image"
+            val muted = clip.getBoolean("muted") || isImage
             if (!muted && abs(volume - 1.0) > 0.01) {
               throw IllegalArgumentException("Android custom volume export is not available yet. Set clip volume to 100% or mute.")
             }
-            val source = MediaItem.Builder()
-              .setUri(uri)
-              .setClippingConfiguration(
+            // Static images produce actual 30fps video frames with an explicit
+            // output duration. Source in/out and speed determine display time;
+            // unlike encoded video, photo inputs do not have a time-based stream.
+            val displayMs = ((outMs - inMs) / speed).toLong().coerceAtLeast(250)
+            val sourceBuilder = MediaItem.Builder().setUri(uri)
+            if (isImage) {
+              sourceBuilder.setImageDurationMs(displayMs)
+            } else {
+              sourceBuilder.setClippingConfiguration(
                 MediaItem.ClippingConfiguration.Builder()
                   .setStartPositionMs(inMs.toLong())
                   .setEndPositionMs(outMs.toLong())
                   .build()
               )
-              .build()
+            }
+            val source = sourceBuilder.build()
             val processor = object : SpeedProvider {
               override fun getSpeed(timeUs: Long): Float = speed.toFloat()
               override fun getNextSpeedChangeTimeUs(timeUs: Long): Long = C.TIME_UNSET
@@ -101,16 +109,20 @@ class VidnivoExportModule : Module() {
             val effect = Presentation.createForWidthAndHeight(
               width, height, Presentation.LAYOUT_SCALE_TO_FIT
             )
-            val item = EditedMediaItem.Builder(source)
+            val itemBuilder = EditedMediaItem.Builder(source)
               .setRemoveAudio(muted)
-              .setSpeed(processor)
               .setEffects(Effects(emptyList(), listOf(effect)))
-              .build()
+            if (isImage) {
+              itemBuilder.setFrameRate(30)
+            } else {
+              itemBuilder.setSpeed(processor)
+            }
+            val item = itemBuilder.build()
             items.add(item)
             cursorMs += (outMs - inMs) / speed
           }
           if (items.isEmpty() || cursorMs <= 0.0 || cursorMs > 900_000.0) {
-            throw IllegalArgumentException("A 1–15 minute video sequence is required.")
+            throw IllegalArgumentException("A visual sequence up to 15 minutes is required.")
           }
           val sequence = EditedMediaItemSequence.withAudioAndVideoFrom(items)
           val soundtrackSequences = ArrayList<EditedMediaItemSequence>()
