@@ -77,7 +77,7 @@ export function projectSnapshot(state){
   sources:state.sources.map(s=>({name:s.name,size:s.size,duration:s.duration})),
   clips:state.clips.map(c=>({sourceIndex:state.sources.findIndex(s=>s.id===c.sourceId),start:c.start,end:c.end,speed:c.speed})),
   captions:state.captions.map(c=>({text:c.text,start:c.start,end:c.end,position:c.position,color:c.color,fontScale:c.fontScale,fontId:c.fontId,origin:c.origin,x:c.x,y:c.y})),
-  ratio:state.ratio,look:state.look,enhancement:state.enhancement||null,watermark:state.watermark||null,cameraMotion:state.cameraMotion||'off',voicePolish:Boolean(state.voicePolish),fontId:state.captionFontId||'inter'};
+  ratio:state.ratio,look:state.look,enhancement:state.enhancement||null,watermark:state.watermark||null,cameraMotion:state.cameraMotion||'off',captionGroupAnchor:state.captionGroupAnchor||null,voicePolish:Boolean(state.voicePolish),fontId:state.captionFontId||'inter'};
 }
 export function canRestoreSnapshot(snapshot,sources){
  return Boolean(snapshot&&snapshot.version===2&&Array.isArray(snapshot.sources)&&snapshot.sources.length>0&&
@@ -98,7 +98,7 @@ export function hydrateSnapshot(snapshot,sources,makeId){
   .slice(0,300).map(c=>({...c,id:makeId()}));
  return {clips,captions,ratio:['9:16','1:1','16:9'].includes(snapshot.ratio)?snapshot.ratio:'9:16',
   look:typeof snapshot.look==='string'?snapshot.look:'original',
-  voicePolish:Boolean(snapshot.voicePolish),enhancement:snapshot.enhancement||null,watermark:snapshot.watermark||null,cameraMotion:['off','subtle','dynamic'].includes(snapshot.cameraMotion)?snapshot.cameraMotion:'off',fontId:fontById(snapshot.fontId).id};
+  voicePolish:Boolean(snapshot.voicePolish),enhancement:snapshot.enhancement||null,watermark:snapshot.watermark||null,captionGroupAnchor:(Number.isFinite(snapshot.captionGroupAnchor?.x)&&Number.isFinite(snapshot.captionGroupAnchor?.y))?{x:Math.max(0,Math.min(1,snapshot.captionGroupAnchor.x)),y:Math.max(0,Math.min(1,snapshot.captionGroupAnchor.y))}:null,cameraMotion:['off','subtle','dynamic'].includes(snapshot.cameraMotion)?snapshot.cameraMotion:'off',fontId:fontById(snapshot.fontId).id};
 }
 
 /** Choose a *continuous* spoken highlight. No discontinuous cuts: browser A/V stays in sync. */
