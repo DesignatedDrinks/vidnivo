@@ -18,6 +18,7 @@ import { addCaptionCues, groupRecognizedWords, mapWordsToTimeline,
   parseCaptions, restyleCaptions, captionsFromProject, serializeSrt,
   type CaptionPreset } from './src/domain/captions';
 import { speechRecognitionAvailable, transcribeLocalVideo } from './src/media/speech';
+import { planSilenceRemoval, applySilenceRemoval } from './src/domain/silenceCuts';
 import { splitCaption, mergeCaptionWithNext, nudgeCaption, shiftAllCaptions,
   fixSentenceCase } from './src/domain/captionEditing';
 import { canExportNatively, exportMp4, shareExport } from './src/export/native';
@@ -217,6 +218,37 @@ function EditorApp() {
     finally { setBusy(false); }
   };
 
+
+  const removeLongPauses = async () => {
+    if (!project || busy) return;
+    setCaptionPanelOpen(false);
+    if (!speechRecognitionAvailable()) {
+      Alert.alert('Device support', 'Speech-based pause cutting currently requires a native iPhone development build.');
+      return;
+    }
+    const clip=(selected?.track === 'video' ? selected : undefined) ||
+      activeClip(project,positionMs) || project.clips.find(c=>c.track === 'video');
+    const asset=project.assets.find(a=>a.id===clip?.assetId);
+    if(!clip || !asset || asset.kind !== 'video') {
+      Alert.alert('Select a video clip', 'Import or select a video before detecting pauses.');return;
+    }
+    if(project.texts.length || project.clips.some(c=>c.track==='audio')) {
+      Alert.alert('Avoid audio and caption drift',
+        'Make pause cuts before adding separate music tracks or captions. Save or duplicate your project first.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const words=await transcribeLocalVideo(asset.uri);
+      const plan=planSilenceRemoval(clip,words);
+      if(!plan) { Alert.alert('No long pauses found', 'This clip has no speech gaps long enough to remove.');return; }
+      Alert.alert('Cut long pauses?', 'This will remove approximately ' +
+        (plan.savedMs / 1000).toFixed(1) + ' seconds from your clip, keeping short natural breaks. You can undo the edit.',
+        [{text:'Cancel',style:'cancel'},
+         {text:'Remove pauses',onPress:()=>apply(p=>applySilenceRemoval(p,clip.id,plan))}]);
+    } catch (e) { Alert.alert('Pause detection failed', String(e)); }
+    finally { setBusy(false); }
+  };
   const importSubtitles = async () => {
     if (!project) return;
     setCaptionPanelOpen(false);
@@ -555,6 +587,13 @@ function EditorApp() {
                 <View style={{flex:1}}>
                   <Text style={styles.captionChoiceLabel}>Generate captions</Text>
                   <Text style={styles.captionChoiceSub}>Offline speech recognition · iPhone native build</Text>
+                </View>
+              </Pressable>
+              <Pressable style={styles.captionChoice} onPress={removeLongPauses}>
+                <Ionicons name="cut-outline" size={24} color="#23D4E9" />
+                <View style={{flex:1}}>
+                  <Text style={styles.captionChoiceLabel}>Remove long pauses</Text>
+                  <Text style={styles.captionChoiceSub}>Speech-aware edits · iPhone build · undoable</Text>
                 </View>
               </Pressable>
               <Pressable style={styles.captionChoice} onPress={importSubtitles}>
