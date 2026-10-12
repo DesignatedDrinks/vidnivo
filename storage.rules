@@ -1,0 +1,40 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function owns(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+    function supportedMedia() {
+      return request.resource.contentType.matches('^(video|audio|image)/.*$');
+    }
+
+    // Private immutable originals; updates cannot replace an earlier object.
+    // Cap individual uploads at 250 MiB to bound accidental storage costs.
+    match /users/{uid}/media/{assetId} {
+      allow read: if owns(uid);
+      allow create: if owns(uid) &&
+        assetId.matches('^[a-zA-Z0-9_-]{6,96}$') &&
+        request.resource.size > 0 &&
+        request.resource.size <= 262144000 &&
+        supportedMedia();
+      allow delete: if owns(uid);
+      allow update: if false;
+    }
+
+    // Final rendered files follow the same privacy guarantees.
+    match /users/{uid}/exports/{exportId} {
+      allow read: if owns(uid);
+      allow create: if owns(uid) &&
+        exportId.matches('^[a-zA-Z0-9_-]{6,96}$') &&
+        request.resource.size > 0 &&
+        request.resource.size <= 262144000 &&
+        request.resource.contentType == 'video/mp4';
+      allow delete: if owns(uid);
+      allow update: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
