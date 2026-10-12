@@ -159,6 +159,14 @@ export function createHandler({verifyToken,getProfile,saveProfile,listMedia,getM
     const version=await saveProject(uid,projectRoute[1],portable,input.baseVersion);
     send(res,200,{id:portable.id,version},origin,allowedOrigins);return;
    }
+   const mediaRecord=path.match(/^\/api\/v1\/media\/([A-Za-z0-9_-]{8,80})$/);
+   if(req.method==='GET'&&mediaRecord){
+    const assetId=mediaRecord[1],media=await getMedia(uid,assetId);
+    if(!media){send(res,404,{error:'Media file not found.'},origin,allowedOrigins);return;}
+    validateRegistration(uid,{assetId,...media});
+    send(res,200,{assetId,name:media.name,size:media.size,
+     contentType:media.contentType},origin,allowedOrigins);return;
+   }
    const mediaUpload=path.match(/^\/api\/v1\/media\/([A-Za-z0-9_-]{8,80})\/upload$/);
    if(req.method==='PUT'&&mediaUpload){
     if(!storageReady)throw Object.assign(Error(errors[503]),{status:503});
