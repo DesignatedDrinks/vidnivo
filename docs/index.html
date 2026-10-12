@@ -605,8 +605,8 @@ function updateRealProcessingBar(id,finished=false,error=false){
  element.classList.toggle('indeterminate',!finished&&!error);
  element.style.width=error?'0%':'100%';
 }
-function drawFrame(){
- const quality=state.exporting?Number($('quality').value):null;
+function drawFrame(coverQuality=null){
+ const quality=coverQuality|| (state.exporting?Number($('quality').value):null);
  const dimensions=quality?(state.ratio==='16:9'?[Math.round(quality*16/9),quality]:state.ratio==='1:1'?[quality,quality]:[quality,Math.round(quality*16/9)]):(state.ratio==='16:9'?[960,540]:state.ratio==='1:1'?[720,720]:[540,960]);
  if(canvas.width!==dimensions[0]||canvas.height!==dimensions[1]){canvas.width=dimensions[0];canvas.height=dimensions[1]}
  const W=canvas.width,H=canvas.height;
@@ -1888,7 +1888,7 @@ $('rb-cover').onclick=async()=>{
  try{
   pause();state.editCaptionId=null;
   await seekTimeline(Math.min(.65,Math.max(0,total()-.1)));
-  drawFrame();
+  drawFrame(1080);
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
   if(!blob)throw Error('The browser could not capture this frame.');
   const url=URL.createObjectURL(blob),anchor=document.createElement('a');
