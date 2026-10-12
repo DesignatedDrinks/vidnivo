@@ -28,6 +28,7 @@ function fakeDeps(overrides={}){
   saveProject:async()=>1,
   uploadMedia:async()=>({size:1024}),
   downloadMedia:async()=>{},
+   resolveSupport:async()=>({answer:'Retry a save safely.',action:'retry-save',category:'storage',aiGenerated:true,available:true}),
   deleteObject:async()=>{},
   deleteMedia:async(id,assetId)=>{existing.delete(assetId);},
   ...overrides
@@ -253,4 +254,30 @@ test('mobile file transfer routes reject unauthorized users and bad uploads',asy
   method:'PUT',headers:{...headers,'Content-Type':'video/mp4','X-VIDNIVO-FILENAME':'another.mp4'},
   body:'abcd'});
  assert.equal(collision.status,409);
+});
+
+test('AI support is private, validates diagnostics and never executes device code',async t=>{
+ let calls=0;
+ const base=await fixture(t,fakeDeps({resolveSupport:async(uid,request)=>{
+  assert.equal(uid,user);calls++;
+  assert.equal(request.diagnostics.cloudToken,undefined);
+  return {answer:'Check the preview.',action:'restart-preview',category:'playback',aiGenerated:true,available:true};
+ }}));
+ let answer=await fetch(base+'/api/v1/support/diagnose',{
+  method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({issue:'Preview is frozen',diagnostics:{platform:'ios',screen:'editor'}})
+ });
+ assert.equal(answer.status,401);
+ answer=await fetch(base+'/api/v1/support/diagnose',{method:'POST',headers,
+  body:JSON.stringify({issue:'Preview is frozen',diagnostics:{
+   platform:'ios',screen:'editor',cloudToken:'do-not-forward'}})});
+ assert.equal(answer.status,200);
+ const json=await answer.json();
+ assert.equal(json.action,'restart-preview');
+ assert.equal(json.autoApplied,false);
+ assert.equal(calls,1);
+ const invalid=await fetch(base+'/api/v1/support/diagnose',{method:'POST',headers,
+  body:JSON.stringify({issue:'hi',diagnostics:{screen:'editor'}})});
+ assert.equal(invalid.status,400);
+ assert.equal(calls,1);
 });
