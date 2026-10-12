@@ -909,6 +909,7 @@ async function startExport(){
   // behind an artificially frozen face/video frame.
   state.clips=[plan.clip];state.selected=plan.clip.id;
   state.exporting=true;pause();
+  showProcessing('export',0,'Preparing a synchronized video and audio recording from the local source.');
   $('watermarkEnabled').disabled=true;
   $('watermarkPosition').disabled=true;
   ui.download.hidden=true;ui.progress.style.width='0';
@@ -954,6 +955,7 @@ async function startExport(){
   }
   const stopped=waitRecorderStop(recorder).catch(error=>{recorderFailure=error});
   recorder.start(100);
+  showProcessing('export',1,'Recording real playback and preserving the original sound clock.');
   const startedAt=performance.now();
   $('syncStatus').textContent='Recording audio and video together. Monitoring playback drift…';
   toast('Exporting with audio/video sync monitoring. Keep VIDNIVO open.');
@@ -979,6 +981,13 @@ async function startExport(){
      }
      const progress=Math.min(99,100*(video.currentTime-plan.start)/plan.duration);
      ui.progress.style.width=progress.toFixed(1)+'%';
+     if(state.processing?.kind==='export'){
+      const bucket=Math.floor(progress/10);
+      if(state.processing.lastBucket!==bucket){
+       state.processing.lastBucket=bucket;
+       showProcessing('export',1,'Recording '+Math.floor(progress)+'% of your video · audio and video captured together.');
+      }
+     }
      $('syncStatus').textContent='Checking sync · maximum source-clock drift '+Math.round(check.maxDriftMs)+' ms';
     }catch(error){reject(error)}
    },85);
@@ -992,6 +1001,7 @@ async function startExport(){
   const blob=new Blob(chunks,{type:mime});
   if(blob.size<2048)throw Error('The browser produced an empty recording.');
   $('syncStatus').textContent='Inspecting recorded audio/video tracks and file duration…';
+  showProcessing('export',2,'Checking the actual recorded file for video, audio and duration integrity.');
   const tracks=await inspectRecordedTracks(blob,mime);
   const verified=await probeRecordedDuration(blob,plan.duration);
   if(!tracks.audio||!tracks.video)throw Error('Export is missing an audio or video stream.');
@@ -1005,6 +1015,7 @@ async function startExport(){
   $('syncStatus').textContent='Timing checks passed · audio and video tracks confirmed · max playback drift '+
     Math.round(summary.maxDriftMs)+' ms · output duration difference '+
     Math.round(verified.durationErrorMs)+' ms. Review the finished video for visual lip sync.';
+  showProcessing('export',3,'The recorded file passed available browser integrity checks.');
   toast('Export ready after audio/video integrity checks. Review the downloaded video.');
  }catch(error){
   const message=error?.message||String(error);
@@ -1018,6 +1029,7 @@ async function startExport(){
   if(stream)stream.getVideoTracks().forEach(track=>track.stop());
   pause();
   state.exporting=false;state.clips=savedClips;state.selected=savedSelected;
+  hideProcessing('export');
   $('watermarkEnabled').disabled=false;
   $('watermarkPosition').disabled=false;
   renderTimeline();renderEditor();renderCaptions();
@@ -1189,8 +1201,15 @@ $('creatorHookRemove').onclick=()=>{
 };
 function creatorStatus(message,progress=0,error=false){
  $('creatorStatus').textContent=message;
- $('creatorStatus').style.color=error?'#ffaca9':'#d9edf4';
- $('creatorProgress').style.width=String(Math.max(0,Math.min(100,progress)))+'%';
+ $('creatorStatus').style.color=error?'#FF9CAB':'#D9EDF4';
+ if(state.creatorBusy){
+  updateRealProcessingBar('creatorProgress',progress>=100&&!error,error);
+  const stage=progress>=100?3:progress>=55?2:progress>=35?1:0;
+  if(!error)showProcessing('creator',stage,message);
+ }else{
+  $('creatorProgress').classList.remove('indeterminate');
+  $('creatorProgress').style.width=progress>=100?'100%':'0%';
+ }
 }
 function creatorSelectedStyle(){
  return getStyle($('creatorStyle').value,state.creatorCustom);
@@ -1254,6 +1273,7 @@ async function runCreatorAutopilot(){
   creatorStatus('Partially finished: '+(e?.message||String(e))+'. Your existing edits are preserved.',85,true);
  }finally{
   state.creatorBusy=false;renderTimeline();
+  hideProcessing('creator');
   await seekTimeline(Math.min(restorePosition,total()));
   requestDraw();
  }
