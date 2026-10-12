@@ -667,6 +667,34 @@ $('addCaption').onclick=()=>{
  state.captions.sort((a,b)=>a.start-b.start);$('captionText').value='';renderCaptions();renderTimeline();void seekTimeline(start);toast('Caption saved to the timeline.');
 };
 $('export').onclick=()=>void startExport();
+async function setFaceRetouch(value){
+ if(!state.clips.length||state.exporting||state.captioning||state.faceLoading)return;
+ const amount=clamp(Number(value)||0,0,100);
+ state.faceRetouch=amount;
+ $('faceRetouch').value=String(amount);
+ $('faceRetouchValue').textContent=amount?amount+'%':'Off';
+ if(!amount){
+  faceTracker.reset();
+  $('faceRetouchStatus').textContent='Off — original skin texture is restored.';
+  requestDraw();return;
+ }
+ if(faceTracker.supported){
+  $('faceRetouchStatus').textContent='Active. Soften skin at '+amount+'%; eyes and lips stay sharp. No face? No smoothing.';
+  requestDraw();return;
+ }
+ state.faceLoading=true;renderTimeline();
+ try{
+  await faceTracker.load(message=>{$('faceRetouchStatus').textContent=message});
+  $('faceRetouchStatus').textContent='Face tracker ready. Smoothing '+amount+'% — adjust freely, or slide to zero.';
+  requestDraw();
+ }catch(error){
+  state.faceRetouch=0;$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';
+  $('faceRetouchStatus').textContent='Could not start on-device face tracking: '+(error?.message||String(error))+
+   '. The original footage remains unchanged.';
+ }finally{state.faceLoading=false;renderTimeline()}
+}
+$('faceRetouch').addEventListener('input',event=>{void setFaceRetouch(event.target.value)});
+$('faceRetouchPreset').onclick=()=>{void setFaceRetouch(state.faceRetouch===35?0:35)};
 $('autoEnhance').onclick=toggleEnhancement;
 $('autoCaptions').onclick=()=>void runAutoCaptions();
 $('clearAutoCaptions').onclick=()=>{
