@@ -193,7 +193,7 @@ const styles=StyleSheet.create({
  title:{fontSize:22,color:'#F8FBFC',fontWeight:'800'},caption:{fontSize:11,color:'#A4B4BF'},
  content:{paddingHorizontal:14,paddingBottom:46,gap:12},
  panel:{backgroundColor:'#222B32',borderRadius:14,padding:15,gap:12},
- heading:{fontSize:16,fontWeight:'750',color:'#F5F7FA'},
+ heading:{fontSize:16,fontWeight:'700',color:'#F5F7FA'},
  info:{fontSize:12,lineHeight:18,color:'#C0CDD4'},
  input:{borderWidth:1,borderColor:'#48545F',borderRadius:10,padding:12,
   backgroundColor:'#171E24',color:'#F5F8FA',fontSize:14},

@@ -2,7 +2,8 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     function owns(uid) {
-      return request.auth != null && request.auth.uid == uid;
+      return request.auth != null && request.auth.uid == uid &&
+        request.auth.token.email_verified == true;
     }
     function supportedMedia() {
       return request.resource.contentType.matches('^(video|audio|image)/.*$');

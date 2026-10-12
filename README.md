@@ -102,3 +102,20 @@ or interrupted, the app tries its backup, restores the primary and reports an
 error when neither copy is safe. Old project metadata is never silently treated
 as empty on a malformed JSON record. Local media files still live in the app's
 separate documents folder and cannot survive uninstall without an explicit backup.
+
+## Optional Firebase / Cloud Run foundation
+
+VIDNIVO has a **separate, opt-in cloud account beta**. It does not replace existing
+Google Sheets project metadata or remove any local editing features. The Cloud
+account screen is available on the home screen and under More in the editor.
+
+The code for Firebase Hosting, Firestore security rules, private Cloud Storage,
+and a Firebase-ID-token-verified Cloud Run API is in this repository. It is **not
+a declaration that Google Cloud resources exist or have been deployed**.
+
+Provisioning requires a connected Firebase project, explicit billing approval
+for Cloud Run and Cloud Storage (Blaze), enabling Authentication providers,
+deploying rules, and real device validation. See `docs/CLOUD_INFRASTRUCTURE.md`.
+The hosted HTML is a development landing page, **not** a completed web editor.
+Do not advertise cross-device editing: media backup is restricted to explicit
+small-file uploads and does not yet synchronize complete projects.

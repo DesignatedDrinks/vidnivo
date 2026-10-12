@@ -40,6 +40,7 @@ import { setProjectLook } from './src/domain/timeline';
 import { generateCaptionsFromScript } from './src/domain/captionGenerator';
 import { SPEECH_LANGUAGES, type SpeechLanguage } from './src/domain/speechLanguages';
 import { SocialStudio } from './src/ui/SocialStudio';
+import { CloudAccountSheet } from './src/ui/CloudAccountSheet';
 
 WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_ANDROID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
@@ -92,6 +93,7 @@ function EditorApp() {
     clipId:string;revision:number;cuts:SpeechGap[];selectedIds:Set<string>;
   } | null>(null);
   const [socialOpen, setSocialOpen] = useState(false);
+  const [cloudAccountOpen, setCloudAccountOpen] = useState(false);
   const [youtubeToken, setYoutubeToken] = useState<string | null>(null);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [scriptPanelOpen, setScriptPanelOpen] = useState(false);
@@ -563,13 +565,18 @@ function EditorApp() {
       </View>)}
     </ScrollView>
     <View style={styles.connect}>
-      <Text style={styles.section}>GOOGLE SHEETS DATABASE</Text>
+      <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:10}}>
+        <Text style={styles.section}>GOOGLE SHEETS DATABASE</Text>
+        <Tool label="Cloud account" onPress={()=>setCloudAccountOpen(true)}/>
+      </View>
       <Text style={styles.meta}>{token ? 'Connected — authorized for Google Sheets' : configured ? 'Sign in to sync project metadata' : 'Local editing ready. Google OAuth client IDs must be configured for sync.'}</Text>
       <View style={styles.controls}>
         {!token ? <Tool label="Connect Google" disabled={!configured || !request} onPress={() => { promptAsync().catch(e => Alert.alert('Sign in failed', String(e))); }} /> :
           <Tool label="Pull projects from Sheets" onPress={cloudPull} disabled={busy} />}
       </View>
     </View>
+    <CloudAccountSheet visible={cloudAccountOpen} project={null}
+      onClose={()=>setCloudAccountOpen(false)} />
     {busy && <ActivityIndicator color={theme.accent} />}
     <StatusBar style="light" />
   </View>;
@@ -660,7 +667,9 @@ function EditorApp() {
       disabled:!token,onPress:cloudSave},
     {id:'speech',label:'Review talking-head cuts',icon:'cut-outline',
       onPress:()=>{void removeLongPauses();}},
-    {id:'story',label:'Story Finder',icon:'sparkles-outline',onPress:showStoryFinder}
+    {id:'story',label:'Story Finder',icon:'sparkles-outline',onPress:showStoryFinder},
+    {id:'cloud-account',label:'Cloud account',icon:'cloud-outline',
+      onPress:()=>setCloudAccountOpen(true)}
   ];
   const baseActions: EditorAction[]=[
     {id:'edit',label:'Edit',icon:'cut-outline',onPress:()=>{
@@ -781,6 +790,8 @@ function EditorApp() {
         seek(m.startMs);
       }}
       onCreate={createShortFromMoment} />
+    <CloudAccountSheet visible={cloudAccountOpen} project={project}
+      onClose={()=>setCloudAccountOpen(false)} />
     <CreatorReviewSheet visible={creatorReviewOpen} report={creatorReport!}
       busy={busy} onClose={()=>setCreatorReviewOpen(false)}
       onJump={(ms)=>seek(ms)}
