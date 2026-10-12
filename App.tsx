@@ -117,6 +117,7 @@ function EditorApp() {
     if (!project) return;
     const updated = operation(project);
     if (updated === project) return;
+    setLastExport(null);
     undo.current.push(project);
     if (undo.current.length > 50) undo.current.shift();
     redo.current = [];
@@ -126,12 +127,14 @@ function EditorApp() {
     if (!project) return;
     const prior = undo.current.pop(); if (!prior) return;
     redo.current.push(project);
+    setLastExport(null);
     setProjects(existing => existing.map(p => p.id === project.id ? restoreHistorySnapshot(project, prior) : p));
   };
   const redoAction = () => {
     if (!project) return;
     const next = redo.current.pop(); if (!next) return;
     undo.current.push(project);
+    setLastExport(null);
     setProjects(existing => existing.map(p => p.id === project.id ? restoreHistorySnapshot(project, next) : p));
   };
   const seek = (ms: number) => { setPlaying(false); setPositionMs(Math.max(0, Math.min(total, ms))); setSeekVersion(v => v + 1); };

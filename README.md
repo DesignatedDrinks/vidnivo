@@ -94,3 +94,11 @@ in/out sliders and 100ms nudges, with minimum 250ms output duration. Primary vid
 ripple trim shifts downstream video, audio and caption tracks together; edits
 remain reversible using Undo. The timeline editor now uses picker durations in
 milliseconds rather than incorrectly treating source seconds as milliseconds.
+
+## Autosave recovery
+VIDNIVO persists the active project collection in two AsyncStorage slots:
+a validated primary and a last-good backup. If the primary becomes corrupt
+or interrupted, the app tries its backup, restores the primary and reports an
+error when neither copy is safe. Old project metadata is never silently treated
+as empty on a malformed JSON record. Local media files still live in the app's
+separate documents folder and cannot survive uninstall without an explicit backup.
