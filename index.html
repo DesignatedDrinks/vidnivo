@@ -102,11 +102,29 @@ const ctx = canvas.getContext('2d', {alpha: false});
 const ui = {videoInput:$('videoInput'),play:$('play'),scrubber:$('scrubber'),timeline:$('timeline'),empty:$('emptyState'),trimStart:$('trimStart'),trimEnd:$('trimEnd'),speed:$('speed'),export:$('export'),status:$('exportStatus'),progress:$('exportProgress'),download:$('download')};
 const state = {
  sources:[], clips:[], captions:[], selected:null, position:0,
- ratio:'9:16', playing:false, exporting:false, selectedTab:'edit',
+ ratio:'9:16', playing:false, exporting:false, captioning:false, selectedTab:'edit',
+  look:'original', enhancement:null,
  objectUrl:null, sourceId:null, pendingSeek:0, clock:0,
  audioContext:null, audioInput:null, audioDestination:null
 };
 const MIN_CLIP=0.2;
+const LOOKS={
+ original:{brightness:1,contrast:1,saturate:1,sepia:0,hue:0,grayscale:0},
+ vibrant:{brightness:1.04,contrast:1.11,saturate:1.36,sepia:0,hue:0,grayscale:0},
+ cinematic:{brightness:.96,contrast:1.16,saturate:.85,sepia:.08,hue:-6,grayscale:0},
+ warm:{brightness:1.04,contrast:1.06,saturate:1.15,sepia:.2,hue:-10,grayscale:0},
+ cool:{brightness:1.01,contrast:1.08,saturate:1.1,sepia:0,hue:12,grayscale:0},
+ vintage:{brightness:1.04,contrast:.94,saturate:.73,sepia:.38,hue:-7,grayscale:0},
+ mono:{brightness:1.05,contrast:1.2,saturate:1,sepia:0,hue:0,grayscale:1},
+ moody:{brightness:.9,contrast:1.19,saturate:.86,sepia:.12,hue:10,grayscale:0}
+};
+function previewFilter(){
+ const p=LOOKS[state.look]||LOOKS.original,h=state.enhancement||{};
+ const b=clamp(p.brightness*(h.brightness||1),.7,1.5);
+ const c=clamp(p.contrast*(h.contrast||1),.7,1.55);
+ const sat=clamp(p.saturate*(h.saturate||1),0,2);
+ return `brightness(${b.toFixed(3)}) contrast(${c.toFixed(3)}) saturate(${sat.toFixed(3)}) sepia(${p.sepia}) hue-rotate(${p.hue}deg) grayscale(${p.grayscale})`;
+}
 const clamp=(x,min,max)=>Math.max(min,Math.min(max,x));
 const fmt=t=>{const ms=Math.max(0,Number(t)||0),n=Math.floor(ms/60);return String(n).padStart(2,'0')+':'+String(Math.floor(ms%60)).padStart(2,'0')+'.'+Math.floor((ms%1)*10)};
 const duration=clip=>(clip.end-clip.start)/clip.speed;
@@ -126,7 +144,10 @@ function drawFrame(){
  if(video.readyState>=2&&video.videoWidth>0){
   const factor=Math.min(W/video.videoWidth,H/video.videoHeight);
   const w=video.videoWidth*factor,h=video.videoHeight*factor;
-  ctx.drawImage(video,(W-w)/2,(H-h)/2,w,h);
+  ctx.save();
+   ctx.filter=previewFilter();
+   ctx.drawImage(video,(W-w)/2,(H-h)/2,w,h);
+   ctx.restore();
  }
  const captions=state.captions.filter(c=>state.position>=c.start&&state.position<c.end);
  for(const cap of captions){
