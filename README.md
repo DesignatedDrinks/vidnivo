@@ -35,3 +35,21 @@ Google login is disabled until configured; local editing is usable without it. A
 
 ## Security and scale
 Do not embed Google account passwords, OAuth client secrets, API keys with write privileges, or service-account JSON in this public repository or shipped app. Sheets is an early-stage metadata database, not a scalable high-traffic backend. Protect the sheet through Google sharing settings.
+
+## New: iOS MP4 export (native development build)
+
+The iOS AVFoundation export module is located in `modules/vidnivo-export`.
+It assembles consecutive source-video segments, applies source trims and constant
+speed, mixes unmuted video audio and imported audio, adds timed text overlays,
+and renders a local MP4 file. Export is intentionally disabled in Expo Go
+because Expo Go does not contain the custom native module.
+
+On macOS: run `npx expo prebuild -p ios` then `npx expo run:ios --device`.
+Alternatively, after configuring your Expo account and Apple credentials:
+`npx eas-cli build --profile development --platform ios`.
+
+IMPORTANT: The native exporter has not yet been compiled against Xcode or
+validated on a physical iPhone. The JavaScript export planner has automated tests.
+Do not ship the native module without testing text timing, orientation, slow
+motion, source audio mix, file formats, and failure cases on hardware.
+The Android native export implementation remains a separate milestone.

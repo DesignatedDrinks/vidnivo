@@ -7,6 +7,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import { AudioStage } from './src/ui/AudioStage';
+import { canExportNatively, exportMp4, shareExport } from './src/export/native';
 import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, trimClip } from './src/domain/timeline';
 import { loadLocalProjects, saveLocalProjects } from './src/data/storage';
 import { loadRemoteProjects, saveProjectToSheets } from './src/data/sheets';
@@ -42,6 +44,7 @@ function EditorApp() {
   const [namePrompt, setNamePrompt] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [busy, setBusy] = useState(false);
+  const [lastExport, setLastExport] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const undo = useRef<Project[]>([]);
   const redo = useRef<Project[]>([]);
@@ -103,7 +106,7 @@ function EditorApp() {
   };
   const seek = (ms: number) => { setPlaying(false); setPositionMs(Math.max(0, Math.min(total, ms))); setSeekVersion(v => v + 1); };
   const openProject = (p: Project) => {
-    setEditingId(p.id); setSelectedId(null); setPositionMs(0); setPlaying(false);
+    setEditingId(p.id); setSelectedId(null); setPositionMs(0); setPlaying(false); setLastExport(null);
     undo.current = []; redo.current = [];
   };
   const create = () => {
@@ -155,6 +158,17 @@ function EditorApp() {
       Alert.alert('Audio imported', 'Imported audio uses a 30-second placeholder duration until media probing is implemented.');
     } catch (error) { Alert.alert('Audio import failed', String(error)); }
     finally { setBusy(false); }
+  };
+  const renderVideo = async () => {
+    if (!project) return;
+    try {
+      setPlaying(false); setBusy(true);
+      const uri = await exportMp4(project);
+      setLastExport(uri);
+      Alert.alert('MP4 exported', 'Your video is ready. Tap Share MP4 to save or send it.');
+    } catch (e) {
+      Alert.alert('Export unavailable', e instanceof Error ? e.message : String(e));
+    } finally { setBusy(false); }
   };
   const cloudSave = async () => {
     if (!token || !project) return;
@@ -213,6 +227,7 @@ function EditorApp() {
     <ScrollView keyboardShouldPersistTaps="handled" style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 22 }}>
       <View style={styles.previewContainer}>
         <VideoStage project={project} playheadMs={positionMs} playing={playing} seekVersion={seekVersion} />
+        <AudioStage project={project} playheadMs={positionMs} playing={playing} seekVersion={seekVersion} />
       </View>
       <View style={styles.transport}>
         <Text style={styles.clock}>{fmt(positionMs)} <Text style={styles.meta}>/ {fmt(total)}</Text></Text>
@@ -265,9 +280,10 @@ function EditorApp() {
       </View>
       <View style={styles.controls}>
         <Tool label="Delete latest text" disabled={!project.texts.length} onPress={() => apply(p => removeText(p, p.texts[p.texts.length - 1].id))} />
-        <Tool label="Export MP4 (not ready)" disabled onPress={() => {}} />
+        <Tool label="Export MP4" disabled={!canExportNatively() || busy} onPress={renderVideo} />
+        {lastExport ? <Tool label="Share MP4" onPress={() => shareExport(lastExport).catch(e => Alert.alert('Could not share', String(e)))} /> : null}
       </View>
-      <Text style={styles.disclaimer}>Editing and project saving are in development. Video exporting, real audio mixing, automatic captions and AI effects are not yet implemented.</Text>
+      <Text style={styles.disclaimer}>Native MP4 export is available only in the iOS development build and currently supports consecutive video segments with optional audio and titles. Expo Go can preview edits but cannot export. AI effects remain in development.</Text>
     </ScrollView>
     <Modal visible={textPrompt} transparent animationType="fade" onRequestClose={() => setTextPrompt(false)}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalBackdrop}>
