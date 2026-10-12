@@ -498,9 +498,9 @@ async function recordEditedAudio(){
  const volume=state.audioMonitor?.gain.value??1;
  try{
   if(state.audioMonitor)state.audioMonitor.gain.value=0;
-  recorder.start(1000);
   await play();
-  if(!state.playing)throw Error('This browser blocked video playback. Tap Play once and retry Auto Captions.');
+  if(!state.playing||video.paused)throw Error('This browser blocked video playback. Tap Play once and retry Auto Captions.');
+  recorder.start(250); // do not capture artificial leading silence before playback
   captionProgress('Capturing the edited soundtrack locally · keep this page open…',2);
   await new Promise((resolve,reject)=>{
    let last=state.position,lastMovement=performance.now();
@@ -545,24 +545,52 @@ function resampleSpeech(buffer){
 function segmentsFromTranscript(result,maximum){
  if(!Array.isArray(result?.chunks))throw Error('The speech model did not return reliable caption timestamps.');
  const captions=[];
- for(const chunk of result.chunks){
-  const words=String(chunk?.text||'').trim().split(/\s+/).filter(Boolean);
+ const raw=result.chunks.filter(chunk=>{
   const [a,b]=chunk?.timestamp||[];
-  const start=Number(a),end=Number(b);
-  if(!words.length||!Number.isFinite(start)||!Number.isFinite(end)||end<=start||start>=maximum)continue;
-  const limit=clamp(end,0,maximum),begin=clamp(start,0,limit);
-  const subdivisions=Math.max(1,Math.ceil(words.length/7),Math.ceil((limit-begin)/4.5));
-  for(let i=0;i<subdivisions;i++){
-   const from=Math.floor(words.length*i/subdivisions),to=Math.floor(words.length*(i+1)/subdivisions);
-   if(to<=from)continue;
-   const cStart=begin+(limit-begin)*i/subdivisions,cEnd=begin+(limit-begin)*(i+1)/subdivisions;
-   if(cEnd-cStart<.12)continue;
-   captions.push({id:key(),text:words.slice(from,to).join(' ').slice(0,240),start:cStart,end:cEnd,position:'bottom',color:'#FFFFFF',origin:'auto'});
+  return String(chunk?.text||'').trim()&&Number.isFinite(Number(a))&&Number.isFinite(Number(b))
+    &&Number(b)>Number(a)&&Number(a)<maximum;
+ });
+ // Whisper's word timestamps permit caption boundaries to follow speech
+ // instead of spreading an entire sentence uniformly across its duration.
+ const wordTimed=raw.length>=3&&raw.filter(c=>String(c.text).trim().split(/\s+/).length<=2).length/raw.length>.8;
+ if(wordTimed){
+  let group=[],first=0,last=0;
+  function flush(){
+   if(!group.length)return;
+   const start=clamp(first,0,maximum),end=clamp(last,0,maximum);
+   if(end>start+.09)captions.push({id:key(),text:group.join(' ').replace(/\s+([,.!?;:])/g,'$1').slice(0,240),
+    start,end,position:'bottom',color:'#FFFFFF',origin:'auto'});
+   group=[];
+  }
+  for(const chunk of raw){
+   const text=String(chunk.text||'').trim(),[a,b]=chunk.timestamp;
+   const begin=Number(a),finish=Number(b);
+   if(!group.length){first=begin;last=finish}
+   else if(begin-last>.55||finish-first>2.8||group.length>=6){flush();first=begin}
+   group.push(text);last=finish;
+   if(/[.!?]$/.test(text)&&group.length>=3)flush();
+  }
+  flush();
+ }else{
+  for(const chunk of raw){
+   const words=String(chunk.text||'').trim().split(/\s+/).filter(Boolean);
+   const [a,b]=chunk.timestamp;
+   const begin=clamp(Number(a),0,maximum),finish=clamp(Number(b),0,maximum);
+   const subdivisions=Math.max(1,Math.ceil(words.length/7),Math.ceil((finish-begin)/4.5));
+   for(let i=0;i<subdivisions;i++){
+    const from=Math.floor(words.length*i/subdivisions),to=Math.floor(words.length*(i+1)/subdivisions);
+    if(to<=from)continue;
+    const cStart=begin+(finish-begin)*i/subdivisions,cEnd=begin+(finish-begin)*(i+1)/subdivisions;
+    if(cEnd-cStart<.12)continue;
+    captions.push({id:key(),text:words.slice(from,to).join(' ').slice(0,240),start:cStart,end:cEnd,
+     position:'bottom',color:'#FFFFFF',origin:'auto'});
+   }
   }
  }
  if(!captions.length)throw Error('No timestamped speech was detected. Try a video with clear English dialogue.');
  return captions.slice(0,160);
 }
+
 async function getLocalSpeechModel(){
  if(localSpeechModel)return localSpeechModel;
  captionProgress('Loading English speech recognition model · first use downloads model files…',65);
@@ -600,7 +628,7 @@ async function runAutoCaptions(options={}){
   const speech=resampleSpeech(buffer);
   const model=await getLocalSpeechModel();
   captionProgress('Transcribing English speech locally · this can take several minutes on a phone…',84);
-  const result=await model(speech,{return_timestamps:true,chunk_length_s:30,stride_length_s:5});
+  const result=await model(speech,{return_timestamps:'word',chunk_length_s:30,stride_length_s:5});
   let captions=segmentsFromTranscript(result,total());
   if(options.style)captions=styleCaptions(captions,options.style);
   let trimmed=null;
