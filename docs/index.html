@@ -886,9 +886,12 @@ function updateCaptionFont(percent){
  $('captionFontSizeLabel').textContent=clampedPercent+'%';
  const cap=activeCaption();
  if(cap&&!state.exporting&&!state.captioning){
-  cap.fontScale=clampedPercent/100;
-  $('captionTouchStatus').textContent='Caption size: '+clampedPercent+'%. Pinch on the preview or use the slider.';
-  requestDraw();
+  if(isSubtitleCaption(cap)){
+   for(const subtitle of state.captions)if(isSubtitleCaption(subtitle))subtitle.fontScale=clampedPercent/100;
+  }else cap.fontScale=clampedPercent/100;
+  $('captionTouchStatus').textContent=isSubtitleCaption(cap)?
+   'All subtitles resized to '+clampedPercent+'%.':'Title resized to '+clampedPercent+'%.';
+  requestDraw();rbSave();
  }
 }
 function showCaptionOnScreen(cap){
@@ -1106,6 +1109,7 @@ async function runAutoCaptions(options={}){
   const result=await model(speech,{return_timestamps:'word',chunk_length_s:30,stride_length_s:5});
   let captions=segmentsFromTranscript(result,total()).map(c=>({...c,fontId:state.captionFontId}));
   if(options.style)captions=styleCaptions(captions,options.style);
+  if(state.captionGroupAnchor)setSubtitleAnchor(captions,state.captionGroupAnchor);
   let trimmed=null;
   if(options.tighten&&state.clips.length===1&&state.captions.every(c=>c.origin==='auto')){
    const timeline=state.clips[0];
@@ -1124,7 +1128,8 @@ async function runAutoCaptions(options={}){
   state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';touchPointers.clear();pinchOrigin=null;
   state.captions=[...state.captions.filter(c=>c.origin!=='auto'),...captions]
    .sort((a,b)=>a.start-b.start);
-  renderCaptions();renderTimeline();requestDraw();
+  if(state.captionGroupAnchor)setSubtitleAnchor(state.captions,state.captionGroupAnchor);
+  rbUpdateFontPreview();renderCaptions();renderTimeline();requestDraw();
   captionProgress('✓ '+captions.length+' timed captions generated. Review the words and timing before publishing.',100);
   toast(captions.length+' automatic captions added to your video.');
   return {captions,trimmed};
@@ -1332,7 +1337,7 @@ function setTab(tab){state.selectedTab=tab;document.querySelectorAll('[data-tab]
 function reset(){
  if(state.exporting||state.captioning||state.creatorBusy){toast('Finish the current edit before starting a new project.',true);return}
  if(state.clips.length&&!confirm('Start a new project? This removes the current timeline and captions (not the original files).'))return;
- pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];$('creatorHookPanel').hidden=true;state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.cameraMotion='off';$('rb-camera').value='off';state.faceRetouch=0;state.voicePolish=false;applyVoicePolish();faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;touchPointers.clear();dragAnchor=null;pinchOrigin=null;$('captionFontSize').value='100';$('captionFontSizeLabel').textContent='100%';$('captionTouchStatus').textContent='';$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
+ pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];$('creatorHookPanel').hidden=true;state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.captionGroupAnchor=null;state.cameraMotion='off';$('rb-camera').value='off';state.faceRetouch=0;state.voicePolish=false;applyVoicePolish();faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;touchPointers.clear();dragAnchor=null;pinchOrigin=null;$('captionFontSize').value='100';$('captionFontSizeLabel').textContent='100%';$('captionTouchStatus').textContent='';$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
  video.removeAttribute('src');video.load();ui.empty.hidden=false;ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();renderEditor();renderCaptions();rbDiscard(false);toast('Ready for a new project.');
 }
 function canvasGesturePoint(event){
@@ -1470,18 +1475,21 @@ for(const [id,direction] of [['captionSmaller',-1],['captionLarger',1]]){
 $('captionCenter').onclick=()=>{
  const cap=activeCaption();
  if(!cap||state.exporting||state.captioning)return;
- cap.x=.5;cap.y=.5;cap.position='custom';
+ if(isSubtitleCaption(cap))state.captionGroupAnchor=setSubtitleAnchor(state.captions,{x:.5,y:.5});
+ else{cap.x=.5;cap.y=.5;cap.position='custom'}
  $('captionPosition').value='custom';
- requestDraw();renderCaptions();
- $('captionTouchStatus').textContent='Caption moved to the centre of the video.';
+ requestDraw();renderCaptions();rbSave();
+ $('captionTouchStatus').textContent=isSubtitleCaption(cap)?'All subtitles centred.':'Title centred.';
 };
 $('captionPosition').addEventListener('change',event=>{
  const cap=activeCaption();
  if(!cap||state.exporting||state.captioning||event.target.value==='custom')return;
- cap.position=event.target.value;
- delete cap.x;delete cap.y;
- requestDraw();
- $('captionTouchStatus').textContent='Position preset applied. Drag it directly on the preview to place it precisely.';
+ const targets=isSubtitleCaption(cap)?state.captions.filter(isSubtitleCaption):[cap];
+ for(const target of targets){target.position=event.target.value;delete target.x;delete target.y}
+ if(isSubtitleCaption(cap))state.captionGroupAnchor=null;
+ requestDraw();rbSave();
+ $('captionTouchStatus').textContent=isSubtitleCaption(cap)?
+  'Position preset applied to all subtitles.':'Title position updated.';
 });
 
 function renderCreatorHooks(){
@@ -1543,6 +1551,7 @@ function configureCreatorStyle(style){
  $('watermarkEnabled').checked=state.watermark.enabled;$('watermarkPosition').value=state.watermark.position;
  applyVoicePolish();
  state.captions=styleCaptions(state.captions,preset);
+ if(state.captionGroupAnchor)setSubtitleAnchor(state.captions,state.captionGroupAnchor);
  renderCaptions();
  requestDraw();
 }
@@ -1683,7 +1692,8 @@ $('addCaption').onclick=()=>{
  }else state.captions.push({id:key(),text,start,end,position:$('captionPosition').value,
     color:$('captionColor').value,fontScale:fontScale(Number($('captionFontSize').value)/100),fontId:state.captionFontId,origin:'manual'});
  state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';
- state.captions.sort((a,b)=>a.start-b.start);$('captionText').value='';renderCaptions();renderTimeline();void seekTimeline(start);toast('Caption saved to the timeline.');
+ if(state.captionGroupAnchor)setSubtitleAnchor(state.captions,state.captionGroupAnchor);
+ state.captions.sort((a,b)=>a.start-b.start);$('captionText').value='';rbUpdateFontPreview();renderCaptions();rbSave();renderTimeline();void seekTimeline(start);toast('Caption saved to the timeline.');
 };
 $('export').onclick=()=>void startExport();
 async function setFaceRetouch(value){
@@ -1803,7 +1813,7 @@ $('rb-restore').onclick=()=>{
   state.clips=d.clips;state.captions=d.captions;state.selected=d.clips[0].id;state.position=0;
   state.ratio=d.ratio;state.look=d.look;state.voicePolish=d.voicePolish;state.enhancement=d.enhancement;state.watermark=normalizeWatermark(d.watermark||state.watermark);
   $('watermarkEnabled').checked=state.watermark.enabled;$('watermarkPosition').value=state.watermark.position;
-  state.cameraMotion=d.cameraMotion;state.captionFontId=d.fontId;$('rb-camera').value=d.cameraMotion;
+  state.cameraMotion=d.cameraMotion;state.captionFontId=d.fontId;state.captionGroupAnchor=d.captionGroupAnchor;$('rb-camera').value=d.cameraMotion;
   $('rb-font').value=d.fontId;applyVoicePolish();
   document.querySelectorAll('[data-look]').forEach(b=>b.classList.toggle('active',b.dataset.look===d.look));
   document.querySelectorAll('[data-ratio]').forEach(b=>b.classList.toggle('active',b.dataset.ratio===d.ratio));
