@@ -45,6 +45,8 @@ import {CloudWorkspace} from './src/ui/CloudWorkspace';
 import {HelpDesk} from './src/ui/HelpDesk';
 import {restoreCloudSession,type CloudSession} from './src/cloud/account';
 import {backUpCloudProject} from './src/cloud/transfer';
+import {cloudRequest} from './src/cloud/account';
+import {applyAiMomentRanking} from './src/domain/aiMomentRanking';
 import {listSavedVideos,deleteSavedVideo,formatExportSize,type SavedVideo} from './src/export/library';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -94,6 +96,7 @@ function EditorApp() {
   const [creatorReviewOpen,setCreatorReviewOpen]=useState(false);
   const [storyFinderOpen,setStoryFinderOpen]=useState(false);
   const [storySuggestions,setStorySuggestions]=useState<StoryMoment[]>([]);
+  const [storyRankingBusy,setStoryRankingBusy]=useState(false);
   const [storySourceRevision,setStorySourceRevision]=useState<number|null>(null);
   const [advancedToolsOpen,setAdvancedToolsOpen]=useState(false);
   const [speechReviewVisible,setSpeechReviewVisible]=useState(false);
@@ -504,6 +507,32 @@ function EditorApp() {
       setStoryFinderOpen(true);
     }catch(e){Alert.alert('Story Finder',e instanceof Error?e.message:String(e));}
   };
+  const rankAiStoryMoments=()=>{
+    if(!cloudSession||!project||storyRankingBusy||!storySuggestions.length)return;
+    Alert.alert('Rank Story Finder moments with AI?',
+      'VIDNIVO will send up to eight short caption excerpts to its AI provider. Original videos, filenames and complete project metadata are not shared. No edits happen automatically.',[
+        {text:'Cancel',style:'cancel'},
+        {text:'Rank moments',onPress:()=>{
+          void (async()=>{
+            try{
+              setStoryRankingBusy(true);
+              const current=storySuggestions;
+              const result=await cloudRequest('/api/v1/creator/rank-moments',{
+                method:'POST',body:JSON.stringify({moments:current.map(m=>({
+                  id:m.id,preview:m.preview,
+                  durationMs:m.endMs-m.startMs
+                }))})
+              });
+              if(!result.aiRanked)throw Error(
+                'AI ranking is not configured or is temporarily unavailable. The local suggestions are still valid.');
+              const ranked=applyAiMomentRanking(current,result);
+              setStorySuggestions(ranked);
+            }catch(e){Alert.alert('AI Story Finder',e instanceof Error?e.message:String(e));}
+            finally{setStoryRankingBusy(false);}
+          })();
+        }}
+      ]);
+  };
   const createShortFromMoment=(moment:StoryMoment)=>{
     if(!project)return;
     if(storySourceRevision!==project.revision){
@@ -876,6 +905,8 @@ function EditorApp() {
         setPlaying(false);setPositionMs(0);setSeekVersion(v=>v+1);
       }} onLowerExportQuality={()=>setExportQuality(720)}/>
     <StoryFinderSheet visible={storyFinderOpen} moments={storySuggestions}
+      canRankWithAI={!!cloudSession} rankingBusy={storyRankingBusy}
+      onRankWithAI={rankAiStoryMoments}
       onClose={()=>setStoryFinderOpen(false)}
       onPreview={m=>{
         setStoryFinderOpen(false);
