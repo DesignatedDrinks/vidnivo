@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {FONT_CHOICES,fontById,draftSocialCopy,honestHook,applyDirection,inspectEdit,projectSnapshot,canRestoreSnapshot,hydrateSnapshot} from '../docs/rollblink-creator-kit.js';
+import {FONT_CHOICES,fontById,draftSocialCopy,honestHook,applyDirection,inspectEdit,projectSnapshot,canRestoreSnapshot,hydrateSnapshot,selectContinuousHighlight} from '../docs/rollblink-creator-kit.js';
 
 const spoken=[
  {id:'a',text:'I spent three years building my business.',start:0,end:2,origin:'auto',position:'bottom'},
@@ -47,4 +47,17 @@ test('recovery stores only metadata and validates original files',()=>{
  assert.equal(result.clips.length,1);
  assert.equal(result.captions.length,2);
  assert.equal(result.clips[0].sourceId,'source');
+});
+
+test('continuous highlight stays in bounds and spans one segment',()=>{
+ const captions=Array.from({length:30},(_,i)=>({
+  id:String(i),text:i===9?'Here is the biggest mistake I made.':'A complete thought about building a company.',
+  start:i*2,end:i*2+1.5,origin:'auto'
+ }));
+ const selection=selectContinuousHighlight(captions,60,30);
+ assert.ok(selection);
+ assert.ok(selection.start>=0);
+ assert.ok(selection.end<=60);
+ assert.equal(Math.round((selection.end-selection.start)*10)/10,30);
+ assert.equal(selectContinuousHighlight(captions,31,30),null);
 });
