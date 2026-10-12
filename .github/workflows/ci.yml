@@ -25,3 +25,11 @@ jobs:
         run: npx expo export --platform android --output-dir dist-android
       - name: Bundle iOS JavaScript
         run: npx expo export --platform ios --output-dir dist-ios
+
+  swift-syntax:
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Swift native exporter syntax validation
+        run: xcrun swiftc -frontend -parse modules/vidnivo-export/ios/VidnivoExportModule.swift

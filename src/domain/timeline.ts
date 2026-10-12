@@ -132,3 +132,39 @@ export function validateProject(p: Project): void {
   if (p.clips.some(c => !ids.has(c.assetId) || c.startMs < 0 || c.inMs < 0 || c.outMs <= c.inMs || c.speed <= 0 || !Number.isFinite(c.speed) || !Number.isFinite(c.startMs))) throw new Error('Invalid clip timeline');
   if (p.texts.some(t => t.endMs <= t.startMs || t.startMs < 0)) throw new Error('Invalid text timeline');
 }
+
+/**
+ * Magnetic/ripple editing keeps subsequent clips contiguous. The plain trimClip
+ * remains available for slip/freeform timeline editing.
+ */
+export function rippleTrimClip(p: Project, id: string, edge: 'left' | 'right', deltaMs: number): Project {
+  const original = p.clips.find(c => c.id === id);
+  if (!original || original.track !== 'video') return trimClip(p, id, edge, deltaMs);
+  const result = trimClip(p, id, edge, deltaMs);
+  if (result === p) return p;
+  const trimmed = result.clips.find(c => c.id === id)!;
+  const changeMs = clipDurationMs(original) - clipDurationMs(trimmed);
+  if (Math.abs(changeMs) < 0.0001) return p;
+  const originalEndMs = clipEndMs(original);
+  const clips = result.clips.map(c => {
+    if (c.id === id) return { ...c, startMs: original.startMs };
+    if (c.track === 'video' && c.startMs >= originalEndMs - 0.01)
+      return { ...c, startMs: Math.max(0, c.startMs - changeMs) };
+    return c;
+  });
+  return { ...result, clips };
+}
+/** Removes a clip and closes its gap on the primary video track. */
+export function rippleDeleteClip(p: Project, id: string): Project {
+  const original = p.clips.find(c => c.id === id);
+  if (!original) return p;
+  const deleted = removeClip(p, id);
+  if (original.track !== 'video') return deleted;
+  const endMs = clipEndMs(original);
+  const spanMs = clipDurationMs(original);
+  return { ...deleted, clips: deleted.clips.map(c =>
+    c.track === 'video' && c.startMs >= endMs - 0.01
+      ? { ...c, startMs: Math.max(0, c.startMs - spanMs) }
+      : c
+  ) };
+}

@@ -9,7 +9,7 @@ import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { AudioStage } from './src/ui/AudioStage';
 import { canExportNatively, exportMp4, shareExport } from './src/export/native';
-import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, trimClip } from './src/domain/timeline';
+import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip } from './src/domain/timeline';
 import { loadLocalProjects, saveLocalProjects } from './src/data/storage';
 import { loadRemoteProjects, saveProjectToSheets } from './src/data/sheets';
 import { VideoStage } from './src/ui/VideoStage';
@@ -255,9 +255,9 @@ function EditorApp() {
         <View style={styles.row}><Text style={styles.section}>SELECTED CLIP</Text><Text style={styles.meta}>{fmt(clipDurationSafe(selected))}</Text></View>
         <View style={styles.controls}>
           <Tool label="Split" onPress={() => apply(p => splitClip(p, selected.id, positionMs))} />
-          <Tool label="← Trim" onPress={() => apply(p => trimClip(p, selected.id, 'left', 500))} />
-          <Tool label="Trim →" onPress={() => apply(p => trimClip(p, selected.id, 'right', -500))} />
-          <Tool label="Delete" onPress={() => { apply(p => removeClip(p, selected.id)); setSelectedId(null); }} />
+          <Tool label="← Trim" onPress={() => apply(p => rippleTrimClip(p, selected.id, 'left', 500))} />
+          <Tool label="Trim →" onPress={() => apply(p => rippleTrimClip(p, selected.id, 'right', -500))} />
+          <Tool label="Delete" onPress={() => { apply(p => rippleDeleteClip(p, selected.id)); setSelectedId(null); }} />
         </View>
         <View style={styles.controls}>
           <Tool label="← Move" onPress={() => apply(p => moveClip(p, selected.id, -500))} />
