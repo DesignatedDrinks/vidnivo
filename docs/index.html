@@ -8,6 +8,7 @@
   <title>VIDNIVO Studio — Video Editor</title>
   <style>:root{color-scheme:dark;--bg:#101116;--panel:#1b1d24;--panel2:#22252c;--line:#333842;--text:#f5f8fc;--muted:#9ba3af;--accent:#27d2e5;--accent-dark:#07363f;--danger:#ed8c89;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#171b23 0,#101116 250px);color:var(--text);font-size:14px}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.42;cursor:not-allowed}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.topbar{height:67px;border-bottom:1px solid #30333b;display:flex;justify-content:space-between;align-items:center;padding:0 clamp(14px,3vw,42px);background:#12151a}.brand{font-size:23px;letter-spacing:-1.5px;font-weight:950;display:flex;align-items:center}.brand-accent{color:var(--accent)}.brand-pill{font-size:9px;letter-spacing:1.5px;margin-left:12px;padding:5px 7px;border:1px solid #536572;border-radius:5px;color:#bdced4}.header-actions{display:flex;align-items:center;gap:18px}.privacy{color:#b6c4c9;font-size:12px}.privacy-dot{display:inline-block;background:#66dcac;width:7px;height:7px;border-radius:50%;margin-right:6px}.app{display:grid;grid-template-columns:minmax(0,1fr) 354px;gap:20px;max-width:1460px;margin:auto;padding:24px clamp(15px,3vw,40px) 45px}.workbench,.inspector{min-width:0}.workbench{display:flex;flex-direction:column;gap:18px}.stage-top{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:3px 0 0}.eyebrow,.section-label{font-size:10px;font-weight:850;letter-spacing:1.8px;color:var(--accent)}h1{font-size:clamp(25px,3vw,38px);margin:9px 0 5px;line-height:1.1;letter-spacing:-1px}h2{font-size:21px;line-height:1.2;margin:7px 0 0;letter-spacing:-.5px}.muted,.subheading,.section-desc{color:var(--muted)}.subheading{margin:0;font-size:13px}.tag{font-size:10px;white-space:nowrap;background:#303238;color:#cdd4da;padding:9px 11px;border-radius:30px;font-weight:700;letter-spacing:.8px}.viewer,.timeline-card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:15px}.viewer{overflow:hidden}.viewer-toolbar{height:52px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #30343c}.ratio-pills{display:flex;gap:6px}.pill{border:1px solid #3d414b;background:#262a31;color:#b5bec9;padding:6px 10px;border-radius:7px;font-size:12px}.pill.active{background:#0f3d47;color:#54e1f1;border-color:#226c77}.preview-wrap{position:relative;background:repeating-linear-gradient(45deg,#101217,#101217 12px,#12141a 12px,#12141a 24px);height:clamp(340px,49vh,510px);display:flex;align-items:center;justify-content:center;padding:15px;overflow:hidden}#preview{height:100%;width:auto;max-width:100%;object-fit:contain;background:#08090d;box-shadow:0 15px 35px #0009;border-radius:4px}.empty-state{position:absolute;inset:0;background:#101218ed;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:25px;gap:11px}.empty-state[hidden]{display:none}.empty-state h2{font-size:23px;margin:5px 0 0}.empty-state p{max-width:260px;color:var(--muted);line-height:1.5;margin:0 0 10px}.empty-symbol{font-size:44px;color:var(--accent);border:1px solid #264e56;border-radius:18px;padding:15px 20px}.tiny{font-size:11px;color:#8a929d}.button{display:inline-flex;justify-content:center;align-items:center;border:1px solid #454b58;padding:11px 14px;border-radius:9px;background:#30353f;color:var(--text);font-weight:700;min-height:40px;white-space:nowrap;text-decoration:none;text-align:center;gap:6px}.button.primary{color:#06232a;background:var(--accent);border-color:var(--accent)}.button.primary:hover{background:#5de4ee}.button.secondary{background:#16424d;border-color:#256c7b;color:#8deaf4}.button.ghost{background:#292d35;color:#d7e1ea}.button.danger{background:#362b33;color:#efb3b3;border-color:#6e454e}.button.small{padding:8px 11px;min-height:34px;font-size:12px}.button.full{width:100%}.transport{display:flex;align-items:center;justify-content:center;gap:13px;height:66px;border-top:1px solid #30343c}.icon-button,.play-button{border:0;background:transparent;color:#e9f0f5;display:flex;gap:3px;align-items:center;justify-content:center}.icon-button span{font-size:11px}.play-button{width:41px;height:41px;background:#2d3640;border-radius:50%;font-size:18px}.timecounter{position:absolute;right:calc(354px + clamp(15px,3vw,40px) + 46px);font-variant-numeric:tabular-nums;font-size:12px;color:#9aabba}.timecounter b{color:white}.timecounter span{margin-left:3px}.timeline-card{padding:19px}.section-head,.section-actions,.button-row,.info-line{display:flex;justify-content:space-between;align-items:center;gap:10px}.section-head{flex-wrap:wrap}.section-desc{font-size:11px;margin:8px 0 0}.section-actions{gap:7px}.timeline-card input[type=range]{width:100%;margin:22px 0 13px}.clip-track{display:flex;gap:5px;overflow:auto;min-height:89px;padding-bottom:7px;border-bottom:1px solid #373c45}.clip{background:#294952;color:#dcf4f6;border:2px solid #346371;border-radius:8px;min-width:70px;min-height:79px;flex:1 0 0;padding:8px;display:flex;flex-direction:column;justify-content:space-between;text-align:left}.clip.selected{border-color:#64e8f4;box-shadow:0 0 0 1px #64e8f4}.clip-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;font-weight:800}.clip-time{font-size:11px;color:#b5dde4}.clip-number{font-size:10px;color:#84e2ed}.blank-track{display:flex;align-items:center;justify-content:center;flex:1;background:#232830;border-radius:8px;color:#919aa7;font-size:12px}.timeline-help{display:flex;justify-content:space-between;font-size:11px;color:#929ba7;margin-top:12px}.inspector{display:flex;flex-direction:column;gap:12px}.panel{padding:20px}.inspector-tabs{display:flex;padding:5px;gap:4px}.inspector-tab{flex:1;border:0;border-radius:9px;background:transparent;color:#9ba5b1;font-weight:700;padding:12px}.inspector-tab.active{background:#33414a;color:#67dfeb}.panel-head{margin-bottom:22px}.hint-block{color:#aebbc6;background:#242a33;line-height:1.7;border-radius:10px;padding:15px}.info-line{color:var(--muted);margin:15px 0;font-size:12px}.info-line strong{color:var(--text);font-size:12px}.field-group{margin:20px 0}.field-group label{display:flex;justify-content:space-between;color:#bfc9d4;font-size:12px}.field-group input{width:100%;margin:15px 0 0}input[type=range]{accent-color:var(--accent);touch-action:pan-y}.button-row{margin:10px 0}.button-row>*{flex:1;min-width:0}.two-cols{align-items:flex-end;gap:11px}.field-label{display:block;color:#c0cbd6;font-size:12px;margin:14px 0 8px}textarea,input[type=number],select{width:100%;border:1px solid #49515c;background:#242831;border-radius:9px;padding:11px;color:var(--text);margin-top:8px;outline:0}textarea{resize:vertical}.fine-print{font-size:11px;color:#9ba6b1;line-height:1.65;margin:16px 0 0}.spacing-top{margin-top:25px}.captions-list{display:flex;flex-direction:column;gap:8px;margin-top:12px;max-height:260px;overflow:auto}.caption-item{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#282d35;border-radius:9px;padding:11px}.caption-item strong{display:block;font-size:12px;font-weight:600;margin-bottom:4px;overflow-wrap:anywhere}.caption-item span{font-size:10px;color:#afbdc7}.caption-item button{background:transparent;border:1px solid #70555c;border-radius:6px;color:#f2b0b0;padding:6px}.export-summary{background:#232c33;border:1px solid #31505b;border-radius:9px;padding:13px;margin:15px 0 19px;line-height:1.8;color:#d4e0e6;font-size:12px}.export-button{min-height:48px}.progress{height:6px;border-radius:8px;overflow:hidden;background:#323b43;margin:14px 0}.progress>div{height:100%;width:0;background:var(--accent);transition:width .2s}.status{line-height:1.6;color:#d3e1e8;font-size:12px;margin-top:12px;min-height:16px}.footer-note{padding:14px;color:#808d9a;font-size:11px;line-height:1.8}.footer-note b{color:#b7c7d2}@media(max-width:1030px){.app{grid-template-columns:minmax(0,1fr) 310px}.timecounter{right:calc(310px + clamp(15px,3vw,40px) + 31px)}}@media(max-width:770px){.app{display:block;padding:15px 12px 50px}.inspector{margin-top:13px}.stage-top{margin-bottom:14px}.viewer{margin-bottom:12px}.preview-wrap{height:44vh;min-height:310px;max-height:540px}.transport{justify-content:flex-start;padding-left:20px}.timecounter{position:static;margin-left:auto;margin-right:16px}.timeline-card{padding:14px;margin-bottom:8px}.panel{padding:16px}.inspector-tabs{padding:5px}.privacy{display:none}.topbar{height:58px;padding:0 14px}.brand{font-size:21px}.tag{font-size:9px}.section-head{align-items:flex-start}h1{font-size:25px}.header-actions{gap:5px}}@media(max-width:360px){.ratio-pills{gap:2px}.pill{padding:5px 6px}.section-actions{width:100%;justify-content:flex-end}.brand-pill{display:none}}
  .looks-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}.look-chip{display:flex;align-items:center;gap:9px;padding:10px;border-radius:10px;border:1px solid #49515c;background:#252c34;color:#dce4ed;text-align:left;min-height:48px}.look-chip.active{border-color:#32d7e7;background:#16424c;color:#e8fdff;box-shadow:inset 0 0 0 1px #36c9d7}.look-dot{display:block;width:27px;height:27px;flex:none;border-radius:7px;border:1px solid #ffffff45}.quick-actions{margin-bottom:17px}.quick-actions .button{white-space:normal;min-height:45px}.caption-item>div{min-width:0;flex:1}.caption-item button{flex:none}@media(max-width:360px){.inspector-tab{padding:11px 5px;font-size:12px}}
+.touch-caption-hint{display:flex;flex-direction:column;gap:6px;margin:0 0 15px}.touch-caption-hint strong{color:#eaf5fa;font-size:13px}.touch-caption-hint span{font-size:12px}.caption-active{border-color:#2de3f2;box-shadow:inset 0 0 0 1px #2de3f2}.caption-item .caption-item-actions{display:flex;gap:6px;flex:none}.caption-touch-ready{touch-action:none;cursor:move}.caption-item.selected-caption{outline:2px solid #27d2e5;outline-offset:-2px}
 </style>
 </head>
 <body>
@@ -54,9 +55,14 @@
         <div id="captionStatus" class="status" aria-live="polite" role="status">One click: transcribe your edited video locally and place timed captions. English beta, up to 120 seconds. First run downloads the speech model and may be slow on phones.</div>
         <div class="progress"><div id="captionProgress"></div></div>
         <p class="fine-print">Footage stays in this browser. The speech model downloads from Hugging Face. No microphone access or account required. Keep the page open; some phones lack enough memory for local AI.</p>
+        <div id="touchCaptionHint" class="hint-block touch-caption-hint"><strong><icon aria-hidden="true"></icon> Edit captions with your fingers</strong><span>Tap a caption on the video, drag it anywhere, or use two fingers to pinch it bigger or smaller. You can also select a caption below.</span></div>
         <label class="field-label" for="captionText">Caption text</label><textarea id="captionText" rows="3" maxlength="240" placeholder="What should appear on screen?"></textarea>
         <div class="button-row two-cols"><label class="field-label">Start (seconds)<input type="number" id="captionStart" min="0" step="0.1" value="0" /></label><label class="field-label">End (seconds)<input type="number" id="captionEnd" min="0" step="0.1" value="3" /></label></div>
-        <div class="button-row two-cols"><label class="field-label">Position<select id="captionPosition"><option value="bottom">Bottom</option><option value="middle">Middle</option><option value="top">Top</option></select></label><label class="field-label">Colour<select id="captionColor"><option value="#FFFFFF">White</option><option value="#23D4E9">Cyan</option><option value="#FFE178">Yellow</option></select></label></div>
+        <div class="button-row two-cols"><label class="field-label">Position preset<select id="captionPosition"><option value="bottom">Bottom</option><option value="middle">Middle</option><option value="top">Top</option><option value="custom">Custom (dragged)</option></select></label><label class="field-label">Colour<select id="captionColor"><option value="#FFFFFF">White</option><option value="#23D4E9">Cyan</option><option value="#FFE178">Yellow</option></select></label></div>
+        <div class="field-group"><label for="captionFontSize">Caption size <b id="captionFontSizeLabel">100%</b></label><input id="captionFontSize" type="range" min="55" max="240" step="5" value="100" aria-label="Caption font size percentage" /></div>
+        <div class="button-row"><button id="captionSmaller" type="button" class="button ghost">A− Smaller</button><button id="captionLarger" type="button" class="button ghost">A+ Larger</button></div>
+        <div class="button-row"><button id="captionCenter" type="button" class="button ghost full">Center selected caption</button></div>
+        <p id="captionTouchStatus" class="fine-print" role="status" aria-live="polite">Select any visible caption and drag or pinch directly on the video preview.</p>
         <button id="addCaption" class="button primary full">+ Add timed caption</button>
         <div class="button-row"><button id="downloadSrt" class="button ghost" type="button">↓ Export subtitles .SRT</button>
         <button id="clearAutoCaptions" class="button ghost" type="button">Clear generated</button></div>
@@ -109,6 +115,7 @@
   <script type="module">import {drawGradedVideo} from './vidnivo-filters.js';
 import {FaceRetouch} from './vidnivo-face-retouch.js?v=5';
 import {planContinuousExport,PlaybackSyncGuard,inspectRecordedTracks,probeRecordedDuration} from './vidnivo-export-sync.js';
+import {fontScale,captionAnchor,captionLayout,clampedCaptionAnchor,pointInCaption,gestureDistance,midpoint} from './vidnivo-caption-touch.js';
 // VIDNIVO Browser Studio — all source media remains in local object URLs.
 // Exports use the browser's own MediaRecorder; no video is sent to a server.
 const $ = id => document.getElementById(id);
@@ -152,6 +159,9 @@ const key=()=>crypto.randomUUID?.()||String(Date.now())+Math.random().toString(3
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const toast=(message,isError=false)=>{ui.status.textContent=message;ui.status.style.color=isError?'#ffaca9':'#d3e1e8'};
 let drawQueued=false;
+let captionHitBoxes=[];
+const touchPointers=new Map();
+let dragAnchor=null,pinchOrigin=null,touchWasEdited=false;
 function drawFrame(){
  const quality=state.exporting?Number($('quality').value):null;
  const dimensions=quality?(state.ratio==='16:9'?[Math.round(quality*16/9),quality]:state.ratio==='1:1'?[quality,quality]:[quality,Math.round(quality*16/9)]):(state.ratio==='16:9'?[960,540]:state.ratio==='1:1'?[720,720]:[540,960]);
@@ -166,26 +176,36 @@ function drawFrame(){
    faceTracker.draw(ctx,video,{x:(W-w)/2,y:(H-h)/2,w,h},state.faceRetouch,state.sourceId);
  }
  const captions=state.captions.filter(c=>state.position>=c.start&&state.position<c.end);
+ captionHitBoxes=[];
  for(const cap of captions){
-  const base=Math.max(19,Math.round(W*.051));
-  const text=cap.text||'';
-  const y=cap.position==='top'?H*.17:cap.position==='middle'?H*.53:H*.8;
-  ctx.font=`900 ${base}px system-ui,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
-  const lines=[];let current='';
-  for(const word of text.split(/\s+/)){
-   const candidate=current?current+' '+word:word;
-   if(ctx.measureText(candidate).width>W*.84&&current){lines.push(current);current=word;}
-   else current=candidate;
-  }
-  if(current)lines.push(current);
-  const max=5,show=lines.slice(0,max),leading=base*1.35;
-  show.forEach((line,i)=>{
-   const yy=clamp(y+(i-(show.length-1)/2)*leading,base*.8,H-base*.8);
-   ctx.lineJoin='round';ctx.lineWidth=Math.max(5,base*.22);
-   ctx.strokeStyle='rgba(0,0,0,.9)';ctx.strokeText(line,W/2,yy);
-   ctx.fillStyle=cap.color;ctx.fillText(line,W/2,yy);
+  const layout=captionLayout(ctx,cap,W,H);
+  const {x,y,size,leading,lines,bounds}=layout;
+  captionHitBoxes.push({id:cap.id,bounds});
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='900 '+size.toFixed(2)+'px system-ui,sans-serif';
+  ctx.lineJoin='round';
+  lines.forEach((line,i)=>{
+   const yy=y+(i-(lines.length-1)/2)*leading;
+   ctx.lineWidth=Math.max(5,size*.22);
+   ctx.strokeStyle='rgba(0,0,0,.9)';ctx.strokeText(line,x,yy);
+   ctx.fillStyle=cap.color||'#FFFFFF';ctx.fillText(line,x,yy);
   });
+  // Editing affordances live only in preview, never in the recorded video.
+  if(!state.exporting&&state.editCaptionId===cap.id&&state.selectedTab==='captions'){
+   ctx.save();
+   ctx.strokeStyle='#27d2e5';ctx.fillStyle='#27d2e5';
+   ctx.lineWidth=Math.max(2,W*.0035);ctx.setLineDash([W*.013,W*.009]);
+   ctx.strokeRect(bounds.left,bounds.top,bounds.width,bounds.height);
+   ctx.setLineDash([]);
+   const radius=Math.max(5,W*.012);
+   for(const [hx,hy] of [[bounds.left,bounds.top],[bounds.right,bounds.top],[bounds.left,bounds.bottom],[bounds.right,bounds.bottom]]){
+    ctx.beginPath();ctx.arc(hx,hy,radius,0,Math.PI*2);ctx.fill();
+   }
+   ctx.restore();
+  }
  }
+ canvas.classList.toggle('caption-touch-ready',
+  !state.exporting&&!state.captioning&&state.selectedTab==='captions'&&captions.length>0);
 }
 function requestDraw(){if(drawQueued)return;drawQueued=true;requestAnimationFrame(()=>{drawQueued=false;drawFrame()})}
 function locate(time){
@@ -360,29 +380,60 @@ async function importFile(file){
  }catch(e){URL.revokeObjectURL(url);toast(e.message||String(e),true)}
  finally{probe.removeAttribute('src');probe.load()}
 }
+function activeCaption(){
+ return state.captions.find(c=>c.id===state.editCaptionId)||null;
+}
+function syncCaptionSizeControls(cap){
+ const percent=Math.round(fontScale(cap?.fontScale||Number($('captionFontSize').value)/100)*100);
+ $('captionFontSize').value=String(percent);
+ $('captionFontSizeLabel').textContent=percent+'%';
+}
+function selectCaptionForEditing(cap,{seek=false}={}){
+ if(!cap||state.exporting||state.captioning)return;
+ state.editCaptionId=cap.id;
+ $('captionText').value=cap.text;
+ $('captionStart').value=Number(cap.start).toFixed(2);
+ $('captionEnd').value=Number(cap.end).toFixed(2);
+ $('captionPosition').value=cap.position||'bottom';
+ $('captionColor').value=cap.color||'#FFFFFF';
+ syncCaptionSizeControls(cap);
+ $('addCaption').textContent='Save caption changes';
+ $('captionTouchStatus').textContent='Selected: drag this caption on the preview to move it. Pinch with two fingers to resize. The export uses exactly this position and size.';
+ setTab('captions');
+ renderCaptions();
+ requestDraw();
+ if(seek)void seekTimeline(Math.min(cap.end-.025,cap.start+.08));
+}
+function updateCaptionFont(percent){
+ const clampedPercent=Math.round(fontScale(Number(percent)/100)*100);
+ $('captionFontSize').value=String(clampedPercent);
+ $('captionFontSizeLabel').textContent=clampedPercent+'%';
+ const cap=activeCaption();
+ if(cap&&!state.exporting&&!state.captioning){
+  cap.fontScale=clampedPercent/100;
+  $('captionTouchStatus').textContent='Caption size: '+clampedPercent+'%. Pinch on the preview or use the slider.';
+  requestDraw();
+ }
+}
+function showCaptionOnScreen(cap){
+ selectCaptionForEditing(cap,{seek:true});
+}
 function renderCaptions(){
  const node=$('captionsList');node.replaceChildren();
  if(!state.captions.length){const empty=document.createElement('div');empty.className='muted';empty.textContent='No captions yet.';node.append(empty);return}
  state.captions.forEach(cap=>{
-  const item=document.createElement('div');item.className='caption-item';
+  const item=document.createElement('div');item.className='caption-item'+(state.editCaptionId===cap.id?' selected-caption':'');
   const detail=document.createElement('div');const text=document.createElement('strong');text.textContent=cap.text;
-  const timing=document.createElement('span');timing.textContent=`${fmt(cap.start)} – ${fmt(cap.end)}`;
+  const timing=document.createElement('span');timing.textContent=`${fmt(cap.start)} – ${fmt(cap.end)} · ${Math.round(fontScale(cap.fontScale)*100)}%`;
   detail.append(text,timing);
   const controls=document.createElement('div');controls.style.cssText='display:flex;gap:5px;flex-shrink:0';
-  const edit=document.createElement('button');edit.textContent='Edit';edit.setAttribute('aria-label','Edit caption');
-  edit.onclick=()=>{
-   if(state.exporting||state.captioning)return;
-   state.editCaptionId=cap.id;$('captionText').value=cap.text;
-   $('captionStart').value=cap.start.toFixed(2);$('captionEnd').value=cap.end.toFixed(2);
-   $('captionPosition').value=cap.position;$('captionColor').value=cap.color;
-   $('addCaption').textContent='Save caption changes';
-   void seekTimeline(cap.start);
-  };
+  const edit=document.createElement('button');edit.textContent='Move / Size';edit.setAttribute('aria-label','Move and resize caption on video');
+  edit.onclick=()=>showCaptionOnScreen(cap);
   const remove=document.createElement('button');remove.textContent='Remove';remove.setAttribute('aria-label','Remove caption');
   remove.onclick=()=>{
    if(state.exporting||state.captioning)return;
    state.captions=state.captions.filter(c=>c.id!==cap.id);
-   if(state.editCaptionId===cap.id){state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption'}
+   if(state.editCaptionId===cap.id){state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';$('captionTouchStatus').textContent='Caption deleted. Tap another to move or resize it.'}
    renderCaptions();renderTimeline();
   };
   controls.append(edit,remove);item.append(detail,controls);node.append(item);
@@ -526,7 +577,7 @@ async function runAutoCaptions(){
   const result=await model(speech,{return_timestamps:true,chunk_length_s:30,stride_length_s:5});
   const captions=segmentsFromTranscript(result,total());
   // Keep existing manually authored captions; regenerate auto captions as a group.
-  state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';
+  state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';touchPointers.clear();pinchOrigin=null;
   state.captions=[...state.captions.filter(c=>c.origin!=='auto'),...captions]
    .sort((a,b)=>a.start-b.start);
   renderCaptions();renderTimeline();requestDraw();
@@ -706,9 +757,134 @@ function setTab(tab){state.selectedTab=tab;document.querySelectorAll('[data-tab]
 function reset(){
  if(state.exporting||state.captioning){toast('Finish exporting or auto captions before starting a new project.',true);return}
  if(state.clips.length&&!confirm('Start a new project? This removes the current timeline and captions (not the original files).'))return;
- pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.faceRetouch=0;faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
+ pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.faceRetouch=0;faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;touchPointers.clear();dragAnchor=null;pinchOrigin=null;$('captionFontSize').value='100';$('captionFontSizeLabel').textContent='100%';$('captionTouchStatus').textContent='Select a caption and drag or pinch to edit it.';$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
  video.removeAttribute('src');video.load();ui.empty.hidden=false;ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();renderEditor();renderCaptions();toast('Ready for a new project.');
 }
+function canvasGesturePoint(event){
+ const rect=canvas.getBoundingClientRect();
+ if(rect.width<1||rect.height<1)return null;
+ return {
+  x:clamp((event.clientX-rect.left)/rect.width*canvas.width,0,canvas.width),
+  y:clamp((event.clientY-rect.top)/rect.height*canvas.height,0,canvas.height)
+ };
+}
+function startOneFingerDrag(cap,point){
+ const layout=captionLayout(ctx,cap,canvas.width,canvas.height);
+ dragAnchor={offsetX:layout.x-point.x,offsetY:layout.y-point.y};
+ pinchOrigin=null;
+}
+function startTwoFingerPinch(cap){
+ const points=[...touchPointers.values()];
+ if(points.length<2)return;
+ const center=midpoint(points[0],points[1]);
+ const layout=captionLayout(ctx,cap,canvas.width,canvas.height);
+ pinchOrigin={
+  initialDistance:Math.max(5,gestureDistance(points[0],points[1])),
+  initialScale:fontScale(cap.fontScale),
+  startAnchor:{x:layout.x,y:layout.y},
+  startCenter:center
+ };
+ dragAnchor=null;
+}
+canvas.addEventListener('pointerdown',event=>{
+ if(state.exporting||state.captioning||state.faceLoading||!state.clips.length)return;
+ const point=canvasGesturePoint(event);
+ if(!point)return;
+ const active=activeCaption();
+ const hit=[...captionHitBoxes].reverse().find(box=>
+  pointInCaption(point,box.bounds,44*canvas.width/Math.max(1,canvas.getBoundingClientRect().width)));
+ let cap=hit?state.captions.find(c=>c.id===hit.id):null;
+ if(!cap&&touchPointers.size>0&&active)cap=active; // second finger can land anywhere on preview
+ if(!cap)return;
+ if(touchPointers.size===0){
+  pause();
+  if(state.editCaptionId!==cap.id)selectCaptionForEditing(cap);
+  touchWasEdited=false;
+ }
+ if(state.editCaptionId!==cap.id)return;
+ event.preventDefault();
+ try{canvas.setPointerCapture(event.pointerId)}catch{}
+ touchPointers.set(event.pointerId,point);
+ if(touchPointers.size===1)startOneFingerDrag(cap,point);
+ if(touchPointers.size===2)startTwoFingerPinch(cap);
+});
+canvas.addEventListener('pointermove',event=>{
+ if(!touchPointers.has(event.pointerId))return;
+ const point=canvasGesturePoint(event);
+ if(!point)return;
+ touchPointers.set(event.pointerId,point);
+ const cap=activeCaption();
+ if(!cap||state.exporting||state.captioning)return;
+ event.preventDefault();
+ if(touchPointers.size>=2&&pinchOrigin){
+  const points=[...touchPointers.values()];
+  const center=midpoint(points[0],points[1]);
+  const ratio=gestureDistance(points[0],points[1])/pinchOrigin.initialDistance;
+  const value=fontScale(pinchOrigin.initialScale*ratio);
+  cap.fontScale=value;
+  // A two-finger translation moves the caption at the same time as scaling.
+  const layout=captionLayout(ctx,cap,canvas.width,canvas.height);
+  const desiredX=pinchOrigin.startAnchor.x+center.x-pinchOrigin.startCenter.x;
+  const desiredY=pinchOrigin.startAnchor.y+center.y-pinchOrigin.startCenter.y;
+  Object.assign(cap,clampedCaptionAnchor(desiredX,desiredY,layout,canvas.width,canvas.height));
+  cap.position='custom';
+  $('captionPosition').value='custom';
+  syncCaptionSizeControls(cap);
+  $('captionTouchStatus').textContent='Pinch to resize: '+Math.round(value*100)+'%. Two-finger drag also moves the caption.';
+  touchWasEdited=true;
+ }else if(touchPointers.size===1&&dragAnchor){
+  const layout=captionLayout(ctx,cap,canvas.width,canvas.height);
+  Object.assign(cap,clampedCaptionAnchor(point.x+dragAnchor.offsetX,point.y+dragAnchor.offsetY,layout,canvas.width,canvas.height));
+  cap.position='custom';
+  $('captionPosition').value='custom';
+  $('captionTouchStatus').textContent='Moving caption · release your finger to keep this position.';
+  touchWasEdited=true;
+ }
+ requestDraw();
+});
+function finishCaptionPointer(event){
+ if(!touchPointers.has(event.pointerId))return;
+ touchPointers.delete(event.pointerId);
+ try{if(canvas.hasPointerCapture(event.pointerId))canvas.releasePointerCapture(event.pointerId)}catch{}
+ const cap=activeCaption();
+ if(cap&&touchPointers.size===1){
+  startOneFingerDrag(cap,[...touchPointers.values()][0]);
+ }else if(touchPointers.size<1){
+  dragAnchor=null;pinchOrigin=null;
+  if(touchWasEdited){
+   renderCaptions();
+   $('captionTouchStatus').textContent='Position and size saved to this caption. Your exported video will use the same settings.';
+   requestDraw();
+  }
+  touchWasEdited=false;
+ }
+}
+canvas.addEventListener('pointerup',finishCaptionPointer);
+canvas.addEventListener('pointercancel',finishCaptionPointer);
+canvas.addEventListener('lostpointercapture',event=>{
+ if(touchPointers.has(event.pointerId))finishCaptionPointer(event);
+});
+$('captionFontSize').addEventListener('input',event=>updateCaptionFont(event.target.value));
+for(const [id,direction] of [['captionSmaller',-1],['captionLarger',1]]){
+ $(id).onclick=()=>updateCaptionFont(Number($('captionFontSize').value)+direction*10);
+}
+$('captionCenter').onclick=()=>{
+ const cap=activeCaption();
+ if(!cap||state.exporting||state.captioning)return;
+ cap.x=.5;cap.y=.5;cap.position='custom';
+ $('captionPosition').value='custom';
+ requestDraw();renderCaptions();
+ $('captionTouchStatus').textContent='Caption moved to the centre of the video.';
+};
+$('captionPosition').addEventListener('change',event=>{
+ const cap=activeCaption();
+ if(!cap||state.exporting||state.captioning||event.target.value==='custom')return;
+ cap.position=event.target.value;
+ delete cap.x;delete cap.y;
+ requestDraw();
+ $('captionTouchStatus').textContent='Position preset applied. Drag it directly on the preview to place it precisely.';
+});
+
 // Event wiring
 ui.videoInput.addEventListener('change',e=>{const file=e.target.files?.[0];e.target.value='';void importFile(file)});
 ui.play.onclick=()=>{if(state.playing)pause();else void play()};
@@ -743,8 +919,11 @@ $('addCaption').onclick=()=>{
  if(state.editCaptionId){
   const target=state.captions.find(c=>c.id===state.editCaptionId);
   if(!target){state.editCaptionId=null;toast('Caption no longer exists.',true);return}
-  Object.assign(target,{text,start,end,position:$('captionPosition').value,color:$('captionColor').value});
- }else state.captions.push({id:key(),text,start,end,position:$('captionPosition').value,color:$('captionColor').value,origin:'manual'});
+  Object.assign(target,{text,start,end,position:$('captionPosition').value,color:$('captionColor').value,
+    fontScale:fontScale(Number($('captionFontSize').value)/100)});
+   if(target.position!=='custom'){delete target.x;delete target.y;}
+ }else state.captions.push({id:key(),text,start,end,position:$('captionPosition').value,
+    color:$('captionColor').value,fontScale:fontScale(Number($('captionFontSize').value)/100),origin:'manual'});
  state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';
  state.captions.sort((a,b)=>a.start-b.start);$('captionText').value='';renderCaptions();renderTimeline();void seekTimeline(start);toast('Caption saved to the timeline.');
 };
