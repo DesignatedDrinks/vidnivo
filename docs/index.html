@@ -320,7 +320,22 @@ input[type=range]{accent-color:#afc0ff}
 }
 
 </style>
-</head>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Barlow+Condensed&family=Bebas+Neue&family=DM+Sans&family=DM+Serif+Display&family=IBM+Plex+Mono&family=Inter&family=Libre+Baskerville&family=Lora&family=Manrope&family=Montserrat&family=Oswald&family=Outfit&family=Playfair+Display&family=Plus+Jakarta+Sans&family=Poppins&family=Raleway&family=Space+Grotesk&family=Space+Mono&display=swap');
+.rb-tools{border:1px solid #343c4a;background:#1b202a;padding:20px;border-radius:20px;display:grid;gap:12px}
+.rb-tools h2{font-size:24px;letter-spacing:-.7px;margin:0}
+.rb-tools select,.rb-tools input,.rb-tools textarea{background:#101722;border:1px solid #455163;color:#eef5ff;padding:12px;border-radius:10px;width:100%;font:inherit}
+.rb-tools textarea{min-height:105px;resize:vertical}.rb-tools label{font-weight:600;font-size:13px}
+.rb-tools .rb-p{background:#bcf57e;color:#142010;border:0;border-radius:10px;padding:11px;font-weight:800}
+.rb-tools .rb-s{background:#29313d;color:#f4f7fc;border:1px solid #4b5666;border-radius:10px;padding:10px}
+.rb-layout{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.rb-row{display:flex;gap:9px;flex-wrap:wrap}.rb-row button{flex:1;min-width:90px}
+.rb-note{color:#aebdcc;font-size:12px;margin:0;line-height:1.5}
+.rb-banner{background:#253b2b;padding:14px;border-radius:12px}
+.rb-inline{width:100%;min-height:65px;color:#fff;background:#151e2b;border:1px solid #64748b;border-radius:8px;padding:8px}
+.rb-directions button[aria-pressed=true]{border-color:#bcf57e;background:#2d4230}
+@media(max-width:540px){.rb-tools{padding:14px}.rb-tools h2{font-size:21px}}
+</style></head>
 <body>
   <header class="topbar">
     <div class="brand"><img class="brand-mark" src="./rollblink-mark.svg" alt="ROLLBLINK icon" width="37" height="37" /><span class="wordmark"><span>ROLL</span><span class="brand-accent">BLINK</span></span></div>
@@ -374,6 +389,23 @@ input[type=range]{accent-color:#afc0ff}
           <button id="creatorHookRemove" class="button ghost small" type="button">Remove title</button>
         </div>
         <div class="progress" aria-label="Auto-finish progress"><div id="creatorProgress"></div></div>
+      </section>
+
+      <section class="rb-tools" aria-label="Creator finishing tools">
+        <div class="rb-row"><h2 style="flex:1">Make it yours.</h2><button class="rb-s" id="rb-qa-button" type="button">Check video</button></div>
+        <div id="rb-qa" aria-live="polite" hidden></div>
+        <div class="rb-banner" id="rb-recover" hidden><strong>Previous edit available</strong><p class="rb-note" id="rb-recover-note"></p>
+          <div class="rb-row"><button id="rb-restore" class="rb-p" type="button">Restore</button><button id="rb-discard" class="rb-s" type="button">Discard</button></div></div>
+        <div class="rb-row rb-directions"><button class="rb-s" data-rb-direction="clean" aria-pressed="false">Clean</button><button class="rb-s" data-rb-direction="punchy" aria-pressed="false">Punchy</button><button class="rb-s" data-rb-direction="editorial" aria-pressed="false">Editorial</button></div>
+        <div class="rb-layout"><label>Caption font<select id="rb-font"></select></label>
+          <label>Post platform<select id="rb-platform"><option>Instagram</option><option>TikTok</option><option>YouTube Shorts</option><option>LinkedIn</option></select></label></div>
+        <div class="rb-row"><button id="rb-undo-look" class="rb-s" type="button" hidden>Undo style</button><button id="rb-undo-words" class="rb-s" type="button" hidden>Undo word fix</button></div>
+        <div class="rb-layout"><div><label for="rb-title">Opening title</label><textarea id="rb-title" maxlength="150"></textarea><button id="rb-add-title" class="rb-s">Add to video</button></div>
+          <div><label for="rb-post">Post copy</label><textarea id="rb-post"></textarea><div class="rb-row"><button id="rb-generate" class="rb-p">Generate</button><button id="rb-copy" class="rb-s">Copy</button></div></div></div>
+        <details><summary>AI server connection</summary><p class="rb-note">Optional protected server. Never enter your OpenAI API key in this editor.</p>
+        <label>Server URL<input id="rb-server" type="url" placeholder="https://your-rollblink-api.example" autocomplete="off"></label>
+        <label>Session access token<input id="rb-token" type="password" autocomplete="off" placeholder="Not your OpenAI key"></label></details>
+        <p id="rb-message" class="rb-note" role="status">Video stays local. Copy drafts use captions unless a protected AI server is connected.</p>
       </section>
       <div class="timeline-card"><div class="section-head"><div><h2 class="timeline-title">Timeline</h2></div><div class="section-actions"><label for="videoInput" class="button ghost small">+ Import</label><button id="split" class="button secondary small" disabled>✂ Split</button></div></div>
         <input id="scrubber" type="range" min="0" max="0" value="0" step="0.05" aria-label="Video playhead" disabled />
@@ -474,6 +506,7 @@ import {planContinuousExport,PlaybackSyncGuard,inspectRecordedTracks,probeRecord
 import {fontScale,captionAnchor,captionLayout,clampedCaptionAnchor,pointInCaption,gestureDistance,midpoint} from './rollblink-caption-touch.js';
 import {STYLES,getStyle,loadStyle,saveStyle,styleCaptions,planSpeechEdgeTrim,shiftTimedCaptions,suggestOpeningHooks} from './rollblink-autopilot.js';
 import {drawBrandWatermark,normalizeWatermark} from './rollblink-branding.js';
+import {FONT_CHOICES,fontById,transcriptText,draftSocialCopy,EDIT_DIRECTIONS,applyDirection,inspectEdit,projectSnapshot,canRestoreSnapshot,hydrateSnapshot} from './rollblink-creator-kit.js';
 // ROLLBLINK Browser Studio — all source media remains in local object URLs.
 // Exports use the browser's own MediaRecorder; no video is sent to a server.
 const $ = id => document.getElementById(id);
@@ -483,7 +516,7 @@ const canvas = $('preview');
 const ctx = canvas.getContext('2d', {alpha: false});
 const ui = {videoInput:$('videoInput'),play:$('play'),scrubber:$('scrubber'),timeline:$('timeline'),empty:$('emptyState'),trimStart:$('trimStart'),trimEnd:$('trimEnd'),speed:$('speed'),export:$('export'),status:$('exportStatus'),progress:$('exportProgress'),download:$('download')};
 const state = {
- sources:[], clips:[], captions:[], selected:null, position:0,
+ sources:[], clips:[], captions:[], captionFontId:'inter', selected:null, position:0,
  ratio:'9:16', playing:false, exporting:false, captioning:false, selectedTab:'edit',
   look:'original', enhancement:null, editCaptionId:null, faceRetouch:0, faceLoading:false,
   voicePolish:false, creatorBusy:false, creatorStyle:null, creatorCustom:null,
@@ -589,7 +622,7 @@ function drawFrame(){
   const {x,y,size,leading,lines,bounds}=layout;
   captionHitBoxes.push({id:cap.id,bounds});
   ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font='900 '+size.toFixed(2)+'px '+(state.captionFontFamily||'system-ui,sans-serif');
+  ctx.font='900 '+size.toFixed(2)+'px '+fontById(cap.fontId||state.captionFontId).family;
   ctx.lineJoin='round';
   lines.forEach((line,i)=>{
    const yy=y+(i-(lines.length-1)/2)*leading;
@@ -787,7 +820,7 @@ async function importFile(file){
   const oldTotal=total();state.clips.push(clip);state.selected=clip.id;
   ui.empty.hidden=true;
   renderTimeline();renderEditor();void seekTimeline(oldTotal);
-  toast('Imported '+file.name+'. Select a clip to trim or split.');
+  toast('Imported '+file.name+'. Select a clip to trim or split.');rbCheckRecovery();
  }catch(e){URL.revokeObjectURL(url);toast(e.message||String(e),true)}
  finally{probe.removeAttribute('src');probe.load();hideProcessing('import')}
 }
@@ -847,6 +880,24 @@ function renderCaptions(){
    if(state.editCaptionId===cap.id){state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';$('captionTouchStatus').textContent='Caption deleted. Tap another to move or resize it.'}
    renderCaptions();renderTimeline();
   };
+
+  const fix=document.createElement('button');fix.textContent='Fix words';
+  fix.onclick=()=>{
+   if(state.exporting||state.captioning)return;
+   const input=document.createElement('textarea');input.value=cap.text;input.maxLength=240;input.className='rb-inline';
+   const save=document.createElement('button');save.textContent='Save';
+   const cancel=document.createElement('button');cancel.textContent='Cancel';
+   detail.replaceChild(input,text);controls.replaceChildren(save,cancel);input.focus();
+   save.onclick=()=>{
+    const next=input.value.trim();if(!next)return;
+    rbLastFix={id:cap.id,text:cap.text};cap.text=next;$('rb-undo-words').hidden=false;
+    renderCaptions();requestDraw();rbSave();
+    $('rb-message').textContent='Words corrected without changing timing.';
+   };
+   cancel.onclick=renderCaptions;
+   input.onkeydown=e=>{if(e.key==='Escape')renderCaptions();if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();save.click()}};
+  };
+  controls.prepend(fix);
   controls.append(edit,remove);item.append(detail,controls);node.append(item);
  });
 }
@@ -1021,7 +1072,7 @@ async function runAutoCaptions(options={}){
   const model=await getLocalSpeechModel();
   captionProgress('Transcribing English speech locally · this can take several minutes on a phone…',84);
   const result=await model(speech,{return_timestamps:'word',chunk_length_s:30,stride_length_s:5});
-  let captions=segmentsFromTranscript(result,total());
+  let captions=segmentsFromTranscript(result,total()).map(c=>({...c,fontId:state.captionFontId}));
   if(options.style)captions=styleCaptions(captions,options.style);
   let trimmed=null;
   if(options.tighten&&state.clips.length===1&&state.captions.every(c=>c.origin==='auto')){
@@ -1090,6 +1141,7 @@ const waitRecorderStop=recorder=>new Promise((resolve,reject)=>{
 });
 let exportTimer=null;
 async function startExport(){
+ const pre=rbCheckVideo();if(!pre.ok){toast('Fix issues under Check video before exporting.',true);return}
  if(!state.clips.length||state.exporting||state.captioning||state.faceLoading||state.creatorBusy)return;
  if(state.faceRetouch>0&&!faceTracker.supported){
   toast('Face Retouch is still loading. Turn it off or retry after the model loads.',true);return;
@@ -1249,7 +1301,7 @@ function reset(){
  if(state.exporting||state.captioning||state.creatorBusy){toast('Finish the current edit before starting a new project.',true);return}
  if(state.clips.length&&!confirm('Start a new project? This removes the current timeline and captions (not the original files).'))return;
  pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];$('creatorHookPanel').hidden=true;state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.faceRetouch=0;state.voicePolish=false;applyVoicePolish();faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;touchPointers.clear();dragAnchor=null;pinchOrigin=null;$('captionFontSize').value='100';$('captionFontSizeLabel').textContent='100%';$('captionTouchStatus').textContent='';$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
- video.removeAttribute('src');video.load();ui.empty.hidden=false;ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();renderEditor();renderCaptions();toast('Ready for a new project.');
+ video.removeAttribute('src');video.load();ui.empty.hidden=false;ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();renderEditor();renderCaptions();rbDiscard(false);toast('Ready for a new project.');
 }
 function canvasGesturePoint(event){
  const rect=canvas.getBoundingClientRect();
@@ -1568,7 +1620,7 @@ $('addCaption').onclick=()=>{
     fontScale:fontScale(Number($('captionFontSize').value)/100)});
    if(target.position!=='custom'){delete target.x;delete target.y;}
  }else state.captions.push({id:key(),text,start,end,position:$('captionPosition').value,
-    color:$('captionColor').value,fontScale:fontScale(Number($('captionFontSize').value)/100),origin:'manual'});
+    color:$('captionColor').value,fontScale:fontScale(Number($('captionFontSize').value)/100),fontId:state.captionFontId,origin:'manual'});
  state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';
  state.captions.sort((a,b)=>a.start-b.start);$('captionText').value='';renderCaptions();renderTimeline();void seekTimeline(start);toast('Caption saved to the timeline.');
 };
@@ -1640,47 +1692,126 @@ const codec=preferredMime();$('outputFormat').textContent=codec?(codec.includes(
 loadCreatorPreference();
 ui.download.hidden=true;renderTimeline();renderEditor();renderCaptions();drawFrame();requestAnimationFrame(tick);
 
-const rbFonts=[['Modern Sans','Inter,system-ui,sans-serif'],['Classic Sans','Arial,Helvetica,sans-serif'],['Editorial Serif','Georgia,serif'],['Cinematic','Impact,Arial Black,sans-serif'],['Mono','Courier New,monospace'],['Humanist','Trebuchet MS,sans-serif'],['Book','Palatino Linotype,Palatino,serif'],['Technical','Lucida Console,monospace'],['Rounded','Verdana,sans-serif'],['Elegant','Times New Roman,serif']];
-const rbFontSelect=$('rb-font');
-for(const [name,family] of rbFonts){const o=document.createElement('option');o.value=family;o.textContent=name;o.style.fontFamily=family;rbFontSelect.append(o)}
-$('rb-apply-font').onclick=()=>{state.captionFontFamily=rbFontSelect.value;requestDraw();$('rb-message').textContent='Caption font applied to preview and browser export.'};
-const rbTranscript=()=>state.captions.slice().sort((a,b)=>a.start-b.start).map(x=>x.text.trim()).filter(Boolean).join(' ').replace(/\\s+/g,' ').trim();
-$('rb-generate').onclick=()=>{
- const transcript=rbTranscript();
- if(!transcript){$('rb-message').textContent='Generate captions first, then create a title and post.';return}
- const sentences=transcript.match(/[^.!?]+[.!?]?/g)||[transcript];
- const hook=(sentences.find(s=>s.trim().split(/\\s+/).length>=5)||sentences[0]).trim();
- $('rb-title').value=hook.split(/\\s+/).slice(0,10).join(' ').replace(/[.,;:]$/,'');
- const platform=$('rb-platform').value;
- const excerpt=sentences.slice(0,3).join(' ').trim();
- const question='What do you think?';
- $('rb-post').value=platform==='YouTube Shorts'?$('rb-title').value+'\\n\\n'+excerpt+'\\n\\n#Shorts':platform==='LinkedIn'?excerpt+'\\n\\n'+question:platform==='TikTok'?$('rb-title').value+'\\n\\n'+excerpt+'\\n\\n#TikTok':$('rb-title').value+'\\n\\n'+excerpt+'\\n\\n'+question;
- $('rb-message').textContent='Transcript-based draft created. Review before publishing. AI rewriting is not connected yet.';
+
+const RB_DRAFT='rollblink:metadata-draft:v2';
+let rbPending=null,rbPrevious=null,rbLastFix=null;
+try{rbPending=JSON.parse(localStorage.getItem(RB_DRAFT)||'null')}catch{}
+try{state.captionFontId=fontById(localStorage.getItem('rollblink:font')||'inter').id}catch{}
+for(const font of FONT_CHOICES){const o=document.createElement('option');o.value=font.id;o.textContent=font.name;o.style.fontFamily=font.family;$('rb-font').append(o)}
+$('rb-font').value=state.captionFontId;
+async function rbFontReady(){try{await document.fonts.load('900 30px '+fontById(state.captionFontId).family)}catch{}requestDraw()}
+$('rb-font').onchange=()=>{
+ state.captionFontId=fontById($('rb-font').value).id;
+ state.captions.forEach(c=>c.fontId=state.captionFontId);
+ try{localStorage.setItem('rollblink:font',state.captionFontId)}catch{}
+ void rbFontReady();rbSave();
 };
-$('rb-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('rb-post').value);$('rb-message').textContent='Post copied.'}catch{$('rb-post').select();$('rb-message').textContent='Select and copy the post manually.'}};
+void rbFontReady();
+function rbCheckVideo(){
+ const report=inspectEdit({clips:state.clips,captions:state.captions,sources:state.sources,duration:total(),ratio:state.ratio});
+ const exportPlan=planContinuousExport(state.clips);
+ if(!exportPlan.ok)report.problems.unshift({level:'error',text:exportPlan.reason});
+ report.ok=report.ok&&exportPlan.ok;
+ const box=$('rb-qa');box.hidden=false;box.replaceChildren();
+ for(const issue of report.problems){
+  const row=document.createElement('p');row.className='rb-note';row.textContent=(issue.level==='error'?'✕ ':'⚠ ')+issue.text;box.append(row);
+ }
+ if(!report.problems.length){const row=document.createElement('p');row.className='rb-note';row.textContent='✓ Passed timeline checks. Watch the exported file before posting.';box.append(row)}
+ return report;
+}
+$('rb-qa-button').onclick=rbCheckVideo;
+function rbSave(){
+ if(rbPending||!state.clips.length)return;
+ try{localStorage.setItem(RB_DRAFT,JSON.stringify(projectSnapshot(state)))}catch{
+  $('rb-message').textContent='Draft metadata could not be saved in this browser.';
+ }
+}
+function rbCheckRecovery(){
+ $('rb-recover').hidden=!rbPending;if(!rbPending)return;
+ $('rb-recover-note').textContent='Re-import '+(rbPending.sources||[]).map(x=>x.name).join(', ')+' to restore. Media files are never saved.';
+ $('rb-restore').disabled=!canRestoreSnapshot(rbPending,state.sources);
+}
+function rbDiscard(save=true){
+ rbPending=null;try{localStorage.removeItem(RB_DRAFT)}catch{}
+ $('rb-recover').hidden=true;if(save)rbSave();
+}
+$('rb-discard').onclick=()=>rbDiscard();
+$('rb-restore').onclick=()=>{
+ try{
+  const d=hydrateSnapshot(rbPending,state.sources,key);pause();
+  state.clips=d.clips;state.captions=d.captions;state.selected=d.clips[0].id;state.position=0;
+  state.ratio=d.ratio;state.look=d.look;state.voicePolish=d.voicePolish;state.captionFontId=d.fontId;
+  $('rb-font').value=d.fontId;applyVoicePolish();
+  document.querySelectorAll('[data-look]').forEach(b=>b.classList.toggle('active',b.dataset.look===d.look));
+  document.querySelectorAll('[data-ratio]').forEach(b=>b.classList.toggle('active',b.dataset.ratio===d.ratio));
+  rbPending=null;$('rb-recover').hidden=true;
+  renderTimeline();renderEditor();renderCaptions();void rbFontReady();void seekTimeline(0);rbSave();
+  $('rb-message').textContent='Edit restored. Verify the captions and export.';
+ }catch(e){$('rb-message').textContent='Restore failed: '+(e.message||String(e))}
+};
+rbCheckRecovery();setInterval(rbSave,3000);window.addEventListener('pagehide',rbSave);
+document.querySelectorAll('[data-rb-direction]').forEach(button=>button.onclick=()=>{
+ if(!state.clips.length||state.exporting||state.captioning){$('rb-message').textContent='Import a video first.';return}
+ if(!rbPrevious)rbPrevious={captions:state.captions.map(c=>({...c})),look:state.look,fontId:state.captionFontId};
+ const p=EDIT_DIRECTIONS[button.dataset.rbDirection];state.captions=applyDirection(rbPrevious.captions,button.dataset.rbDirection);
+ state.look=p.look;state.captionFontId=p.font;$('rb-font').value=p.font;
+ document.querySelectorAll('[data-rb-direction]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
+ document.querySelectorAll('[data-look]').forEach(b=>b.classList.toggle('active',b.dataset.look===p.look));
+ $('rb-undo-look').hidden=false;renderCaptions();void rbFontReady();requestDraw();rbSave();
+ $('rb-message').textContent=p.name+' visual direction applied. This does not make automatic cuts.';
+});
+$('rb-undo-look').onclick=()=>{
+ if(!rbPrevious)return;state.captions=rbPrevious.captions;state.look=rbPrevious.look;state.captionFontId=rbPrevious.fontId;rbPrevious=null;
+ $('rb-font').value=state.captionFontId;$('rb-undo-look').hidden=true;
+ document.querySelectorAll('[data-rb-direction]').forEach(b=>b.setAttribute('aria-pressed','false'));
+ document.querySelectorAll('[data-look]').forEach(b=>b.classList.toggle('active',b.dataset.look===state.look));
+ renderCaptions();void rbFontReady();rbSave();requestDraw();
+};
+$('rb-undo-words').onclick=()=>{
+ if(!rbLastFix)return;const c=state.captions.find(c=>c.id===rbLastFix.id);
+ if(c){c.text=rbLastFix.text;renderCaptions();requestDraw();rbSave()}rbLastFix=null;$('rb-undo-words').hidden=true;
+};
 $('rb-add-title').onclick=()=>{
- const title=$('rb-title').value.trim();if(!title||!state.clips.length){$('rb-message').textContent='Import a video and enter a title first.';return}
- state.captions.push({id:key(),text:title,start:0,end:Math.min(2.5,total()),position:'top',color:'#FFFFFF',fontScale:1,origin:'manual'});
- state.captions.sort((a,b)=>a.start-b.start);renderCaptions();renderTimeline();requestDraw();$('rb-message').textContent='Title added at the start of the video.';
+ if(!state.clips.length||state.exporting||state.captioning)return;
+ const text=$('rb-title').value.trim();if(!text)return;
+ state.captions=state.captions.filter(c=>c.origin!=='title');
+ state.captions.push({id:key(),text:text.slice(0,150),start:0,end:Math.min(total(),2.5),
+  color:'#FFFFFF',position:'top',fontId:state.captionFontId,fontScale:1.2,origin:'title'});
+ renderCaptions();renderTimeline();requestDraw();rbSave();
+ $('rb-message').textContent='Opening title added. Adjust placement using the Captions tab.';
+};
+$('rb-generate').onclick=async()=>{
+ const words=transcriptText(state.captions);
+ if(!words){$('rb-message').textContent='Generate captions first.';return}
+ const platform=$('rb-platform').value,server=$('rb-server').value.trim(),token=$('rb-token').value.trim();
+ $('rb-generate').disabled=true;
+ try{
+  let result;
+  if(!server){result=draftSocialCopy(platform,state.captions)}
+  else{
+   if(!token)throw Error('Enter the protected server access token, not your OpenAI key.');
+   const endpoint=server.endsWith('/api/generate')?server:server.replace(/\/$/,'')+'/api/generate';
+   const url=new URL(endpoint,location.href);
+   if(url.protocol!=='https:'&&url.hostname!=='localhost')throw Error('An HTTPS AI endpoint is required.');
+   const response=await fetch(url.toString(),{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+    body:JSON.stringify({transcript:words,platform})});
+   const data=await response.json().catch(()=>({}));
+   if(!response.ok)throw Error(data.error||'AI endpoint unavailable.');
+   if(typeof data.title!=='string'||typeof data.copy!=='string')throw Error('Invalid AI response.');
+   result=data;
+  }
+  $('rb-title').value=String(result.title).slice(0,150);
+  $('rb-post').value=String(result.copy).slice(0,5000);
+  $('rb-message').textContent=server?'AI draft ready. Review before posting.':'Transcript draft ready. Connect your secure AI server for rewritten copy.';
+ }catch(e){$('rb-message').textContent='Could not generate: '+(e.message||String(e))}
+ finally{$('rb-generate').disabled=false}
+};
+$('rb-copy').onclick=async()=>{
+ try{await navigator.clipboard.writeText($('rb-post').value);$('rb-message').textContent='Copied.'}
+ catch{$('rb-post').select();$('rb-message').textContent='Select and copy the text.'}
 };
 
 </script>
 
-<style>
-#rb-creator-tools{margin:18px auto;max-width:1050px;padding:22px;border:1px solid #363c4b;border-radius:22px;background:#171b25;color:#f5f8fc}
-#rb-creator-tools h2{font-size:22px;margin:0 0 10px}#rb-creator-tools p{color:#a9b4c5}
-.rb-tools-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
-#rb-creator-tools select,#rb-creator-tools textarea,#rb-creator-tools input{width:100%;background:#232a37;color:white;border:1px solid #4a5262;border-radius:10px;padding:12px;margin:7px 0}
-#rb-creator-tools button{border:0;border-radius:12px;background:#b9f567;color:#152016;padding:12px 16px;font-weight:700;margin:6px 5px 6px 0}
-#rb-creator-tools textarea{min-height:125px;resize:vertical}#rb-creator-tools label{display:block;font-weight:600;margin-top:12px}
-</style>
-<section id="rb-creator-tools" aria-label="Creator tools">
-<h2>Creator tools</h2><p>Style captions. Turn your video's words into titles and ready-to-post social copy.</p>
-<div class="rb-tools-grid"><div><label for="rb-font">Caption font</label><select id="rb-font"></select><button id="rb-apply-font" type="button">Apply font</button></div>
-<div><label for="rb-platform">Post platform</label><select id="rb-platform"><option>Instagram</option><option>TikTok</option><option>YouTube Shorts</option><option>LinkedIn</option></select><button id="rb-generate" type="button">Generate from captions</button></div></div>
-<label for="rb-title">On-screen title suggestion</label><textarea id="rb-title" placeholder="Generated from spoken words"></textarea><button id="rb-add-title" type="button">Add title to video</button>
-<label for="rb-post">Post copy</label><textarea id="rb-post" placeholder="Post copy appears here"></textarea><button id="rb-copy" type="button">Copy post</button>
-<p id="rb-message" role="status">Uses your existing captions as the source. AI generation requires a secure server endpoint; never paste an API key into this page.</p>
-</section>
 </body>
 </html>
