@@ -55,8 +55,8 @@ test('rejects growing audio/video drift and paused or discontinuous playback',()
  const paused=new sync.PlaybackSyncGuard({start:0,expectedDuration:4});
  assert.throws(()=>paused.sample({now:0,mediaTime:0,paused:true}),/stopped/);
  const seek=new sync.PlaybackSyncGuard({start:3,expectedDuration:4});
- seek.sample({now:0,mediaTime:3});
- assert.throws(()=>seek.sample({now:100,mediaTime:2.8}),/backwards/);
+ seek.sample({now:0,mediaTime:3.5});
+ assert.throws(()=>seek.sample({now:100,mediaTime:3.35}),/backwards/);
  const stall=new sync.PlaybackSyncGuard({start:0,expectedDuration:5});
  stall.sample({now:0,mediaTime:0});
  assert.throws(()=>stall.sample({now:1800,mediaTime:1.8}),/stalled/);
