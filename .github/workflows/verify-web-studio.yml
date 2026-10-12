@@ -8,6 +8,9 @@ on:
       - 'docs/vidnivo-filters.js'
       - 'vidnivo-face-retouch.js'
       - 'docs/vidnivo-face-retouch.js'
+      - 'vidnivo-export-sync.js'
+      - 'docs/vidnivo-export-sync.js'
+      - 'tests/web-export-sync.test.mjs'
       - 'tests/web-face-retouch.test.mjs'
       - 'tests/web-studio.test.mjs'
       - '.github/workflows/verify-web-studio.yml'
@@ -20,6 +23,9 @@ on:
       - 'docs/vidnivo-filters.js'
       - 'vidnivo-face-retouch.js'
       - 'docs/vidnivo-face-retouch.js'
+      - 'vidnivo-export-sync.js'
+      - 'docs/vidnivo-export-sync.js'
+      - 'tests/web-export-sync.test.mjs'
       - 'tests/web-face-retouch.test.mjs'
       - 'tests/web-studio.test.mjs'
       - '.github/workflows/verify-web-studio.yml'
@@ -32,7 +38,7 @@ jobs:
         with:
           node-version: '22'
       - name: Test real browser editor, subtitle mapping and Safari filters
-        run: node --test tests/web-studio.test.mjs tests/web-face-retouch.test.mjs
+        run: node --test tests/web-studio.test.mjs tests/web-face-retouch.test.mjs tests/web-export-sync.test.mjs
       - name: Verify real face-tracking assets resolve over HTTPS
         shell: bash
         run: |
