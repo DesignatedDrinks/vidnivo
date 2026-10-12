@@ -575,12 +575,12 @@ async function getLocalSpeechModel(){
  }catch(e){throw Error('The speech model could not start on this device. It may lack memory, WebAssembly support, or model download access. '+(e?.message||''))}
  return localSpeechModel;
 }
-async function runAutoCaptions(){
- if(!state.clips.length){captionProgress('Import a video before generating captions.',0,true);return}
- if(state.captioning||state.exporting)return;
- if(total()>120){captionProgress('Auto Captions beta supports up to 120 seconds of edited video. Trim it first.',0,true);return}
+async function runAutoCaptions(options={}){
+ if(!state.clips.length){captionProgress('Import a video before generating captions.',0,true);return {error:'No footage imported'}}
+ if(state.captioning||state.exporting)return {error:'Editor busy'};
+ if(total()>120){captionProgress('Auto Captions beta supports up to 120 seconds of edited video. Trim it first.',0,true);return {error:'Longer than 120 seconds'}}
  if(!window.MediaRecorder||!(window.AudioContext||window.webkitAudioContext)){
-  captionProgress('This browser cannot capture audio for local AI captions. Use current Safari or Chrome.',0,true);return;
+  captionProgress('This browser cannot capture audio for local AI captions. Use current Safari or Chrome.',0,true);return {error:'Audio capture unsupported'};
  }
  const oldPosition=state.position;
  state.captioning=true;renderTimeline();
@@ -593,7 +593,22 @@ async function runAutoCaptions(){
   const model=await getLocalSpeechModel();
   captionProgress('Transcribing English speech locally · this can take several minutes on a phone…',84);
   const result=await model(speech,{return_timestamps:true,chunk_length_s:30,stride_length_s:5});
-  const captions=segmentsFromTranscript(result,total());
+  let captions=segmentsFromTranscript(result,total());
+  if(options.style)captions=styleCaptions(captions,options.style);
+  let trimmed=null;
+  if(options.tighten&&state.clips.length===1&&state.captions.every(c=>c.origin==='auto')){
+   const timeline=state.clips[0];
+   // Automatically trim only the head/tail, retaining synced source audio.
+   const firstSpeech=Math.min(...captions.map(c=>c.start));
+   const lastSpeech=Math.max(...captions.map(c=>c.end));
+   const plan=planSpeechEdgeTrim({duration:total(),firstSpeech,lastSpeech});
+   if(plan.valid&&(plan.front>0||plan.back>0)){
+    timeline.start+=plan.front*timeline.speed;
+    timeline.end-=plan.back*timeline.speed;
+    captions=shiftTimedCaptions(captions,plan.front,plan.newDuration);
+    trimmed={front:plan.front,back:plan.back};
+   }
+  }
   // Keep existing manually authored captions; regenerate auto captions as a group.
   state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';touchPointers.clear();pinchOrigin=null;
   state.captions=[...state.captions.filter(c=>c.origin!=='auto'),...captions]
@@ -601,8 +616,11 @@ async function runAutoCaptions(){
   renderCaptions();renderTimeline();requestDraw();
   captionProgress('✓ '+captions.length+' timed captions generated. Review the words and timing before publishing.',100);
   toast(captions.length+' automatic captions added to your video.');
+  return {captions,trimmed};
  }catch(error){
-  captionProgress('Auto Captions unavailable: '+(error?.message||String(error)),0,true);
+  const message=error?.message||String(error);
+  captionProgress('Auto Captions unavailable: '+message,0,true);
+  return {error:message};
  }finally{
   pause();state.captioning=false;renderTimeline();
   await seekTimeline(clamp(oldPosition,0,total()));
@@ -613,17 +631,29 @@ function preferredMime(){
  const types=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
  return types.find(t=>MediaRecorder.isTypeSupported(t))||null;
 }
+function applyVoicePolish(){
+ if(!state.audioContext)return;
+ const now=state.audioContext.currentTime;
+ state.audioCompressor.threshold.setTargetAtTime(state.voicePolish?-18:0,now,.02);
+ state.audioCompressor.ratio.setTargetAtTime(state.voicePolish?2.5:1,now,.02);
+ state.audioMaster.gain.setTargetAtTime(state.voicePolish?1.08:1,now,.02);
+}
 function setupAudio(){
- if(state.audioContext)return;
+ if(state.audioContext){applyVoicePolish();return}
  const AudioContext=window.AudioContext||window.webkitAudioContext;
  if(!AudioContext)return;
  const context=new AudioContext();
- const source=context.createMediaElementSource(video);const destination=context.createMediaStreamDestination();
- source.connect(destination);
-  const monitor=context.createGain();
-  source.connect(monitor);monitor.connect(context.destination);
-  state.audioMonitor=monitor;
+ const source=context.createMediaElementSource(video);
+ const compressor=context.createDynamicsCompressor();
+ compressor.knee.value=16;compressor.attack.value=.008;compressor.release.value=.22;
+ const master=context.createGain();
+ const destination=context.createMediaStreamDestination();
+ const monitor=context.createGain();
+ source.connect(compressor);compressor.connect(master);
+ master.connect(destination);master.connect(monitor);monitor.connect(context.destination);
  state.audioContext=context;state.audioDestination=destination;state.audioInput=source;
+ state.audioCompressor=compressor;state.audioMaster=master;state.audioMonitor=monitor;
+ applyVoicePolish();
 }
 const waitRecorderStop=recorder=>new Promise((resolve,reject)=>{
  recorder.addEventListener('stop',resolve,{once:true});
