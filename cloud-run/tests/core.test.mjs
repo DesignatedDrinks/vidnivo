@@ -13,7 +13,12 @@ function fakeDeps(overrides={}){
   verifyToken:async token=>{if(token!=='valid-token')throw Error('Invalid');return {uid:user};},
   getProfile:async id=>id===user?{displayName:'Creator'}:null,
   saveProfile:async()=>{},
-  listMedia:async()=>[...existing.values()],
+  listMedia:async(id,after=null,limit=50)=>{
+   const items=[...existing.values()].sort((a,b)=>a.assetId.localeCompare(b.assetId))
+    .filter(x=>!after||x.assetId>after);
+   return {media:items.slice(0,limit),
+    nextCursor:items.length>limit?items[limit-1].assetId:null};
+  },
   getMedia:async(id,assetId)=>existing.get(assetId)||null,
   checkObject:async()=>({size:1024,contentType:'video/mp4'}),
   registerMedia:async(id,media)=>{existing.set(media.assetId,media);},
@@ -145,4 +150,21 @@ test('storage removal failures retain metadata for safe retries',async t=>{
  const preflight=await fetch(base+'/api/v1/media/0123456789ABCDEF',{
   method:'OPTIONS',headers:{Origin:allow[0]}});
  assert.match(preflight.headers.get('access-control-allow-methods'),/DELETE/);
+});
+
+test('media list uses stable paginated cursors and rejects malformed cursors',async t=>{
+ const original=fakeDeps();
+ const ids=['11111111','22222222','33333333'];
+ for(const assetId of ids){
+  await original.registerMedia(user,{assetId,name:assetId+'.mp4',
+   objectPath:'users/'+user+'/media/'+assetId+'/sample.mp4',size:8});
+ }
+ const base=await fixture(t,original);
+ const first=await fetch(base+'/api/v1/media',{headers});
+ assert.equal(first.status,200);
+ assert.deepEqual((await first.json()).media.map(item=>item.assetId),ids);
+ const second=await fetch(base+'/api/v1/media?after=11111111',{headers});
+ assert.deepEqual((await second.json()).media.map(item=>item.assetId),ids.slice(1));
+ const invalid=await fetch(base+'/api/v1/media?after=%2E%2E',{headers});
+ assert.equal(invalid.status,400);
 });
