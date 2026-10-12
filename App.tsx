@@ -82,6 +82,7 @@ function EditorApp() {
   const [namePrompt, setNamePrompt] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [busy, setBusy] = useState(false);
+  const [rendering,setRendering]=useState(false);
   const [lastExport, setLastExport] = useState<string | null>(null);
   const [savedVideos,setSavedVideos]=useState<SavedVideo[]>([]);
   const [showAllExports,setShowAllExports]=useState(false);
@@ -486,7 +487,7 @@ function EditorApp() {
     const audit=analyzeCreatorProject(project,Platform.OS==='android'?'android':'ios',exportQuality);
     if(!audit.canExport){setCreatorReviewOpen(true);return;}
     try {
-      setPlaying(false); setBusy(true);
+      setPlaying(false); setBusy(true); setRendering(true);
       const uri = await exportMp4(project, exportQuality);
       setLastExport(uri);
       Alert.alert('Export verified', 'The MP4 passed native video, duration and format checks, and was saved in VIDNIVO’s finished-video library.', [
@@ -495,7 +496,7 @@ function EditorApp() {
       ]);
     } catch (e) {
       Alert.alert('Export unavailable', e instanceof Error ? e.message : String(e));
-    } finally { setBusy(false); }
+    } finally { setBusy(false);setRendering(false); }
   };
   const showStoryFinder=()=>{
     if(!project)return;
@@ -1275,7 +1276,18 @@ function EditorApp() {
         </View>
       </View>
     </Modal>
-    {busy && <View style={styles.busy}><ActivityIndicator color={theme.accent} /></View>}
+    {busy && <View style={styles.busy}>
+      <ActivityIndicator color={theme.accent} size="large"/>
+      {rendering?<View style={{maxWidth:270,alignItems:'center',gap:7}}>
+        <Text style={{color:theme.text,fontSize:15,fontWeight:'800',textAlign:'center'}}>
+          Rendering and verifying your MP4
+        </Text>
+        <Text style={{color:theme.muted,fontSize:12,textAlign:'center',lineHeight:17}}>
+          Keep VIDNIVO open. Your original clips are safe. The finished video
+          will appear in your library after its tracks and timing are checked.
+        </Text>
+      </View>:null}
+    </View>}
     <StatusBar style="light" />
   </View>;
 }
