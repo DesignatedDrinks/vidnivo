@@ -30,6 +30,25 @@ private struct RenderRequest: Decodable {
   let durationMs: Double
   let clips: [RenderClip]
   let texts: [RenderText]
+  let look: RenderLook?
+}
+private struct RenderLook: Decodable {
+  let preset: String
+  let intensity: Int
+}
+private func tintForLook(_ look: RenderLook?) -> (CGColor, CGFloat)? {
+  guard let look = look else { return nil }
+  let colors: [String:(UInt64,CGFloat)] = [
+    "warm":(0xFFBA74,0.16), "cool":(0x4C9CE5,0.16),
+    "cinema":(0x375E66,0.20), "sunset":(0xE97D42,0.22),
+    "vintage":(0xC3AD77,0.21), "rose":(0xDB789C,0.19),
+    "night":(0x364D7B,0.22)
+  ]
+  guard let (rgb,strength) = colors[look.preset] else { return nil }
+  let alpha = strength * CGFloat(max(0,min(100,look.intensity))) / 100.0
+  guard alpha > 0 else { return nil }
+  let hex = String(format:"#%06X",rgb)
+  return (color(hex),alpha)
 }
 private enum RenderError: LocalizedError {
   case invalidInput(String)
@@ -215,12 +234,19 @@ public class VidnivoExportModule: Module {
     videoComposition.frameDuration = CMTime(value: 1, timescale: 30)
     videoComposition.instructions = [instruction]
 
-    if !request.texts.isEmpty {
+    if !request.texts.isEmpty || tintForLook(request.look) != nil {
       let root = CALayer()
       let videoLayer = CALayer()
       root.frame = CGRect(origin: .zero, size: size)
       videoLayer.frame = root.bounds
       root.addSublayer(videoLayer)
+      if let (tintColor,alpha) = tintForLook(request.look) {
+        let tintLayer = CALayer()
+        tintLayer.frame = root.bounds
+        tintLayer.backgroundColor = tintColor
+        tintLayer.opacity = Float(alpha)
+        root.addSublayer(tintLayer)
+      }
       request.texts.forEach { root.addSublayer(makeTextLayer($0, size: size, duration: request.durationMs)) }
       videoComposition.animationTool = AVVideoCompositionCoreAnimationTool(
         postProcessingAsVideoLayer: videoLayer, in: root)

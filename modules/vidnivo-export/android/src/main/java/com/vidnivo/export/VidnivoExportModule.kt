@@ -2,6 +2,8 @@ package com.vidnivo.export
 
 import android.net.Uri
 import android.graphics.Color
+import android.graphics.Bitmap
+import androidx.media3.effect.BitmapOverlay
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
@@ -148,6 +150,25 @@ class VidnivoExportModule : Module() {
           }
 
           val overlays=ArrayList<TextureOverlay>()
+          val look=plan.optJSONObject("look")
+          val lookName=look?.optString("preset","none") ?: "none"
+          val lookStrength=look?.optDouble("intensity",100.0) ?: 100.0
+          val lookColors=mapOf(
+            "warm" to Pair(0xFFBA74,.16), "cool" to Pair(0x4C9CE5,.16),
+            "cinema" to Pair(0x375E66,.20), "sunset" to Pair(0xE97D42,.22),
+            "vintage" to Pair(0xC3AD77,.21), "rose" to Pair(0xDB789C,.19),
+            "night" to Pair(0x364D7B,.22))
+          val tint=lookColors[lookName]
+          if(tint!=null && lookStrength>0.0) {
+            val alpha=(tint.second*(lookStrength/100.0).coerceIn(0.0,1.0)*255)
+              .toInt().coerceIn(0,255)
+            if(alpha>0) {
+              val bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888)
+              bitmap.eraseColor(Color.argb(alpha,
+                (tint.first shr 16) and 255,(tint.first shr 8) and 255,tint.first and 255))
+              overlays.add(BitmapOverlay.createStaticBitmapOverlay(bitmap))
+            }
+          }
           for (index in 0 until texts.length()) {
             val label=texts.getJSONObject(index)
             val fromMs=label.getDouble("startMs")
