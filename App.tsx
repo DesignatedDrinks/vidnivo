@@ -19,9 +19,15 @@ import { addCaptionCues, groupRecognizedWords, mapWordsToTimeline,
   parseCaptions, restyleCaptions, captionsFromProject, serializeSrt,
   type CaptionPreset } from './src/domain/captions';
 import { speechRecognitionAvailable, transcribeLocalVideo } from './src/media/speech';
-import { planSilenceRemoval, applySilenceRemoval } from './src/domain/silenceCuts';
+import {proposeSpeechGaps,applyReviewedSpeechGaps,type SpeechGap} from './src/domain/speechGapReview';
+import {analyzeCreatorProject} from './src/domain/creatorReview';
+import {CreatorReviewSheet} from './src/ui/CreatorReviewSheet';
+import {SpeechGapReviewSheet} from './src/ui/SpeechGapReviewSheet';
+import {StoryFinderSheet} from './src/ui/StoryFinderSheet';
+import {proposeStoryMoments,createStoryShort,type StoryMoment} from './src/domain/storyMoments';
 import { splitCaption, mergeCaptionWithNext, nudgeCaption, shiftAllCaptions,
   fixSentenceCase } from './src/domain/captionEditing';
+import { replaceCaptionPhrase } from './src/domain/captionReplace';
 import { canExportNatively, exportMp4, shareExport } from './src/export/native';
 import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot, editTextLayer, rippleSpeedClip, duplicateProject, duplicateClip, setClipSourceEdge } from './src/domain/timeline';
 import { loadLocalProjects, saveLocalProjects } from './src/data/storage';
@@ -73,6 +79,18 @@ function EditorApp() {
   const [exportQuality, setExportQuality] = useState<720 | 1080>(1080);
   const [fullPreview, setFullPreview] = useState(false);
   const [captionPanelOpen, setCaptionPanelOpen] = useState(false);
+  const [captionFindOpen,setCaptionFindOpen]=useState(false);
+  const [captionFind,setCaptionFind]=useState('');
+  const [captionReplace,setCaptionReplace]=useState('');
+  const [creatorReviewOpen,setCreatorReviewOpen]=useState(false);
+  const [storyFinderOpen,setStoryFinderOpen]=useState(false);
+  const [storySuggestions,setStorySuggestions]=useState<StoryMoment[]>([]);
+  const [storySourceRevision,setStorySourceRevision]=useState<number|null>(null);
+  const [advancedToolsOpen,setAdvancedToolsOpen]=useState(false);
+  const [speechReviewVisible,setSpeechReviewVisible]=useState(false);
+  const [speechReview,setSpeechReview]=useState<{
+    clipId:string;revision:number;cuts:SpeechGap[];selectedIds:Set<string>;
+  } | null>(null);
   const [socialOpen, setSocialOpen] = useState(false);
   const [youtubeToken, setYoutubeToken] = useState<string | null>(null);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
@@ -151,6 +169,9 @@ function EditorApp() {
   const selected = project?.clips.find(c => c.id === selectedId) ?? null;
   const selectedText = project?.texts.find(t => t.id === selectedTextId) ?? null;
   const total = project ? durationMs(project) : 0;
+  const creatorReport = useMemo(() =>
+    project ? analyzeCreatorProject(project,Platform.OS==='android'?'android':'ios',exportQuality) : null,
+    [project,exportQuality]);
   const timelinePosition = useRef(positionMs);
   useEffect(() => { timelinePosition.current = positionMs; }, [positionMs]);
   useEffect(() => {
@@ -280,32 +301,64 @@ function EditorApp() {
   const removeLongPauses = async () => {
     if (!project || busy) return;
     setCaptionPanelOpen(false);
-    if (!speechRecognitionAvailable()) {
-      Alert.alert('Device support', 'Speech-based pause cutting currently requires a native iPhone development build.');
+    const clip=(selected?.track==='video'?selected:undefined) ||
+      activeClip(project,positionMs) || project.clips.find(c=>c.track==='video');
+    const asset=project.assets.find(a=>a.id===clip?.assetId);
+    if(!clip || asset?.kind!=='video'){
+      Alert.alert('Choose talking-head footage','Select a video clip before reviewing speech gaps.');
       return;
     }
-    const clip=(selected?.track === 'video' ? selected : undefined) ||
-      activeClip(project,positionMs) || project.clips.find(c=>c.track === 'video');
-    const asset=project.assets.find(a=>a.id===clip?.assetId);
-    if(!clip || !asset || asset.kind !== 'video') {
-      Alert.alert('Select a video clip', 'Import or select a video before detecting pauses.');return;
+    if(project.texts.length || project.clips.some(c=>c.track==='audio')){
+      Alert.alert('Protect timing first',
+        'Review speech cuts before adding captions, music or independent audio. Duplicate this project if you want to experiment.');
+      return;
     }
-    if(project.texts.length || project.clips.some(c=>c.track==='audio')) {
-      Alert.alert('Avoid audio and caption drift',
-        'Make pause cuts before adding separate music tracks or captions. Save or duplicate your project first.');
+    if(speechReview?.clipId===clip.id && speechReview.revision===project.revision){
+      setSpeechReviewVisible(true);return;
+    }
+    if(!speechRecognitionAvailable()){
+      Alert.alert('iPhone development build required',
+        'Speech-gap suggestions currently need offline iPhone transcription. No recording or audio is uploaded to a server.');
       return;
     }
     setBusy(true);
     try {
-      const words=await transcribeLocalVideo(asset.uri);
-      const plan=planSilenceRemoval(clip,words);
-      if(!plan) { Alert.alert('No long pauses found', 'This clip has no speech gaps long enough to remove.');return; }
-      Alert.alert('Cut long pauses?', 'This will remove approximately ' +
-        (plan.savedMs / 1000).toFixed(1) + ' seconds from your clip, keeping short natural breaks. You can undo the edit.',
-        [{text:'Cancel',style:'cancel'},
-         {text:'Remove pauses',onPress:()=>apply(p=>applySilenceRemoval(p,clip.id,plan))}]);
-    } catch (e) { Alert.alert('Pause detection failed', String(e)); }
-    finally { setBusy(false); }
+      const words=await transcribeLocalVideo(asset.uri,speechLanguage);
+      const suggestions=proposeSpeechGaps(clip,words);
+      if(!suggestions.length) {
+        Alert.alert('No editable speech gaps found',
+          'No long gaps were suggested between recognized words. Laughter, silence and reactions were not measured directly.');
+        return;
+      }
+      setSpeechReview({clipId:clip.id,revision:project.revision,
+        cuts:suggestions,selectedIds:new Set<string>()});
+      setSpeechReviewVisible(true);
+    } catch(e){Alert.alert('Speech-gap review unavailable',e instanceof Error?e.message:String(e));}
+    finally{setBusy(false);}
+  };
+  const approveSpeechCuts=()=>{
+    if(!project||!speechReview||!speechReview.selectedIds.size)return;
+    if(speechReview.revision!==project.revision) {
+      setSpeechReviewVisible(false);setSpeechReview(null);
+      Alert.alert('Rescan required','Your timeline changed. Scan again before applying cuts.');
+      return;
+    }
+    try{
+      apply(p=>applyReviewedSpeechGaps(p,speechReview.clipId,speechReview.cuts,speechReview.selectedIds));
+      setSpeechReviewVisible(false);setSpeechReview(null);
+      Alert.alert('Approved cuts applied','Your cut choices were added as one reversible edit. Use Undo to restore the original.');
+    }catch(e){Alert.alert('Cannot apply cuts',e instanceof Error?e.message:String(e));}
+  };
+  const replaceCaptionWords=()=>{
+    if(!project)return;
+    try{
+      const result=replaceCaptionPhrase(project,captionFind,captionReplace);
+      if(!result.count){Alert.alert('No matches','This text was not found in spoken captions.');return;}
+      apply(()=>result.project);
+      setCaptionFindOpen(false);
+      Alert.alert('Transcript updated',result.count+
+        ' occurrence(s) corrected. Original timing and text styles were kept. Undo restores the original.');
+    }catch(e){Alert.alert('Replace failed',e instanceof Error?e.message:String(e));}
   };
   const generateFromScript = () => {
     if(!project)return;
@@ -394,6 +447,8 @@ function EditorApp() {
   };
   const renderVideo = async () => {
     if (!project) return;
+    const audit=analyzeCreatorProject(project,Platform.OS==='android'?'android':'ios',exportQuality);
+    if(!audit.canExport){setCreatorReviewOpen(true);return;}
     try {
       setPlaying(false); setBusy(true);
       const uri = await exportMp4(project, exportQuality);
@@ -405,6 +460,32 @@ function EditorApp() {
     } catch (e) {
       Alert.alert('Export unavailable', e instanceof Error ? e.message : String(e));
     } finally { setBusy(false); }
+  };
+  const showStoryFinder=()=>{
+    if(!project)return;
+    try{
+      const found=proposeStoryMoments(project);
+      setStorySuggestions(found);
+      setStorySourceRevision(project.revision);
+      setPlaying(false);
+      setStoryFinderOpen(true);
+    }catch(e){Alert.alert('Story Finder',e instanceof Error?e.message:String(e));}
+  };
+  const createShortFromMoment=(moment:StoryMoment)=>{
+    if(!project)return;
+    if(storySourceRevision!==project.revision){
+      Alert.alert('Review again','The project changed since these moments were proposed. Scan it again.');
+      setStoryFinderOpen(false);
+      return;
+    }
+    try{
+      const draft=createStoryShort(project,moment);
+      setProjects(items=>[draft,...items]);
+      setStoryFinderOpen(false);
+      openProject(draft);
+      Alert.alert('Editable short created',
+        'Your source project was preserved. Check the cuts, captions and audio before exporting.');
+    }catch(e){Alert.alert('Could not create short',e instanceof Error?e.message:String(e));}
   };
   const duplicateSavedProject = (source: Project) => {
     const copy=duplicateProject(source);
@@ -564,28 +645,38 @@ function EditorApp() {
     { id: 'yellow', label: 'Yellow', icon: 'color-palette-outline', onPress: () => apply(p => editTextLayer(p, selectedText.id, { color: '#FFDD57' })) },
     { id: 'delete', label: 'Delete', icon: 'trash-outline', onPress: () => { apply(p => removeText(p, selectedText.id)); setSelectedTextId(null); } }
   ] : [];
-  const baseActions: EditorAction[] = [
-    { id: 'edit', label: 'Edit', icon: 'cut-outline', onPress: () => {
-      const clip = activeClip(project, positionMs) || project.clips.find(c => c.track === 'video');
-      if (clip) setSelectedId(clip.id); else importVisual();
+  // Keep the everyday tools discoverable, with infrequent operations under More.
+  // All visible actions are implemented; avoid exposing placeholders in primary UI.
+  const advancedActions: EditorAction[]=[
+    {id:'add-media',label:'Import photos/video',icon:'albums-outline',onPress:importVisual},
+    {id:'voiceover',label:recordingState.isRecording?'Stop recording':'Record voiceover',
+      icon:recordingState.isRecording?'stop-circle-outline':'mic-outline',onPress:toggleVoiceover},
+    {id:'ratio',label:'Aspect ratio',icon:'crop-outline',onPress:showRatioMenu},
+    {id:'zoom',label:'Zoom timeline in',icon:'add-circle-outline',
+      disabled:timelineZoom>=3,onPress:()=>setTimelineZoom(z=>Math.min(3,z+.5))},
+    {id:'zoom-out',label:'Zoom timeline out',icon:'remove-circle-outline',
+      disabled:timelineZoom<=.5,onPress:()=>setTimelineZoom(z=>Math.max(.5,z-.5))},
+    {id:'save',label:'Save to Google Sheets',icon:'cloud-upload-outline',
+      disabled:!token,onPress:cloudSave},
+    {id:'speech',label:'Review talking-head cuts',icon:'cut-outline',
+      onPress:()=>{void removeLongPauses();}},
+    {id:'story',label:'Story Finder',icon:'sparkles-outline',onPress:showStoryFinder}
+  ];
+  const baseActions: EditorAction[]=[
+    {id:'edit',label:'Edit',icon:'cut-outline',onPress:()=>{
+      const clip=activeClip(project,positionMs)||project.clips.find(c=>c.track==='video');
+      if(clip)setSelectedId(clip.id);else void importVisual();
     }},
-    { id: 'audio', label: 'Audio', icon: 'musical-notes-outline', onPress: importAudio },
-    { id: 'text', label: 'Text', icon: 'text-outline', onPress: () => { setTitleText(''); setTextPrompt(true); } },
-    { id: 'effects', label: 'Effects', icon: 'sparkles-outline', onPress: () => comingSoon('Effects'), hint: 'Soon' },
-    { id: 'overlay', label: 'Add video', icon: 'albums-outline', onPress: importVisual },
-    { id: 'captions', label: 'Captions', icon: 'chatbox-ellipses-outline', onPress: () => setCaptionPanelOpen(true) },
-    { id: 'social', label: 'Social Studio', icon: 'share-social-outline',
-      onPress: () => { setPlaying(false); setSocialOpen(true); } },
-    { id: 'voiceover', label: recordingState.isRecording ? 'Stop voice' : 'Voiceover',
-      icon: recordingState.isRecording ? 'stop-circle-outline' : 'mic-outline', onPress: toggleVoiceover },
-    { id: 'ratio', label: 'Aspect ratio', icon: 'crop-outline', onPress: showRatioMenu },
-    { id: 'filters', label: 'Filters', icon: 'color-filter-outline', onPress: () => setFilterPanelOpen(true) },
-    { id: 'zoom', label: 'Timeline +', icon: 'add-circle-outline',
-      disabled: timelineZoom >= 3, onPress: () => setTimelineZoom(z => Math.min(3, z + .5)) },
-    { id: 'zoom-out', label: 'Timeline −', icon: 'remove-circle-outline',
-      disabled: timelineZoom <= .5, onPress: () => setTimelineZoom(z => Math.max(.5, z - .5)) },
-    { id: 'save', label: 'Save cloud', icon: 'cloud-upload-outline',
-      disabled: !token, onPress: cloudSave }
+    {id:'captions',label:'Captions',icon:'chatbox-ellipses-outline',onPress:()=>setCaptionPanelOpen(true)},
+    {id:'audio',label:'Audio',icon:'musical-notes-outline',onPress:importAudio},
+    {id:'text',label:'Text',icon:'text-outline',onPress:()=>{setTitleText('');setTextPrompt(true);}},
+    {id:'looks',label:'Looks',icon:'color-filter-outline',onPress:()=>setFilterPanelOpen(true)},
+    {id:'social',label:'Social',icon:'share-social-outline',
+      onPress:()=>{setPlaying(false);setSocialOpen(true);}},
+    {id:'review',label:'Review',icon:'checkmark-done-outline',
+      onPress:()=>{setPlaying(false);setCreatorReviewOpen(true);}},
+    {id:'more',label:'More',icon:'ellipsis-horizontal-circle-outline',
+      onPress:()=>setAdvancedToolsOpen(true)}
   ];
   return <View style={[styles.editorScreen, { paddingTop: insets.top + 4, paddingBottom: insets.bottom }]}>
     {saveFailure ? <Pressable accessibilityRole="button" onPress={() => { void retrySave(); }}
@@ -683,6 +774,58 @@ function EditorApp() {
     {lastExport ? <Pressable accessibilityRole="button" onPress={() => shareExport(lastExport).catch(e => Alert.alert('Sharing failed', String(e)))}
       style={styles.shareResult}><Text style={styles.shareResultText}>✓ MP4 ready — Share</Text></Pressable> : null}
 
+    <StoryFinderSheet visible={storyFinderOpen} moments={storySuggestions}
+      onClose={()=>setStoryFinderOpen(false)}
+      onPreview={m=>{
+        setStoryFinderOpen(false);
+        seek(m.startMs);
+      }}
+      onCreate={createShortFromMoment} />
+    <CreatorReviewSheet visible={creatorReviewOpen} report={creatorReport!}
+      busy={busy} onClose={()=>setCreatorReviewOpen(false)}
+      onJump={(ms)=>seek(ms)}
+      onExport={()=>{setCreatorReviewOpen(false);void renderVideo();}} />
+    <SpeechGapReviewSheet visible={speechReviewVisible} cuts={speechReview?.cuts??[]}
+      selected={speechReview?.selectedIds??new Set<string>()} busy={busy}
+      onChange={id=>setSpeechReview(prev=>{
+        if(!prev)return prev;
+        const selectedIds=new Set(prev.selectedIds);
+        if(selectedIds.has(id))selectedIds.delete(id);else selectedIds.add(id);
+        return {...prev,selectedIds};
+      })}
+      onSelectAll={()=>setSpeechReview(prev=>prev?{...prev,selectedIds:new Set(prev.cuts.map(c=>c.id))}:prev)}
+      onClear={()=>setSpeechReview(prev=>prev?{...prev,selectedIds:new Set<string>()}:prev)}
+      onPreview={candidate=>{
+        setSpeechReviewVisible(false);
+        seek(Math.max(0,candidate.timelineMs-500));
+      }}
+      onApply={approveSpeechCuts} onClose={()=>setSpeechReviewVisible(false)} />
+    <Modal visible={advancedToolsOpen} animationType="slide" transparent
+      onRequestClose={()=>setAdvancedToolsOpen(false)}>
+      <View style={styles.captionBackdrop}>
+        <View style={styles.captionSheet}>
+          <View style={styles.row}>
+            <Text style={styles.captionSheetTitle}>More editing tools</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Close more tools"
+              onPress={()=>setAdvancedToolsOpen(false)}>
+              <Ionicons name="close" color="#F4F6FA" size={25}/>
+            </Pressable>
+          </View>
+          <ScrollView style={{maxHeight:460}}>
+            {advancedActions.map(action=><Pressable accessibilityRole="button" key={action.id}
+              accessibilityLabel={action.label} disabled={action.disabled}
+              style={[styles.captionChoice,action.disabled&&{opacity:.38}]}
+              onPress={()=>{setAdvancedToolsOpen(false);action.onPress();}}>
+              <Ionicons name={action.icon} color="#23D4E9" size={23}/>
+              <Text style={styles.captionChoiceLabel}>{action.label}</Text>
+            </Pressable>)}
+          </ScrollView>
+          <Text style={styles.trimHint}>
+            Unavailable tools aren't displayed here as if they already work.
+          </Text>
+        </View>
+      </View>
+    </Modal>
     <SocialStudio visible={socialOpen} project={project} onClose={() => setSocialOpen(false)}
       exportUri={lastExport} exportVideo={() => { setSocialOpen(false); void renderVideo(); }}
       youtubeToken={youtubeToken} canConnectYouTube={configured}
@@ -792,6 +935,31 @@ function EditorApp() {
         </View>
       </View>
     </Modal>
+    <Modal visible={captionFindOpen} animationType="slide" transparent
+      onRequestClose={()=>setCaptionFindOpen(false)}>
+      <KeyboardAvoidingView behavior={Platform.OS==='ios'?'padding':undefined}
+        style={styles.captionBackdrop}>
+        <View style={styles.captionSheet}>
+          <View style={styles.row}>
+            <Text style={styles.captionSheetTitle}>Find & replace captions</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Close caption correction"
+              onPress={()=>setCaptionFindOpen(false)}>
+              <Ionicons name="close" color="#F3F4F6" size={25}/>
+            </Pressable>
+          </View>
+          <Text style={styles.trimHint}>
+            Correct repeated names and phrases. Subtitle timing, formatting and title text are preserved.
+          </Text>
+          <TextInput style={styles.field} placeholder="Search subtitles" maxLength={100}
+            placeholderTextColor="#8B96A1" value={captionFind} onChangeText={setCaptionFind}/>
+          <TextInput style={styles.field} placeholder="Replace with..." maxLength={200}
+            placeholderTextColor="#8B96A1" value={captionReplace} onChangeText={setCaptionReplace}/>
+          <Pressable style={styles.trimDone} accessibilityRole="button" onPress={replaceCaptionWords}>
+            <Text style={styles.trimDoneText}>Replace in all subtitles</Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
     <Modal visible={captionPanelOpen} animationType="slide" transparent
       onRequestClose={() => { setCaptionPanelOpen(false); setCaptionStylesOpen(false); }}>
       <View style={styles.captionBackdrop}>
@@ -865,6 +1033,12 @@ function EditorApp() {
               <Pressable style={styles.captionChoice} onPress={() => setCaptionStylesOpen(true)}>
                 <Ionicons name="color-palette-outline" size={24} color="#23D4E9" />
                 <Text style={styles.captionChoiceLabel}>Caption appearance</Text>
+              </Pressable>
+              <Pressable style={styles.captionChoice} onPress={()=>{
+                setCaptionPanelOpen(false);setCaptionFind('');setCaptionReplace('');setCaptionFindOpen(true);
+              }}>
+                <Ionicons name="search-outline" size={24} color="#23D4E9"/>
+                <Text style={styles.captionChoiceLabel}>Find & replace subtitles</Text>
               </Pressable>
               <Pressable style={styles.captionChoice} onPress={() => {
                 apply(p => fixSentenceCase(p)); setCaptionPanelOpen(false);

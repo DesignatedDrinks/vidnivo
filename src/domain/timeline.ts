@@ -249,6 +249,7 @@ export function duplicateProject(p: Project): Project {
     return {...asset,id};
   });
   return {...copy,
+    look:p.look ? {...p.look} : undefined,
     assets,
     clips:p.clips.map(c=>({...c,id:makeId(),assetId:remap.get(c.assetId)!})),
     texts:p.texts.map(t=>({...t,id:makeId()}))
