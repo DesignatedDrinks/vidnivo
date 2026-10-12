@@ -24,7 +24,11 @@ async function api(token: string, url: string, init?: RequestInit): Promise<any>
 }
 async function readTable(token: string, sheet: Table): Promise<Rows> {
   const result = await api(token, address(sheet, 'A1:L2000'));
-  return (result.values ?? []) as Rows;
+  const rows = (result.values ?? []) as Rows;
+  // An A1:L2000 response exactly at its upper bound may hide later rows.
+  // Refuse silent truncation until the database is paginated or migrated.
+  if (rows.length >= 2000) throw new Error(sheet + ' has reached the 2,000-row safe read limit. Resolve database capacity before importing or syncing.');
+  return rows;
 }
 async function batchWrite(token: string, entries: { range: string; values: string[][] }[]): Promise<void> {
   if (!entries.length) return;
@@ -54,7 +58,9 @@ const toText = (p: Project, t: TextLayer): string[] => [
 ];
 function enabled(row: string[], sheet: Table): boolean { return String(row[sheet === 'Projects' ? 7 : sheet === 'TextLayers' ? 10 : row.length - 1]).toUpperCase() !== 'TRUE'; }
 function n(row: string[], index: number, fallback = 0): number {
-  const v = Number(row[index]); return Number.isFinite(v) ? v : fallback;
+  const raw = row[index];
+  if (raw === undefined || raw === null || raw === '') return fallback;
+  const v = Number(raw); return Number.isFinite(v) ? v : fallback;
 }
 function parsedProject(row: string[]): Project {
   return { id: row[0], name: row[1] || 'Untitled', aspectRatio: row[2] === '1:1' || row[2] === '16:9' ? row[2] : '9:16',
