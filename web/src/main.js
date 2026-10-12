@@ -3,7 +3,7 @@ import {
  getAuth,GoogleAuthProvider,onAuthStateChanged,signInWithPopup,signInWithRedirect,
  getRedirectResult,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut
 } from 'firebase/auth';
-import {getStorage,ref,uploadBytesResumable,deleteObject,getBlob} from 'firebase/storage';
+import {getStorage,ref,getBlob} from 'firebase/storage';
 import {ownedMediaPath} from './mediaPaths.js';
 import './style.css';
 
@@ -188,39 +188,47 @@ async function checkApi() {
   else throw Error('API offline');
  }catch {el('backend-status').textContent='Not deployed or not reachable. Media registration is unavailable.';}
 }
-function uploadFile(file) {
- if(!currentUser||pendingUpload)return;
- try {validateMedia(file);}catch(e){message(e.message,true);return;}
- pendingUpload=true;el('upload-media').disabled=true;
- const assetId=crypto.randomUUID().replaceAll('-','');
- const fileName=file.name.replace(/[^A-Za-z0-9_.-]/g,'_').slice(-120)||'media.bin';
- const objectPath='users/'+currentUser.uid+'/media/'+assetId+'/'+fileName;
- const fileRef=ref(storage,objectPath);
- const task=uploadBytesResumable(fileRef,file,{contentType:file.type});
- task.on('state_changed',
-  snapshot=>{
-   const percent=snapshot.totalBytes?100*snapshot.bytesTransferred/snapshot.totalBytes:0;
-   el('upload-progress').style.width=percent.toFixed(1)+'%';
-  },
-  error=>{
+async function uploadFile(file) {
+  if(!currentUser||pendingUpload)return;
+  try {validateMedia(file);}catch(e){message(e.message,true);return;}
+  const user=currentUser;
+  pendingUpload=true;el('upload-media').disabled=true;
+  const assetId=crypto.randomUUID().replaceAll('-','');
+  const fileName=file.name.replace(/[^A-Za-z0-9_.-]/g,'_').slice(-120)||'media.bin';
+  try {
+   const token=await user.getIdToken();
+   if(currentUser?.uid!==user.uid)throw Error('Account changed during upload.');
+   const result=await new Promise((resolve,reject)=>{
+    const xhr=new XMLHttpRequest();
+    xhr.open('PUT',pathFor('/api/v1/media/'+encodeURIComponent(assetId)+'/upload'));
+    xhr.setRequestHeader('Authorization','Bearer '+token);
+    xhr.setRequestHeader('Content-Type',file.type);
+    xhr.setRequestHeader('X-VIDNIVO-FILENAME',fileName);
+    xhr.setRequestHeader('X-VIDNIVO-SIZE',String(file.size));
+    xhr.upload.addEventListener('progress',event=>{
+     if(event.lengthComputable&&currentUser?.uid===user.uid)
+      el('upload-progress').style.width=(100*event.loaded/event.total).toFixed(1)+'%';
+    });
+    xhr.addEventListener('load',()=>{
+     let data={};try{data=JSON.parse(xhr.responseText);}catch{/* parse below */}
+     if(xhr.status===201||xhr.status===200)resolve(data);
+     else reject(Error(data?.error||'Upload failed (HTTP '+xhr.status+').'));
+    });
+    xhr.addEventListener('abort',()=>reject(Error('Upload cancelled.')));
+    xhr.addEventListener('error',()=>reject(Error('Network connection was lost during upload.')));
+    xhr.send(file);
+   });
+   if(currentUser?.uid!==user.uid)return;
+   if(result.size!==file.size||!/^[a-f0-9]{32}$/.test(result.md5Hex||''))
+    throw Error('Upload lacked verified server integrity metadata. Check your cloud library.');
+   message('Media uploaded privately with account storage limits enforced.');
+   await refreshFiles();
+  }catch(e){
+   if(currentUser?.uid===user.uid)message('Upload failed: '+e.message,true);
+  }finally{
    pendingUpload=false;el('upload-media').disabled=false;
-   message('Upload failed: '+error.message,true);
-  },
-  async()=>{
-   try {
-    await callApi('/api/v1/media/register',{method:'POST',
-     body:JSON.stringify({assetId,objectPath,name:file.name})});
-    message('Private upload saved. Only your signed-in account may access it.');
-    await refreshFiles();
-   }catch(e){
-    try {await deleteObject(fileRef);}catch {/* Preserve failed orphan for manual cleanup */ }
-    message('Upload was not registered and automatic cleanup was attempted: '+e.message,true);
-   }finally{
-    pendingUpload=false;el('upload-media').disabled=false;
-    el('upload-progress').style.width='0%';
-   }
+   el('upload-progress').style.width='0%';
   }
- );
 }
 if(!configured) {
  el('signed-out').hidden=true;
