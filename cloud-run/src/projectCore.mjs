@@ -55,7 +55,7 @@ export function validateCloudProject(raw,id){
   textIds.add(t.id);
  }
  if(raw.look&&(
-  !['none','warm','cool','cinematic','vintage','bright','noir'].includes(raw.look.preset)||
+  !['none','warm','cool','cinema','sunset','vintage','rose','night'].includes(raw.look.preset)||
   !number(raw.look.intensity,0,100)))
   // Actual project look parsing is checked again in the mobile domain layer.
   throw Object.assign(Error('Invalid project colour look.'),{status:400});
