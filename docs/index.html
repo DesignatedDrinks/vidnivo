@@ -396,6 +396,7 @@ input[type=range]{accent-color:#afc0ff}
         <div id="rb-qa" aria-live="polite" hidden></div>
         <div class="rb-banner" id="rb-recover" hidden><strong>Previous edit available</strong><p class="rb-note" id="rb-recover-note"></p>
           <div class="rb-row"><button id="rb-restore" class="rb-p" type="button">Restore</button><button id="rb-discard" class="rb-s" type="button">Discard</button></div></div>
+        <button id="rb-finish-all" type="button" class="rb-p" style="width:100%;min-height:48px">Finish video + write post ↗</button>
         <div class="rb-row rb-directions"><button class="rb-s" data-rb-direction="clean" aria-pressed="false">Clean</button><button class="rb-s" data-rb-direction="punchy" aria-pressed="false">Punchy</button><button class="rb-s" data-rb-direction="editorial" aria-pressed="false">Editorial</button></div>
         <div class="rb-row"><button class="rb-p" id="rb-highlight" type="button">Find strongest 30s</button><button class="rb-s" id="rb-undo-highlight" type="button" hidden>Undo trim</button></div>
         <div class="rb-layout"><label>Camera motion<select id="rb-camera"><option value="off">Off</option><option value="subtle">Subtle</option><option value="dynamic">Dynamic</option></select></label></div>
@@ -1488,6 +1489,8 @@ function configureCreatorStyle(style){
  state.enhancement=null;
  if(preset.enhance&&video.readyState>=2)toggleEnhancement();
  state.voicePolish=Boolean($('creatorVoice').checked&&preset.voice);
+ state.watermark=normalizeWatermark({...state.watermark,enabled:preset.watermarkEnabled,position:preset.watermarkPosition});
+ $('watermarkEnabled').checked=state.watermark.enabled;$('watermarkPosition').value=state.watermark.position;
  applyVoicePolish();
  state.captions=styleCaptions(state.captions,preset);
  renderCaptions();
@@ -1554,6 +1557,7 @@ function storeCurrentCreatorStyle(){
   x:anchor.x,y:anchor.y,size:cap?fontScale(cap.fontScale):Number($('captionFontSize').value)/100,
   color:cap?.color||$('captionColor').value||base.color,
   fontId:cap?.fontId||state.captionFontId,
+  watermarkEnabled:state.watermark.enabled,watermarkPosition:state.watermark.position,
   voice:$('creatorVoice').checked,
   enhance:state.clips.length?Boolean(state.enhancement):base.enhance,
   retouch:state.faceRetouch
@@ -1747,7 +1751,9 @@ $('rb-restore').onclick=()=>{
  try{
   const d=hydrateSnapshot(rbPending,state.sources,key);pause();
   state.clips=d.clips;state.captions=d.captions;state.selected=d.clips[0].id;state.position=0;
-  state.ratio=d.ratio;state.look=d.look;state.voicePolish=d.voicePolish;state.enhancement=d.enhancement;state.cameraMotion=d.cameraMotion;state.captionFontId=d.fontId;$('rb-camera').value=d.cameraMotion;
+  state.ratio=d.ratio;state.look=d.look;state.voicePolish=d.voicePolish;state.enhancement=d.enhancement;state.watermark=normalizeWatermark(d.watermark||state.watermark);
+  $('watermarkEnabled').checked=state.watermark.enabled;$('watermarkPosition').value=state.watermark.position;
+  state.cameraMotion=d.cameraMotion;state.captionFontId=d.fontId;$('rb-camera').value=d.cameraMotion;
   $('rb-font').value=d.fontId;applyVoicePolish();
   document.querySelectorAll('[data-look]').forEach(b=>b.classList.toggle('active',b.dataset.look===d.look));
   document.querySelectorAll('[data-ratio]').forEach(b=>b.classList.toggle('active',b.dataset.ratio===d.ratio));
@@ -1847,6 +1853,30 @@ $('rb-undo-highlight').onclick=()=>{
  state.clips=rbTrimUndo.clips;state.captions=rbTrimUndo.captions;state.position=rbTrimUndo.position;
  rbTrimUndo=null;$('rb-undo-highlight').hidden=true;
  pause();renderTimeline();renderEditor();renderCaptions();void seekTimeline(state.position);rbSave();
+};
+
+
+$('rb-finish-all').onclick=async()=>{
+ if(!state.clips.length||state.exporting||state.captioning||state.creatorBusy){
+  $('rb-message').textContent='Import footage and finish any current process first.';return;
+ }
+ const button=$('rb-finish-all'),oldLabel=button.textContent;
+ button.disabled=true;button.textContent='Finishing video…';
+ try{
+  await runCreatorAutopilot();
+  const words=transcriptText(state.captions);
+  if(words){
+   await $('rb-generate').onclick();
+   if($('rb-title').value.trim()&&!state.captions.some(c=>c.origin==='opening-hook'))
+    $('rb-add-title').onclick();
+  }
+  const report=rbCheckVideo();
+  $('rb-message').textContent=words?
+   (report.ok?'First cut, title and post draft ready to review before export.':'First cut prepared. Resolve export errors.'):
+   'Visual first cut prepared. Review caption status; copy could not be generated yet.';
+  document.querySelector('.rb-tools')?.scrollIntoView({behavior:'smooth',block:'start'});
+ }catch(e){$('rb-message').textContent='Finish needs attention: '+(e.message||String(e))}
+ finally{button.disabled=false;button.textContent=oldLabel}
 };
 
 </script>
