@@ -37,15 +37,17 @@ test('Firestore denies direct browser writes, even to your own profile',async()=
  await assertFails(setDoc(doc(a,'users',owner,'media','untrusted'),{name:'forged'}));
  await assertSucceeds(getDocs(collection(a,'users',owner,'media')));
 });
-test('Storage allows only owner uploaded audio/image/video below 200MB',async()=>{
+test('Storage is owner-readable, but denies ALL client uploads and deletes',async()=>{
  const a=testEnv.authenticatedContext(owner).storage();
  const b=testEnv.authenticatedContext(stranger).storage();
  const anon=testEnv.unauthenticatedContext().storage();
- await assertSucceeds(uploadBytes(ref(a,assetPath),new Uint8Array(8),{contentType:'video/mp4'}));
+ await testEnv.withSecurityRulesDisabled(ctx=>uploadBytes(ref(ctx.storage(),assetPath),
+  new Uint8Array(8),{contentType:'video/mp4'}));
  await assertSucceeds(getMetadata(ref(a,assetPath)));
  await assertFails(getMetadata(ref(b,assetPath)));
  await assertFails(getMetadata(ref(anon,assetPath)));
- await assertFails(uploadBytes(ref(b,assetPath),new Uint8Array(6),{contentType:'video/mp4'}));
+ await assertFails(uploadBytes(ref(a,assetPath+'-new'),new Uint8Array(8),{contentType:'video/mp4'}));
+ await assertFails(uploadBytes(ref(b,assetPath+'-new'),new Uint8Array(8),{contentType:'video/mp4'}));
 });
 test('Storage blocks unsupported MIME and path traversal',async()=>{
  const a=testEnv.authenticatedContext(owner).storage();
