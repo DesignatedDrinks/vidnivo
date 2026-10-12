@@ -761,7 +761,7 @@ function toggleEnhancement(){
  const contrast=clamp(.25/Math.max(.12,std),.98,1.22);
  const saturate=clamp(.24/Math.max(.13,chroma/Math.max(1,n)),1.02,1.23);
  state.enhancement={brightness,contrast,saturate};
- $('enhanceStatus').textContent='Auto Enhance on · exposure ×'+brightness.toFixed(2)+' · contrast ×'+contrast.toFixed(2)+' · colour ×'+saturate.toFixed(2)+'. Tap again to undo.';
+ $('enhanceStatus').textContent='Enhanced · Tap again to undo';
  requestDraw();
 }
 function setRatio(r){if(!['9:16','1:1','16:9'].includes(r))return;state.ratio=r;document.querySelectorAll('[data-ratio]').forEach(e=>e.classList.toggle('active',e.dataset.ratio===r));drawFrame();renderTimeline()}
@@ -809,7 +809,7 @@ function selectCaptionForEditing(cap,{seek=false}={}){
  $('captionColor').value=cap.color||'#FFFFFF';
  syncCaptionSizeControls(cap);
  $('addCaption').textContent='Save caption changes';
- $('captionTouchStatus').textContent='Selected: drag this caption on the preview to move it. Pinch with two fingers to resize. The export uses exactly this position and size.';
+ $('captionTouchStatus').textContent='Drag to move · pinch to resize';
  setTab('captions');
  renderCaptions();
  requestDraw();
@@ -1221,9 +1221,7 @@ async function startExport(){
   ui.download.download='vidnivo-sync-checked-'+Date.now()+'.'+ext;
   ui.download.textContent='↓ Download '+ext.toUpperCase()+' · '+(blob.size/1048576).toFixed(1)+' MB';
   ui.download.hidden=false;ui.progress.style.width='100%';
-  $('syncStatus').textContent='Timing checks passed · audio and video tracks confirmed · max playback drift '+
-    Math.round(summary.maxDriftMs)+' ms · output duration difference '+
-    Math.round(verified.durationErrorMs)+' ms. Review the finished video for visual lip sync.';
+  $('syncStatus').textContent='Audio + video checks passed · Review before posting';
   showProcessing('export',3,'The recorded file passed available browser integrity checks.');
   toast('Export ready after audio/video integrity checks. Review the downloaded video.');
  }catch(error){
@@ -1250,7 +1248,7 @@ function setTab(tab){state.selectedTab=tab;document.querySelectorAll('[data-tab]
 function reset(){
  if(state.exporting||state.captioning||state.creatorBusy){toast('Finish the current edit before starting a new project.',true);return}
  if(state.clips.length&&!confirm('Start a new project? This removes the current timeline and captions (not the original files).'))return;
- pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];$('creatorHookPanel').hidden=true;state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.faceRetouch=0;state.voicePolish=false;applyVoicePolish();faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;touchPointers.clear();dragAnchor=null;pinchOrigin=null;$('captionFontSize').value='100';$('captionFontSizeLabel').textContent='100%';$('captionTouchStatus').textContent='Select a caption and drag or pinch to edit it.';$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
+ pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];$('creatorHookPanel').hidden=true;state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.faceRetouch=0;state.voicePolish=false;applyVoicePolish();faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;touchPointers.clear();dragAnchor=null;pinchOrigin=null;$('captionFontSize').value='100';$('captionFontSizeLabel').textContent='100%';$('captionTouchStatus').textContent='';$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
  video.removeAttribute('src');video.load();ui.empty.hidden=false;ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();renderEditor();renderCaptions();toast('Ready for a new project.');
 }
 function canvasGesturePoint(event){
@@ -1323,14 +1321,14 @@ canvas.addEventListener('pointermove',event=>{
   cap.position='custom';
   $('captionPosition').value='custom';
   syncCaptionSizeControls(cap);
-  $('captionTouchStatus').textContent='Pinch to resize: '+Math.round(value*100)+'%. Two-finger drag also moves the caption.';
+  $('captionTouchStatus').textContent='Size '+Math.round(value*100)+'%';
   touchWasEdited=true;
  }else if(touchPointers.size===1&&dragAnchor){
   const layout=captionLayout(ctx,cap,canvas.width,canvas.height);
   Object.assign(cap,clampedCaptionAnchor(point.x+dragAnchor.offsetX,point.y+dragAnchor.offsetY,layout,canvas.width,canvas.height));
   cap.position='custom';
   $('captionPosition').value='custom';
-  $('captionTouchStatus').textContent='Moving caption · release your finger to keep this position.';
+  $('captionTouchStatus').textContent='Moving…';
   touchWasEdited=true;
  }
  requestDraw();
@@ -1346,7 +1344,7 @@ function finishCaptionPointer(event){
   dragAnchor=null;pinchOrigin=null;
   if(touchWasEdited){
    renderCaptions();
-   $('captionTouchStatus').textContent='Position and size saved to this caption. Your exported video will use the same settings.';
+   $('captionTouchStatus').textContent='Caption updated';
    requestDraw();
   }
   touchWasEdited=false;
@@ -1516,7 +1514,7 @@ function loadCreatorPreference(){
  option.disabled=!state.creatorCustom;
  if(state.creatorCustom){
   $('creatorStyle').value='custom';
-  creatorStatus('My Style is ready. Import a video and choose Finish My Video.',0);
+  creatorStatus('',0);
  }
 }
 // Event wiring
@@ -1532,7 +1530,7 @@ $('watermarkPosition').addEventListener('change',event=>{
 });
 $('creatorRun').onclick=()=>void runCreatorAutopilot();
 $('creatorSave').onclick=storeCurrentCreatorStyle;
-$('creatorStyle').addEventListener('change',()=>creatorStatus('Ready for '+$('creatorStyle').selectedOptions[0].textContent+'. Import your footage and finish in one tap.',0));
+$('creatorStyle').addEventListener('change',()=>creatorStatus('',0));
 ui.videoInput.addEventListener('change',e=>{const file=e.target.files?.[0];e.target.value='';void importFile(file)});
 ui.play.onclick=()=>{if(state.playing)pause();else void play()};
 $('back5').onclick=()=>{pause();void seekTimeline(state.position-5)};
