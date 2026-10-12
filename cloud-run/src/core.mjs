@@ -1,4 +1,5 @@
 import {validateCloudProject} from './projectCore.mjs';
+import {validateSupportInput} from './supportCore.mjs';
 const LIMIT=512*1024;
 const ASSET_ID=/^[A-Za-z0-9_-]{8,80}$/;
 const NAME=/^[^\\/\u0000-\u001f\u007f]{1,180}$/;
@@ -56,10 +57,10 @@ export function validateRegistration(uid,raw){
  */
 export function createHandler({verifyToken,getProfile,saveProfile,listMedia,getMedia,
  checkObject,registerMedia,deleteObject,deleteMedia,
- listProjects,getProject,saveProject,uploadMedia,downloadMedia,storageReady=true,allowedOrigins=[]}){
+ listProjects,getProject,saveProject,uploadMedia,downloadMedia,resolveSupport,storageReady=true,allowedOrigins=[]}){
  if(!verifyToken||!getProfile||!saveProfile||!listMedia||!getMedia||
     !checkObject||!registerMedia||!deleteObject||!deleteMedia||
-    !listProjects||!getProject||!saveProject||!uploadMedia||!downloadMedia)
+    !listProjects||!getProject||!saveProject||!uploadMedia||!downloadMedia||!resolveSupport)
     throw Error('API dependencies missing.');
  return async function handle(req,res){
   const origin=req.headers.origin||'';
@@ -97,6 +98,11 @@ export function createHandler({verifyToken,getProfile,saveProfile,listMedia,getM
    send(res,401,{error:errors[401]},origin,allowedOrigins);return;
   }
   try{
+   if(req.method==='POST'&&path==='/api/v1/support/diagnose'){
+    const input=validateSupportInput(await bodyJson(req));
+    const diagnosis=await resolveSupport(uid,input);
+    send(res,200,{...diagnosis,autoApplied:false},origin,allowedOrigins);return;
+   }
    if(req.method==='GET'&&path==='/api/v1/me'){
     const profile=await getProfile(uid);
     send(res,200,{uid,profile:profile||null},origin,allowedOrigins);return;
