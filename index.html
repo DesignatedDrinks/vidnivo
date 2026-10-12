@@ -93,7 +93,8 @@
   </main>
   <input id="videoInput" type="file" accept="video/*" hidden />
   <video id="sourceVideo" playsinline preload="auto" crossorigin="anonymous" style="display:none"></video>
-  <script type="module">// VIDNIVO Browser Studio — all source media remains in local object URLs.
+  <script type="module">import {drawGradedVideo} from './vidnivo-filters.js';
+// VIDNIVO Browser Studio — all source media remains in local object URLs.
 // Exports use the browser's own MediaRecorder; no video is sent to a server.
 const $ = id => document.getElementById(id);
 const video = $('sourceVideo');
@@ -144,10 +145,7 @@ function drawFrame(){
  if(video.readyState>=2&&video.videoWidth>0){
   const factor=Math.min(W/video.videoWidth,H/video.videoHeight);
   const w=video.videoWidth*factor,h=video.videoHeight*factor;
-  ctx.save();
-   ctx.filter=previewFilter();
-   ctx.drawImage(video,(W-w)/2,(H-h)/2,w,h);
-   ctx.restore();
+  drawGradedVideo(ctx,video,(W-w)/2,(H-h)/2,w,h,LOOKS[state.look]||LOOKS.original,state.enhancement);
  }
  const captions=state.captions.filter(c=>state.position>=c.start&&state.position<c.end);
  for(const cap of captions){
