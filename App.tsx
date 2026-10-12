@@ -4,6 +4,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import { probeAudioDurationMs } from './src/media/audioProbe';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
@@ -122,8 +123,8 @@ function EditorApp() {
       const file = new File(folder, makeId() + ext);
       await new File(uri).copy(file);
       return file.uri;
-    } catch {
-      return uri; // Some Android content URIs cannot be copied in Expo Go.
+    } catch (error) {
+      throw new Error('Unable to save a persistent media copy. Import cancelled to prevent losing the source file: ' + String(error));
     }
   };
   const importVisual = async () => {
@@ -150,12 +151,15 @@ function EditorApp() {
       const result = await DocumentPicker.getDocumentAsync({ type: 'audio/*', multiple: true, copyToCacheDirectory: true });
       if (result.canceled) return;
       setBusy(true);
-      const assets = await Promise.all(result.assets.map(async item => ({
-        id: makeId(), uri: await savedMedia(item.uri, item.name),
-        filename: item.name, kind: 'audio' as const, durationMs: 30000, width: 0, height: 0
-      })));
+      const assets = await Promise.all(result.assets.map(async item => {
+        const uri = await savedMedia(item.uri, item.name);
+        return {
+          id: makeId(), uri,
+          filename: item.name, kind: 'audio' as const,
+          durationMs: await probeAudioDurationMs(uri), width: 0, height: 0
+        };
+      }));
       apply(p => assets.reduce((current, asset) => addAsset(current, asset), p));
-      Alert.alert('Audio imported', 'Imported audio uses a 30-second placeholder duration until media probing is implemented.');
     } catch (error) { Alert.alert('Audio import failed', String(error)); }
     finally { setBusy(false); }
   };
