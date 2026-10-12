@@ -21,6 +21,8 @@ export function exportPreflight(project:Project,platform:ExportPlatform,quality:
       }
     }
   }
+  if (plan.clips.some(c => c.track==='audio' && c.speed>2 && !c.muted))
+    warnings.push('Some music or voiceovers exceed 2× speed. The mobile audio preview is limited to 2×, so listen to the rendered MP4 to confirm synchronization.');
   if(plan.durationMs>8*60*1000)warnings.push('Long exports can use substantial storage and may take several minutes.');
   if(plan.texts.length>1000)warnings.push('Large caption tracks can render slowly.');
   return {errors,warnings,plan};
