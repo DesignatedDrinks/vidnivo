@@ -42,6 +42,7 @@ import { generateCaptionsFromScript } from './src/domain/captionGenerator';
 import { SPEECH_LANGUAGES, type SpeechLanguage } from './src/domain/speechLanguages';
 import { SocialStudio } from './src/ui/SocialStudio';
 import {CloudWorkspace} from './src/ui/CloudWorkspace';
+import {HelpDesk} from './src/ui/HelpDesk';
 import {restoreCloudSession,type CloudSession} from './src/cloud/account';
 import {backUpCloudProject} from './src/cloud/transfer';
 
@@ -65,6 +66,7 @@ function EditorApp() {
   const [ready, setReady] = useState(false);
   const [loadFailure, setLoadFailure] = useState<string | null>(null);
   const [saveFailure, setSaveFailure] = useState<string | null>(null);
+  const [helpOpen,setHelpOpen]=useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
@@ -579,7 +581,13 @@ function EditorApp() {
         Local save failed — tap to retry. Keep the app open. {saveFailure}
       </Text>
     </Pressable> : null}
-    <View style={styles.heading}><Text style={styles.logo}>VID<Text style={{ color: theme.accent }}>NIVO</Text></Text><Text style={styles.eyebrow}>MOBILE VIDEO STUDIO</Text></View>
+    <View style={styles.heading}>
+      <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}>
+        <Text style={styles.logo}>VID<Text style={{color:theme.accent}}>NIVO</Text></Text>
+        <Tool label="Help" onPress={()=>setHelpOpen(true)}/>
+      </View>
+      <Text style={styles.eyebrow}>MOBILE VIDEO STUDIO</Text>
+    </View>
     <View style={styles.hero}><Text style={styles.heroTitle}>Make something worth watching.</Text><Text style={styles.heroCopy}>Cut video, arrange your timeline, add captions, and keep projects on your phone.</Text><Tool label="+ New project" primary onPress={create} /></View>
     <View style={styles.row}><Text style={styles.section}>YOUR PROJECTS</Text><Text style={styles.meta}>{projects.length} saved</Text></View>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
@@ -604,6 +612,12 @@ function EditorApp() {
       </View>
     </View>
     {busy && <ActivityIndicator color={theme.accent} />}
+    <HelpDesk visible={helpOpen} onClose={()=>setHelpOpen(false)}
+      project={null} cloudConnected={!!cloudSession} saveFailed={!!saveFailure}
+      exportSupported={canExportNatively()} quality={exportQuality}
+      onRetrySave={retrySave} onRestartPreview={()=>{
+        setPlaying(false);setPositionMs(0);setSeekVersion(v=>v+1);
+      }} onLowerExportQuality={()=>setExportQuality(720)}/>
     <StatusBar style="light" />
   </View>;
 
@@ -728,6 +742,10 @@ function EditorApp() {
       <Pressable accessibilityLabel="Search clips and text" accessibilityRole="button"
         onPress={() => { setSearchTerm(''); setSearchOpen(true); }} style={styles.headerIcon}>
         <Ionicons name="search-outline" size={25} color="#E9EBED" /></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="Help troubleshoot VIDNIVO"
+        onPress={()=>setHelpOpen(true)} style={styles.headerIcon}>
+        <Ionicons name="help-circle-outline" size={25} color="#E9EBED"/>
+      </Pressable>
       <Pressable style={styles.headerProject} onPress={() => { setProjectName(project.name); setNamePrompt(true); }}>
         <Text style={styles.headerProjectText} numberOfLines={1}>{project.name}</Text>
       </Pressable>
@@ -809,6 +827,12 @@ function EditorApp() {
     {lastExport ? <Pressable accessibilityRole="button" onPress={() => shareExport(lastExport).catch(e => Alert.alert('Sharing failed', String(e)))}
       style={styles.shareResult}><Text style={styles.shareResultText}>✓ MP4 ready — Share</Text></Pressable> : null}
 
+    <HelpDesk visible={helpOpen} onClose={()=>setHelpOpen(false)}
+      project={project} cloudConnected={!!cloudSession} saveFailed={!!saveFailure}
+      exportSupported={canExportNatively()} quality={exportQuality}
+      onRetrySave={retrySave} onRestartPreview={()=>{
+        setPlaying(false);setPositionMs(0);setSeekVersion(v=>v+1);
+      }} onLowerExportQuality={()=>setExportQuality(720)}/>
     <StoryFinderSheet visible={storyFinderOpen} moments={storySuggestions}
       onClose={()=>setStoryFinderOpen(false)}
       onPreview={m=>{
