@@ -647,7 +647,8 @@ let localSpeechModel=null;
 function captionProgress(message,percent,error=false){
  $('captionStatus').textContent=message;
  $('captionStatus').style.color=error?'#FF9CAB':'#D3E1E8';
- updateRealProcessingBar('captionProgress',percent>=100&&!error,error);
+ if(state.captioning)updateRealProcessingBar('captionProgress',percent>=100&&!error,error);
+ else{$('captionProgress').classList.remove('indeterminate');$('captionProgress').style.width=percent>=100?'100%':'0%'}
  if(state.captioning){
   const stage=/Capturing soundtrack/i.test(message)?1:
    /Loading|Downloading|speech model|Preparing speech|AI engine/i.test(message)?2:
@@ -842,7 +843,7 @@ async function runAutoCaptions(options={}){
   return {error:message};
  }finally{
   pause();state.captioning=false;renderTimeline();
-  hideProcessing('captions');
+  if(!state.creatorBusy)hideProcessing('captions');
   await seekTimeline(clamp(oldPosition,0,total()));
  }
 }
@@ -881,7 +882,7 @@ const waitRecorderStop=recorder=>new Promise((resolve,reject)=>{
 });
 let exportTimer=null;
 async function startExport(){
- if(!state.clips.length||state.exporting||state.captioning||state.faceLoading)return;
+ if(!state.clips.length||state.exporting||state.captioning||state.faceLoading||state.creatorBusy)return;
  if(state.faceRetouch>0&&!faceTracker.supported){
   toast('Face Retouch is still loading. Turn it off or retry after the model loads.',true);return;
  }
