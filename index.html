@@ -77,7 +77,16 @@
           <button type="button" class="look-chip" data-look="mono"><span class="look-dot" style="background:linear-gradient(125deg,#111,#dadada)"></span>Black & White</button>
           <button type="button" class="look-chip" data-look="moody"><span class="look-dot" style="background:linear-gradient(125deg,#1b203b,#65627f)"></span>Moody</button>
         </div>
-        <p class="fine-print">Looks and Auto Enhance appear in both preview and exported video. These edits are non-destructive, and Original restores the baseline look.</p>
+        <div class="section-label spacing-top">FACE RETOUCH</div>
+<div class="retouch-panel">
+  <div class="retouch-heading"><strong>Skin Smooth</strong><b id="faceRetouchValue">Off</b></div>
+  <p class="fine-print">Soften visible blemishes while protecting eyes, eyebrows and lips.</p>
+  <input id="faceRetouch" aria-label="Face smoothing intensity" type="range" min="0" max="100" step="5" value="0" disabled style="width:100%;margin:16px 0" />
+  <div class="retouch-scale" style="display:flex;justify-content:space-between;color:#b3bfca;font-size:11px"><span>Off</span><span>Soft</span><span>Smooth</span></div>
+  <button id="faceRetouchPreset" type="button" class="button secondary full" disabled style="margin-top:13px">✦ Natural Retouch · 35%</button>
+  <div id="faceRetouchStatus" class="status" aria-live="polite">Face tracking runs on this device. First use downloads a model; original footage stays local.</div>
+</div>
+<p class="fine-print">Looks and Auto Enhance appear in both preview and exported video. These edits are non-destructive, and Original restores the baseline look.</p>
       </div>
       <div id="tab-export" class="panel tab-content" hidden>
         <div class="panel-head"><div class="eyebrow">FINISH & SHARE</div><h2>Export video</h2></div>
