@@ -21,7 +21,7 @@ function VideoClip({ uri, clip, sourceSeconds, playing, seekVersion }:
     if (playing) player.play();
     else player.pause();
   }, [player, playing]);
-  return <VideoView player={player} nativeControls={false} contentFit="contain" style={StyleSheet.absoluteFillObject} />;
+  return <VideoView player={player} nativeControls={false} contentFit="contain" style={StyleSheet.absoluteFill} />;
 }
 export function VideoStage({ project, playheadMs, playing, seekVersion }:
   { project: Project; playheadMs: number; playing: boolean; seekVersion: number }) {
@@ -42,7 +42,7 @@ export function VideoStage({ project, playheadMs, playing, seekVersion }:
 }
 const styles = StyleSheet.create({
   frame: { backgroundColor: '#06080A', overflow: 'hidden', maxHeight: 360, alignSelf: 'center', justifyContent: 'center' },
-  full: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
+  full: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
   placeholder: { alignItems: 'center', justifyContent: 'center', height: '100%' },
   mark: { fontSize: 64, fontWeight: '900', color: theme.accent },
   placeholderLabel: { color: theme.muted, fontSize: 12, marginTop: 8 },
