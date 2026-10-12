@@ -16,7 +16,7 @@ test('script generator is honest about invalid timing and empty scripts',()=>{
  for(const text of ['', ' ', '\n'])assert.throws(()=>generateCaptionsFromScript(text,0,3000),/script/);
  assert.throws(()=>generateCaptionsFromScript('one two three four five six',0,300),/too short/);
  assert.throws(()=>generateCaptionsFromScript('hello',0,0),/range/);
- assert.throws(()=>generateCaptionsFromScript('hello',0,500,1),/2–10/);
+ assert.throws(()=>generateCaptionsFromScript('hello',0,500,0),/1–10/);
 });
 test('long scripts split into short segments without overlaps',()=>{
  const source=Array.from({length:150},(_,i)=>'word'+i).join(' ');

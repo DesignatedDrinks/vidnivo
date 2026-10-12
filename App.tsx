@@ -32,6 +32,7 @@ import { theme } from './src/ui/theme';
 import { LOOKS, LOOK_ORDER, resolveLook } from './src/domain/looks';
 import { setProjectLook } from './src/domain/timeline';
 import { generateCaptionsFromScript } from './src/domain/captionGenerator';
+import { SPEECH_LANGUAGES, type SpeechLanguage } from './src/domain/speechLanguages';
 
 WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_ANDROID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
@@ -73,6 +74,7 @@ function EditorApp() {
   const [scriptPanelOpen, setScriptPanelOpen] = useState(false);
   const [captionScript, setCaptionScript] = useState('');
   const [scriptWords, setScriptWords] = useState(5);
+  const [speechLanguage, setSpeechLanguage] = useState<SpeechLanguage>('en-US');
   const [preciseTrimOpen, setPreciseTrimOpen] = useState(false);
   const [captionStylesOpen, setCaptionStylesOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -314,10 +316,11 @@ function EditorApp() {
         const asset=project.assets.find(a=>a.id===clip.assetId);
         if(!asset || asset.kind!=='video')continue;
         let words=cache.get(asset.uri);
-        if(!words){words=await transcribeLocalVideo(asset.uri);cache.set(asset.uri,words);}
-        captions.push(...groupRecognizedWords(mapWordsToTimeline(words,clip)));
+        if(!words){words=await transcribeLocalVideo(asset.uri,speechLanguage);cache.set(asset.uri,words);}
+        captions.push(...groupRecognizedWords(mapWordsToTimeline(words,clip),scriptWords));
       }
       if(!captions.length)throw Error('No speech was detected in this footage.');
+      if(captions.length>500)throw Error('This will create more than 500 captions. Choose a larger words-per-caption setting and try again.');
       apply(p=>addCaptionCues(p,captions,'punch'));
       Alert.alert('Captions generated',captions.length+
         ' timed caption groups were created locally. Review every caption before sharing.');
@@ -658,7 +661,7 @@ function EditorApp() {
           style={styles.scriptInput} textAlignVertical="top"/>
         <Text style={styles.trimTitle}>Words per caption</Text>
         <View style={styles.trimRow}>
-          {[3,5,7].map(n=><Tool key={n} label={n+' words'} primary={n===scriptWords}
+          {[1,3,5,7].map(n=><Tool key={n} label={n===1?'Word mode':n+' words'} primary={n===scriptWords}
             onPress={()=>setScriptWords(n)}/>)}
         </View>
         <Text style={styles.trimHint}>Preview duration: {(Math.max(0,...project.clips.filter(c=>c.track==='video')
@@ -729,6 +732,18 @@ function EditorApp() {
                 <Ionicons name="chevron-forward" color="#7E858E" size={16}/>
               </Pressable>) :
             <>
+              <Text style={styles.trimHint}>Recognition language · {SPEECH_LANGUAGES.find(x=>x.code===speechLanguage)?.label}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{gap:6,paddingBottom:10}}>
+                {SPEECH_LANGUAGES.map(lang=><Tool key={lang.code} label={lang.short}
+                  primary={lang.code===speechLanguage}
+                  onPress={()=>setSpeechLanguage(lang.code)}/>)}
+              </ScrollView>
+              <Text style={styles.trimHint}>Captions · {scriptWords===1?'One highlighted word at a time':scriptWords+' words per phrase'}</Text>
+              <View style={styles.trimRow}>
+                {[1,3,5,7].map(n=><Tool key={n} label={n===1?'1 word':n+' words'} primary={scriptWords===n}
+                  onPress={()=>setScriptWords(n)}/>)}
+              </View>
               <Pressable style={styles.captionChoice} onPress={() => { void generateAutoCaptions(false); }} disabled={busy}>
                 <Ionicons name="sparkles-outline" size={24} color="#23D4E9" />
                 <View style={{flex:1}}>

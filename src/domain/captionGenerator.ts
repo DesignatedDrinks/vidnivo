@@ -11,8 +11,8 @@ export function generateCaptionsFromScript(script:string,startMs:number,endMs:nu
     throw Error('Script must be text under 30,000 characters.');
   if(!Number.isFinite(startMs)||!Number.isFinite(endMs)||startMs<0||endMs<=startMs)
     throw Error('Choose a valid video time range.');
-  if(!Number.isInteger(maxWords)||maxWords<2||maxWords>10)
-    throw Error('Caption groups must contain 2–10 words.');
+  if(!Number.isInteger(maxWords)||maxWords<1||maxWords>10)
+    throw Error('Caption groups must contain 1–10 words.');
   const tokens=script.replace(/\s+/g,' ').trim().split(' ').filter(Boolean);
   if(!tokens.length)throw Error('Enter a script to create captions.');
   const parts:string[][]=[];
