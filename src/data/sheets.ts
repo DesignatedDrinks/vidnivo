@@ -57,7 +57,10 @@ function enabled(row:string[],sheet:Table):boolean {
  return String(row[deletedCol[sheet]]).toUpperCase()!=='TRUE';
 }
 function n(row: string[], index: number, fallback = 0): number {
-  const v = Number(row[index]); return Number.isFinite(v) ? v : fallback;
+  const raw=row[index];
+  if(raw===undefined || raw===null || raw.trim()==='')return fallback;
+  const v=Number(raw);
+  return Number.isFinite(v) ? v : fallback;
 }
 function parsedProject(row: string[]): Project {
   return { id: row[0], name: row[1] || 'Untitled', aspectRatio: row[2] === '1:1' || row[2] === '16:9' ? row[2] : '9:16',
