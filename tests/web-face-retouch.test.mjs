@@ -20,7 +20,7 @@ test('both web hosting entrypoints deliver identical retouch-capable editor',()=
  assert.match(html,/id="faceRetouch"/);
  assert.match(html,/id="faceRetouchStatus"/);
  assert.match(html,/id="faceRetouchPreset"/);
- assert.match(script,/import \{FaceRetouch\} from '\.\/vidnivo-face-retouch\.js'/);
+ assert.match(script,/import \{FaceRetouch\} from '\.\/vidnivo-face-retouch\.js\?v=5'/);
  assert.match(script,/faceTracker\.draw\(ctx,video/);
  assert.match(script,/state\.faceRetouch=0/);
  assert.match(script,/faceTracker\.reset\(\)/);
@@ -70,4 +70,17 @@ test('tracker keeps footage local and treats library/model failures as disable-n
  assert.doesNotMatch(src,/fetch\(/);
  assert.match(script,/state\.faceRetouch=0/);
  assert.match(script,/Could not start on-device face tracking/);
+});
+
+test('face tracker uses a published package release, fallback CDN, and retries safely',()=>{
+ assert.match(src,/MEDIAPIPE_VERSION='0\.10\.21'/);
+ assert.doesNotMatch(src,/@mediapipe\/tasks-vision@0\.10\.22(?!-rc)/);
+ assert.match(src,/cdn\.jsdelivr\.net\/npm\/\@mediapipe/);
+ assert.match(src,/unpkg\.com\/\@mediapipe/);
+ assert.match(src,/for\(const \[index,host\] of ASSET_HOSTS\.entries\(\)\)/);
+ assert.match(src,/await import\(host\+'\/vision_bundle\.mjs'\)/);
+ assert.match(src,/FilesetResolver\.forVisionTasks\(host\+'\/wasm'\)/);
+ assert.match(src,/this\.landmarker=null/);
+ assert.match(src,/this\.loading=null/);
+ assert.match(src,/Check your internet connection or Safari content blockers/);
 });
