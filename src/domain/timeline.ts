@@ -195,3 +195,21 @@ export function editTextLayer(p: Project, id: string, changes: Partial<Omit<Text
   };
   return touch({ ...p, texts: p.texts.map(t => t.id === id ? modified : t) });
 }
+
+/**
+ * Magnetic speed edits keep downstream video contiguous, unlike freeform speed.
+ * Standalone audio retains its start position.
+ */
+export function rippleSpeedClip(p: Project, id: string, speed: number): Project {
+  const target = p.clips.find(c => c.id === id);
+  if (!target) return p;
+  const adjusted = editClip(p, id, { speed });
+  if (target.track !== 'video') return adjusted;
+  const updated = adjusted.clips.find(c => c.id === id)!;
+  const shift = clipDurationMs(updated) - clipDurationMs(target);
+  if (Math.abs(shift) < 0.001) return adjusted;
+  const end = clipEndMs(target);
+  return { ...adjusted, clips: adjusted.clips.map(c =>
+    c.track === 'video' && c.id !== id && c.startMs >= end - 0.01
+      ? { ...c, startMs: Math.max(0, c.startMs + shift) } : c) };
+}

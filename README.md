@@ -3,7 +3,7 @@
 VIDNIVO is an independently built short-form video editor for iPhone and Android, developed in Expo / React Native.
 
 ## Status
-**In development, not a complete CapCut replacement.** Editing and Google Sheets persistence are under construction. CapCut's proprietary code, trademarks, templates, and licensed assets are not used.
+**In development.** VIDNIVO is an independent mobile video editor. Editing, native rendering, and Google Sheets persistence are under active development.
 
 ## Architecture
 - **Mobile app:** React Native with Expo SDK 57 (compatible with current Expo Go for iOS and Android).
