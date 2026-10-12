@@ -20,7 +20,12 @@ const handler=createApiHandler({
  },
  async updateProfile(uid,{displayName,updatedAt}) {
   const ref=db.collection('users').doc(uid);
-  await ref.set({displayName,updatedAt,createdAt:FieldValue.serverTimestamp()}, {merge:true});
+  await db.runTransaction(async transaction => {
+   const current=await transaction.get(ref);
+   const fields={displayName,updatedAt};
+   if(!current.exists) fields.createdAt=FieldValue.serverTimestamp();
+   transaction.set(ref,fields,{merge:true});
+  });
  },
  allowedOrigins:(process.env.ALLOWED_ORIGINS||'').split(',').map(x=>x.trim()).filter(Boolean)
 });

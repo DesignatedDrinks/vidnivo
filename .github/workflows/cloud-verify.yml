@@ -1,0 +1,44 @@
+name: Verify VIDNIVO cloud foundation
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cloudrun/**'
+      - 'firebase.json'
+      - 'firestore.rules'
+      - 'storage.rules'
+      - 'web/**'
+      - 'deploy/**'
+      - 'tests/cloud-configuration.test.mjs'
+      - '.github/workflows/cloud-verify.yml'
+  pull_request:
+    paths:
+      - 'cloudrun/**'
+      - 'firebase.json'
+      - 'firestore.rules'
+      - 'storage.rules'
+      - 'web/**'
+      - 'deploy/**'
+      - 'tests/cloud-configuration.test.mjs'
+      - '.github/workflows/cloud-verify.yml'
+permissions:
+  contents: read
+jobs:
+  cloud-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Cloud API test suite
+        run: node --test cloudrun/api/test/*.test.mjs
+      - name: Static config and permissions checks
+        run: node --test tests/cloud-configuration.test.mjs
+      - name: Validate Node source syntax
+        run: |
+          node --check cloudrun/api/src/main.mjs
+          node --check cloudrun/api/src/handler.mjs
+          node --check web/site.js
+      - name: Build a production Cloud Run container
+        run: docker build -t vidnivo-cloud-api:verify cloudrun/api

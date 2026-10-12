@@ -90,7 +90,7 @@ export function createApiHandler({ verifyIdToken, readProfile, updateProfile, al
         return json(res, 405, {error:'Method not allowed.'});
       }
       const authHeader = req.headers.authorization;
-      if (typeof authHeader !== 'string' || !/^Bearer [A-Za-z0-9._~+/-]{20,8192}={0,2}$/.test(authHeader))
+      if (typeof authHeader !== 'string' || !/^Bearer [A-Za-z0-9._~-]{20,8192}$/.test(authHeader))
         return json(res, 401, {error:'Firebase sign-in required.'});
       const token = authHeader.slice(7);
       let claims;
