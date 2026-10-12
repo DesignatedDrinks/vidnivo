@@ -99,8 +99,7 @@ const handler=createHandler({
     resumable:false,
     preconditionOpts:{ifGenerationMatch:0},
     metadata:{contentType}
-   }),expectedSize,MAX_MEDIA_BYTES);
-   uploaded=true;
+   }),expectedSize,MAX_MEDIA_BYTES,()=>{uploaded=true;});
    const media={assetId:id,objectPath,name,contentType,size:seen};
    await users(uid).collection('media').doc(id).create({
     ...media,registeredAt:FieldValue.serverTimestamp()
