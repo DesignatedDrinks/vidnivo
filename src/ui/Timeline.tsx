@@ -86,7 +86,7 @@ export function Timeline({ project, selectedId, selectedTextId, playheadMs,
         <View style={styles.ruler}>
           {Array.from({ length: Math.ceil(endMs / 2000) + 3 }, (_, i) => (
             <Pressable key={i} onPress={() => onSeek(i * 2000)}
-              style={[styles.tick, { left: place(i * 2000) }]}>
+              style={[styles.tick, { left: i * pixelsPerSecond * 2 }]}>
               <Text style={styles.tickText}>{String(i * 2).padStart(2,'0')}s</Text>
               <View style={styles.tickLine} />
             </Pressable>
@@ -100,7 +100,7 @@ export function Timeline({ project, selectedId, selectedTextId, playheadMs,
             return <Pressable key={c.id} onPress={() => onSelect(c.id, c.startMs)}
               style={[styles.videoClip, { left: place(c.startMs), width: w },
                 selectedId === c.id && styles.selectedClip]}>
-              {asset ? <ClipFilmstrip uri={asset.uri} kind={asset.kind} width={w} sourceMs={c.inMs} /> : null}
+              {asset ? <ClipFilmstrip uri={asset.uri} kind={asset.kind} width={w} sourceMs={c.inMs} sourceEndMs={c.outMs} /> : null}
             </Pressable>;
           })}
           {onAddVideo ? <Pressable accessibilityLabel="Import more videos"

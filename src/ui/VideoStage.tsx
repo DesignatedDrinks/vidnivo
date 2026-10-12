@@ -43,7 +43,7 @@ export function VideoStage({ project, playheadMs, playing, seekVersion, maxHeigh
   </View>;
 }
 const styles = StyleSheet.create({
-  frame: { backgroundColor: '#06080A', overflow: 'hidden', maxHeight: 360, alignSelf: 'center', justifyContent: 'center' },
+  frame: { backgroundColor: '#06080A', overflow: 'hidden', alignSelf: 'center', justifyContent: 'center' },
   full: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
   placeholder: { alignItems: 'center', justifyContent: 'center', height: '100%' },
   mark: { fontSize: 64, fontWeight: '900', color: theme.accent },
