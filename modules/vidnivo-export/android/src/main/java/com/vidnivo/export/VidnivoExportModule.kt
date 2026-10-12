@@ -66,9 +66,7 @@ class VidnivoExportModule : Module() {
           var cursorMs = 0.0
           for (index in 0 until clips.length()) {
             val clip = clips.getJSONObject(index)
-            if (clip.getString("track") != "video") {
-              throw IllegalArgumentException("Android added-audio mixing is not implemented yet. Remove added audio tracks before export.")
-            }
+            if (clip.getString("track") != "video") continue
             val startMs = clip.getDouble("startMs")
             val inMs = clip.getDouble("inMs")
             val outMs = clip.getDouble("outMs")
@@ -113,6 +111,41 @@ class VidnivoExportModule : Module() {
             throw IllegalArgumentException("A 1–15 minute video sequence is required.")
           }
           val sequence = EditedMediaItemSequence.withAudioAndVideoFrom(items)
+          val soundtrackSequences = ArrayList<EditedMediaItemSequence>()
+          for (index in 0 until clips.length()) {
+            val clip=clips.getJSONObject(index)
+            if (clip.getString("track") != "audio" || clip.getBoolean("muted")) continue
+            val startMs=clip.getDouble("startMs")
+            val inMs=clip.getDouble("inMs")
+            val outMs=clip.getDouble("outMs")
+            val speed=clip.getDouble("speed")
+            val volume=clip.getDouble("volume")
+            if (speed<=0.0 || inMs<0 || outMs<=inMs || startMs<0.0)
+              throw IllegalArgumentException("Imported soundtrack timing is invalid.")
+            if (abs(volume-1.0)>0.01)
+              throw IllegalArgumentException("Android audio mixing requires soundtrack volume 100% or mute.")
+            if (startMs>=cursorMs) continue
+            val sourceUri=clip.getString("uri")
+            if (!sourceUri.startsWith("file://") ||
+                !File(Uri.parse(sourceUri).path ?: "").exists())
+              throw IllegalArgumentException("Imported audio file is missing on this phone.")
+            val trimmedOutMs=minOf(outMs,inMs+(cursorMs-startMs)*speed)
+            if (trimmedOutMs<=inMs) continue
+            val soundtrackItem=MediaItem.Builder().setUri(sourceUri)
+              .setClippingConfiguration(MediaItem.ClippingConfiguration.Builder()
+                .setStartPositionMs(inMs.toLong())
+                .setEndPositionMs(trimmedOutMs.toLong())
+                .build()).build()
+            val provider=object : SpeedProvider {
+              override fun getSpeed(timeUs: Long)=speed.toFloat()
+              override fun getNextSpeedChangeTimeUs(timeUs: Long)=C.TIME_UNSET
+            }
+            val audioItem=EditedMediaItem.Builder(soundtrackItem).setSpeed(provider).build()
+            val builder=EditedMediaItemSequence.Builder(setOf(C.TRACK_TYPE_AUDIO))
+            if(startMs>0)builder.addGap((startMs*1000.0).toLong())
+            builder.addItem(audioItem)
+            soundtrackSequences.add(builder.build())
+          }
 
           val overlays=ArrayList<TextureOverlay>()
           for (index in 0 until texts.length()) {
@@ -147,7 +180,10 @@ class VidnivoExportModule : Module() {
               }
             })
           }
-          val compositionBuilder=Composition.Builder(sequence)
+          val audioAndVideo=ArrayList<EditedMediaItemSequence>()
+          audioAndVideo.add(sequence)
+          audioAndVideo.addAll(soundtrackSequences)
+          val compositionBuilder=Composition.Builder(audioAndVideo)
           if (overlays.isNotEmpty()) {
             compositionBuilder.setEffects(Effects(emptyList(),listOf(OverlayEffect(overlays))))
           }

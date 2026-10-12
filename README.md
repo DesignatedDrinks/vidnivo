@@ -80,3 +80,10 @@ portrait-first centered preview, a fixed playhead, horizontally scrubbable frame
 independent audio and text tracks, and a bottom action rail. Actions without a working
 backend are marked Soon and display an explicit explanation. HD export is a real control
 in native builds; it is not represented as working inside Expo Go.
+
+### Android audio mixing
+The Android native exporter now builds dedicated audio-only composition
+sequences for imported soundtracks and voiceovers. Each sequence starts at the
+selected timeline position and mixes with the original video audio.
+Custom track gain beyond 100%/mute is not yet supported. Verify soundtrack
+position, overlap and output playback on an Android device before release.
