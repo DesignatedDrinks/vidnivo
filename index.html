@@ -760,6 +760,131 @@ function reset(){
  pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.faceRetouch=0;faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
  video.removeAttribute('src');video.load();ui.empty.hidden=false;ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();renderEditor();renderCaptions();toast('Ready for a new project.');
 }
+function canvasGesturePoint(event){
+ const rect=canvas.getBoundingClientRect();
+ if(rect.width<1||rect.height<1)return null;
+ return {
+  x:clamp((event.clientX-rect.left)/rect.width*canvas.width,0,canvas.width),
+  y:clamp((event.clientY-rect.top)/rect.height*canvas.height,0,canvas.height)
+ };
+}
+function startOneFingerDrag(cap,point){
+ const layout=captionLayout(ctx,cap,canvas.width,canvas.height);
+ dragAnchor={offsetX:layout.x-point.x,offsetY:layout.y-point.y};
+ pinchOrigin=null;
+}
+function startTwoFingerPinch(cap){
+ const points=[...touchPointers.values()];
+ if(points.length<2)return;
+ const center=midpoint(points[0],points[1]);
+ const layout=captionLayout(ctx,cap,canvas.width,canvas.height);
+ pinchOrigin={
+  initialDistance:Math.max(5,gestureDistance(points[0],points[1])),
+  initialScale:fontScale(cap.fontScale),
+  startAnchor:{x:layout.x,y:layout.y},
+  startCenter:center
+ };
+ dragAnchor=null;
+}
+canvas.addEventListener('pointerdown',event=>{
+ if(state.exporting||state.captioning||state.faceLoading||!state.clips.length)return;
+ const point=canvasGesturePoint(event);
+ if(!point)return;
+ const active=activeCaption();
+ const hit=[...captionHitBoxes].reverse().find(box=>
+  pointInCaption(point,box.bounds,44*canvas.width/Math.max(1,canvas.getBoundingClientRect().width)));
+ let cap=hit?state.captions.find(c=>c.id===hit.id):null;
+ if(!cap&&touchPointers.size>0&&active)cap=active; // second finger can land anywhere on preview
+ if(!cap)return;
+ if(touchPointers.size===0){
+  pause();
+  if(state.editCaptionId!==cap.id)selectCaptionForEditing(cap);
+  touchWasEdited=false;
+ }
+ if(state.editCaptionId!==cap.id)return;
+ event.preventDefault();
+ try{canvas.setPointerCapture(event.pointerId)}catch{}
+ touchPointers.set(event.pointerId,point);
+ if(touchPointers.size===1)startOneFingerDrag(cap,point);
+ if(touchPointers.size===2)startTwoFingerPinch(cap);
+});
+canvas.addEventListener('pointermove',event=>{
+ if(!touchPointers.has(event.pointerId))return;
+ const point=canvasGesturePoint(event);
+ if(!point)return;
+ touchPointers.set(event.pointerId,point);
+ const cap=activeCaption();
+ if(!cap||state.exporting||state.captioning)return;
+ event.preventDefault();
+ if(touchPointers.size>=2&&pinchOrigin){
+  const points=[...touchPointers.values()];
+  const center=midpoint(points[0],points[1]);
+  const ratio=gestureDistance(points[0],points[1])/pinchOrigin.initialDistance;
+  const value=fontScale(pinchOrigin.initialScale*ratio);
+  cap.fontScale=value;
+  // A two-finger translation moves the caption at the same time as scaling.
+  const layout=captionLayout(ctx,cap,canvas.width,canvas.height);
+  const desiredX=pinchOrigin.startAnchor.x+center.x-pinchOrigin.startCenter.x;
+  const desiredY=pinchOrigin.startAnchor.y+center.y-pinchOrigin.startCenter.y;
+  Object.assign(cap,clampedCaptionAnchor(desiredX,desiredY,layout,canvas.width,canvas.height));
+  cap.position='custom';
+  $('captionPosition').value='custom';
+  syncCaptionSizeControls(cap);
+  $('captionTouchStatus').textContent='Pinch to resize: '+Math.round(value*100)+'%. Two-finger drag also moves the caption.';
+  touchWasEdited=true;
+ }else if(touchPointers.size===1&&dragAnchor){
+  const layout=captionLayout(ctx,cap,canvas.width,canvas.height);
+  Object.assign(cap,clampedCaptionAnchor(point.x+dragAnchor.offsetX,point.y+dragAnchor.offsetY,layout,canvas.width,canvas.height));
+  cap.position='custom';
+  $('captionPosition').value='custom';
+  $('captionTouchStatus').textContent='Moving caption · release your finger to keep this position.';
+  touchWasEdited=true;
+ }
+ requestDraw();
+});
+function finishCaptionPointer(event){
+ if(!touchPointers.has(event.pointerId))return;
+ touchPointers.delete(event.pointerId);
+ try{if(canvas.hasPointerCapture(event.pointerId))canvas.releasePointerCapture(event.pointerId)}catch{}
+ const cap=activeCaption();
+ if(cap&&touchPointers.size===1){
+  startOneFingerDrag(cap,[...touchPointers.values()][0]);
+ }else if(touchPointers.size<1){
+  dragAnchor=null;pinchOrigin=null;
+  if(touchWasEdited){
+   renderCaptions();
+   $('captionTouchStatus').textContent='Position and size saved to this caption. Your exported video will use the same settings.';
+   requestDraw();
+  }
+  touchWasEdited=false;
+ }
+}
+canvas.addEventListener('pointerup',finishCaptionPointer);
+canvas.addEventListener('pointercancel',finishCaptionPointer);
+canvas.addEventListener('lostpointercapture',event=>{
+ if(touchPointers.has(event.pointerId))finishCaptionPointer(event);
+});
+$('captionFontSize').addEventListener('input',event=>updateCaptionFont(event.target.value));
+for(const [id,direction] of [['captionSmaller',-1],['captionLarger',1]]){
+ $(id).onclick=()=>updateCaptionFont(Number($('captionFontSize').value)+direction*10);
+}
+$('captionCenter').onclick=()=>{
+ const cap=activeCaption();
+ if(!cap||state.exporting||state.captioning)return;
+ cap.x=.5;cap.y=.5;cap.position='custom';
+ $('captionPosition').value='custom';
+ requestDraw();renderCaptions();
+ $('captionTouchStatus').textContent='Caption moved to the centre of the video.';
+};
+$('captionPosition').addEventListener('change',event=>{
+ const cap=activeCaption();
+ if(!cap||state.exporting||state.captioning||event.target.value==='custom')return;
+ cap.position=event.target.value;
+ delete cap.x;delete cap.y;
+ requestDraw();
+ $('captionTouchStatus').textContent='Position preset applied. Drag it directly on the preview to place it precisely.';
+});
+
 // Event wiring
 ui.videoInput.addEventListener('change',e=>{const file=e.target.files?.[0];e.target.value='';void importFile(file)});
 ui.play.onclick=()=>{if(state.playing)pause();else void play()};
