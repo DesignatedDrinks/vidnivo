@@ -38,12 +38,15 @@ jobs:
           node --check cloud-run/src/core.mjs
           node --check cloud-run/src/index.mjs
           node --check web/src/main.js
+          node --check web/src/mediaPaths.js
       - name: Cloud API security and access-control tests
         run: npm test --prefix cloud-run
       - name: Static Firebase rule/route guard tests
         run: node --test infra/tests/*.test.mjs
       - name: Install web dependencies
         run: npm install --prefix web --no-audit --no-fund
+      - name: Verify private-media browser path guards
+        run: npm test --prefix web
       - name: Build production web frontend
         run: npm run build --prefix web
       - name: Inspect build output

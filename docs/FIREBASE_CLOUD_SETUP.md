@@ -128,13 +128,22 @@ After deploying, test in a real browser and phone:
 3. Confirm it appears only in the uploader account's private media list.
 4. Attempt to access the same storage path from a second account: expect
    **permission denied**.
-5. Try a >200 MB file and unsupported format: expect validation failure.
-6. Revoke ID token/session: private API endpoints must reject the request.
-7. Ensure billing counters and Cloud Run logs contain no tokens, raw
-   transcripts, media contents or secret keys.
-8. Verify that editor projects in Google Sheets still open as before.
-9. Test browser sign-in on iPhone and Android. Popup fallback uses redirect;
-   configure correct Firebase authorized domains and auth-provider settings.
+5. Download a registered file and confirm its bytes match the upload. Browser
+   downloads use the signed-in Firebase Storage SDK; they do not create a
+   transferable public download token. Configure Storage bucket CORS for the
+   exact trusted Hosting origins so authorized browser GET requests succeed.
+6. Delete a disposable file, confirm it disappears from the list and Storage,
+   and confirm that a second account cannot delete it. Confirm the action
+   requires user confirmation and an active signed-in session.
+7. Upload more than 50 disposable tiny images and verify that **Load more
+   media** retrieves the next page without duplicates.
+8. Try a >200 MB file and unsupported format: expect validation failure.
+9. Revoke ID token/session: private API endpoints must reject the request.
+10. Ensure billing counters and Cloud Run logs contain no tokens, raw
+    transcripts, media contents or secret keys.
+11. Verify that editor projects in Google Sheets still open as before.
+12. Test browser sign-in on iPhone and Android. Popup fallback uses redirect;
+    configure correct Firebase authorized domains and auth-provider settings.
 
 ## Important next work before public launch
 
@@ -163,3 +172,49 @@ After deploying, test in a real browser and phone:
   surface raw provider errors to end users.
 - **Unexpected costs**: stop services via your Cloud Console, review quotas
   and budgets; `max-instances=2` alone does not guarantee a $0 bill.
+
+## Authenticated browser downloads and deletion
+
+The owner-only media dashboard now supports download, deletion, and paginated
+listing (50 media records per page). The website downloads bytes using the
+Firebase Storage SDK `getBlob` with the signed-in account's Storage Rules.
+**Do not replace this with `getDownloadURL`** without considering that it
+produces a transferable tokenized URL. Browser blobs can consume substantial
+RAM when a file approaches the 200 MB limit, particularly on older phones.
+
+A bucket CORS policy is needed for browser SDK downloads from Firebase Hosting
+domains. Example `storage-cors.json` (substitute your actual trusted domains):
+
+```json
+[
+  {
+    "origin": ["https://YOUR_PROJECT.web.app", "https://YOUR_PROJECT.firebaseapp.com"],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type", "Content-Disposition"],
+    "maxAgeSeconds": 3600
+  }
+]
+```
+
+Apply it to the approved bucket with your account's Google Cloud permissions:
+
+```sh
+gcloud storage buckets update gs://YOUR_BUCKET --cors-file=storage-cors.json
+```
+
+Do **not** use `"origin": ["*"]` in a private customer application.
+CORS is not an authorization boundary; per-user Firebase Storage Rules are.
+
+Deletion uses `DELETE /api/v1/media/:assetId` with a verified Firebase ID
+token. The Cloud Run API verifies the owned registry path, deletes the stored
+object, then deletes the Firestore registry record. Object removal tolerates
+an already-missing file so a partial failure can be retried. If object
+removal fails, the registry record is preserved; do not delete the registry
+first. This only removes cloud media. The existing Google Sheets mobile
+editor metadata and local drafts are not changed by cloud media deletion,
+and a deleted source may need to be replaced in those drafts.
+
+**Deployment gate:** the cloud code and tests do not prove live downloads,
+retention, billing, or deletion are operational. Verify the browser, bucket
+CORS, account isolation, and object lifecycle on a configured Firebase
+project before telling customers media management is ready.

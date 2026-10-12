@@ -54,9 +54,9 @@ export function validateRegistration(uid,raw){
  * remains the editor's original metadata database.
  */
 export function createHandler({verifyToken,getProfile,saveProfile,listMedia,getMedia,
- checkObject,registerMedia,storageReady=true,allowedOrigins=[]}){
+ checkObject,registerMedia,deleteObject,deleteMedia,storageReady=true,allowedOrigins=[]}){
  if(!verifyToken||!getProfile||!saveProfile||!listMedia||!getMedia||
-    !checkObject||!registerMedia)throw Error('API dependencies missing.');
+    !checkObject||!registerMedia||!deleteObject||!deleteMedia)throw Error('API dependencies missing.');
  return async function handle(req,res){
   const origin=req.headers.origin||'';
   if(origin && !allowedOrigins.includes(origin)){
@@ -67,7 +67,7 @@ export function createHandler({verifyToken,getProfile,saveProfile,listMedia,getM
    res.setHeader('Vary','Origin');
    if(origin)res.setHeader('Access-Control-Allow-Origin',origin);
    res.setHeader('Access-Control-Allow-Headers','Authorization, Content-Type');
-   res.setHeader('Access-Control-Allow-Methods','GET, PUT, POST, OPTIONS');
+   res.setHeader('Access-Control-Allow-Methods','GET, PUT, POST, DELETE, OPTIONS');
    res.setHeader('Access-Control-Max-Age','600');
    res.end();return;
   }
@@ -78,7 +78,7 @@ export function createHandler({verifyToken,getProfile,saveProfile,listMedia,getM
   if(!path.startsWith('/api/v1/')){
    send(res,404,{error:errors[404]},origin,allowedOrigins);return;
   }
-  if(!['GET','PUT','POST'].includes(req.method||'')){
+  if(!['GET','PUT','POST','DELETE'].includes(req.method||'')){
    send(res,405,{error:errors[405]},origin,allowedOrigins);return;
   }
   const auth=req.headers.authorization||'';
@@ -109,8 +109,11 @@ export function createHandler({verifyToken,getProfile,saveProfile,listMedia,getM
     send(res,200,{uid,displayName},origin,allowedOrigins);return;
    }
    if(req.method==='GET'&&path==='/api/v1/media'){
-    const media=await listMedia(uid);
-    send(res,200,{media},origin,allowedOrigins);return;
+    const after=new URL(req.url||'/', 'http://localhost').searchParams.get('after');
+    if(after!==null&&!ASSET_ID.test(after))
+     throw Object.assign(Error('Invalid media page cursor.'),{status:400});
+    const page=await listMedia(uid,after,50);
+    send(res,200,page,origin,allowedOrigins);return;
    }
    if(req.method==='POST'&&path==='/api/v1/media/register'){
     if(!storageReady)throw Object.assign(Error(errors[503]),{status:503});
@@ -125,6 +128,23 @@ export function createHandler({verifyToken,getProfile,saveProfile,listMedia,getM
     const record={...input,contentType:item.contentType,size:item.size};
     if(!previous)await registerMedia(uid,record);
     send(res,200,{assetId:input.assetId,registered:true},origin,allowedOrigins);return;
+   }
+   // The server, never the browser, performs both sides of deletion.
+   // If removing Firestore fails, a retry is safe because object deletion
+   // tolerates a file which was already removed.
+   const deletion=path.match(/^\/api\/v1\/media\/([A-Za-z0-9_-]{8,80})$/);
+   if(req.method==='DELETE'&&deletion){
+    if(!storageReady)throw Object.assign(Error(errors[503]),{status:503});
+    const assetId=deletion[1];
+    const previous=await getMedia(uid,assetId);
+    if(!previous){
+     send(res,404,{error:'Media asset not found.'},origin,allowedOrigins);return;
+    }
+    // Defend against corrupted or improperly owned registry records.
+    validateRegistration(uid,{assetId,...previous});
+    await deleteObject(previous.objectPath);
+    await deleteMedia(uid,assetId);
+    send(res,200,{assetId,deleted:true},origin,allowedOrigins);return;
    }
    send(res,404,{error:errors[404]},origin,allowedOrigins);
   }catch(error){
