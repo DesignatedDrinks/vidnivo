@@ -18,6 +18,8 @@ import { addCaptionCues, groupRecognizedWords, mapWordsToTimeline,
   parseCaptions, restyleCaptions, captionsFromProject, serializeSrt,
   type CaptionPreset } from './src/domain/captions';
 import { speechRecognitionAvailable, transcribeLocalVideo } from './src/media/speech';
+import { splitCaption, mergeCaptionWithNext, nudgeCaption, shiftAllCaptions,
+  fixSentenceCase } from './src/domain/captionEditing';
 import { canExportNatively, exportMp4, shareExport } from './src/export/native';
 import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot, editTextLayer, rippleSpeedClip } from './src/domain/timeline';
 import { loadLocalProjects, saveLocalProjects } from './src/data/storage';
@@ -408,6 +410,14 @@ function EditorApp() {
     { id: 'smaller', label: 'Smaller', icon: 'remove-circle-outline', onPress: () => apply(p => editTextLayer(p, selectedText.id, { fontSize: selectedText.fontSize - 4 })) },
     { id: 'up', label: 'Move up', icon: 'arrow-up-outline', onPress: () => apply(p => editTextLayer(p, selectedText.id, { y: selectedText.y - .05 })) },
     { id: 'down', label: 'Move down', icon: 'arrow-down-outline', onPress: () => apply(p => editTextLayer(p, selectedText.id, { y: selectedText.y + .05 })) },
+    { id: 'splitText', label: 'Split text', icon: 'git-branch-outline',
+      onPress: () => apply(p => splitCaption(p, selectedText.id)) },
+    { id: 'mergeText', label: 'Merge next', icon: 'git-merge-outline',
+      onPress: () => apply(p => mergeCaptionWithNext(p, selectedText.id)) },
+    { id: 'nudgeLeft', label: '−0.1s', icon: 'arrow-back-outline',
+      onPress: () => apply(p => nudgeCaption(p, selectedText.id, -100)) },
+    { id: 'nudgeRight', label: '+0.1s', icon: 'arrow-forward-outline',
+      onPress: () => apply(p => nudgeCaption(p, selectedText.id, 100)) },
     { id: 'longer', label: 'Extend', icon: 'resize-outline', onPress: () => apply(p => editTextLayer(p, selectedText.id, { endMs: selectedText.endMs + 500 })) },
     { id: 'shorter', label: 'Shorten', icon: 'contract-outline', onPress: () => apply(p => editTextLayer(p, selectedText.id, { endMs: selectedText.endMs - 500 })) },
     { id: 'white', label: 'White', icon: 'color-palette-outline', onPress: () => apply(p => editTextLayer(p, selectedText.id, { color: '#FFFFFF' })) },
@@ -557,6 +567,24 @@ function EditorApp() {
               <Pressable style={styles.captionChoice} onPress={() => setCaptionStylesOpen(true)}>
                 <Ionicons name="color-palette-outline" size={24} color="#23D4E9" />
                 <Text style={styles.captionChoiceLabel}>Caption appearance</Text>
+              </Pressable>
+              <Pressable style={styles.captionChoice} onPress={() => {
+                apply(p => fixSentenceCase(p)); setCaptionPanelOpen(false);
+              }}>
+                <Ionicons name="text-outline" size={24} color="#23D4E9" />
+                <Text style={styles.captionChoiceLabel}>Fix sentence capitalization</Text>
+              </Pressable>
+              <Pressable style={styles.captionChoice} onPress={() => {
+                apply(p => shiftAllCaptions(p,-100)); setCaptionPanelOpen(false);
+              }}>
+                <Ionicons name="play-back-outline" size={24} color="#23D4E9" />
+                <Text style={styles.captionChoiceLabel}>Move all captions 0.1s earlier</Text>
+              </Pressable>
+              <Pressable style={styles.captionChoice} onPress={() => {
+                apply(p => shiftAllCaptions(p,100)); setCaptionPanelOpen(false);
+              }}>
+                <Ionicons name="play-forward-outline" size={24} color="#23D4E9" />
+                <Text style={styles.captionChoiceLabel}>Move all captions 0.1s later</Text>
               </Pressable>
               <Pressable style={styles.captionChoice} onPress={exportSubtitleFile}>
                 <Ionicons name="share-outline" size={24} color="#23D4E9" />
