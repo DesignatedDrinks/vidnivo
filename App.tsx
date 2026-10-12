@@ -68,7 +68,7 @@ function EditorApp() {
     const interval = setInterval(() => {
       const now = Date.now(), delta = now - last; last = now;
       setPositionMs(previous => {
-        if (previous + delta >= durationMs(project)) { setPlaying(false); return 0; }
+        if (previous + delta >= durationMs(project)) { setPlaying(false); setSeekVersion(v => v + 1); return 0; }
         return previous + delta;
       });
     }, 75);

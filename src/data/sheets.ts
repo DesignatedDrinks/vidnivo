@@ -1,4 +1,5 @@
-import { Asset, Clip, Project, TextLayer, validateProject } from '../domain/timeline';
+import type { Asset, Clip, Project, TextLayer } from '../domain/timeline.ts';
+import { validateProject } from '../domain/timeline.ts';
 
 /**
  * Google Sheets is the remote database. Media bytes remain on the phone.
