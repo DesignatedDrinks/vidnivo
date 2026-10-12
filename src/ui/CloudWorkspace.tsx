@@ -14,7 +14,7 @@ interface Props{
 }
 const action=(label:string,handler:()=>void,disabled=false)=>
  <Pressable onPress={handler} disabled={disabled} accessibilityRole="button"
- style={{backgroundColor:theme.raised,padding:12,borderRadius:9,opacity:disabled?.5:1}}>
+ style={{backgroundColor:theme.raised,padding:12,borderRadius:9,opacity:disabled ? 0.5 : 1}}>
  <Text style={{color:theme.text,fontSize:12,fontWeight:'700'}}>{label}</Text>
  </Pressable>;
 export function CloudWorkspace({session,setSession,setProjects}:Props){
