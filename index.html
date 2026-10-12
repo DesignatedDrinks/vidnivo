@@ -354,6 +354,156 @@ function renderCaptions(){
   item.append(detail,remove);node.append(item);
  });
 }
+
+let localSpeechModel=null;
+function captionProgress(message,percent,error=false){
+ $('captionStatus').textContent=message;
+ $('captionStatus').style.color=error?'#ffaca9':'#d3e1e8';
+ $('captionProgress').style.width=Math.max(0,Math.min(100,percent))+'%';
+}
+function audioRecordMime(){
+ if(!window.MediaRecorder)return null;
+ const candidates=['audio/mp4;codecs=mp4a.40.2','audio/mp4',
+  'audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
+ return candidates.find(m=>MediaRecorder.isTypeSupported(m))||null;
+}
+async function recordEditedAudio(){
+ const mime=audioRecordMime();
+ if(!mime)throw Error('Audio capture is not supported in this browser. Try Chrome or current Safari.');
+ setupAudio();
+ if(!state.audioContext||!state.audioDestination)
+  throw Error('This browser cannot capture the video soundtrack.');
+ if(state.audioContext.state!=='running')await state.audioContext.resume();
+ await seekTimeline(0);
+ const mediaStream=new MediaStream(state.audioDestination.stream.getAudioTracks());
+ if(!mediaStream.getAudioTracks().length)throw Error('No audio track could be captured.');
+ const recorder=new MediaRecorder(mediaStream,{mimeType:mime,audioBitsPerSecond:96000});
+ const chunks=[];let timer=null;let stopped=false;
+ recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+ const stopResult=new Promise((resolve,reject)=>{
+  recorder.addEventListener('stop',resolve,{once:true});
+  recorder.addEventListener('error',e=>reject(e.error||Error('Audio recording failed')),{once:true});
+ });
+ const volume=state.audioMonitor?.gain.value??1;
+ try{
+  if(state.audioMonitor)state.audioMonitor.gain.value=0;
+  recorder.start(1000);
+  await play();
+  if(!state.playing)throw Error('This browser blocked video playback. Tap Play once and retry Auto Captions.');
+  captionProgress('Capturing the edited soundtrack locally · keep this page open…',2);
+  await new Promise((resolve,reject)=>{
+   let last=state.position,lastMovement=performance.now();
+   timer=setInterval(()=>{
+    if(document.hidden){reject(Error('Keep VIDNIVO visible while capturing speech.'));return}
+    const done=state.position>=total()-.05||(!state.playing&&state.position>=total()-.5);
+    captionProgress('Capturing soundtrack · '+Math.round(100*state.position/Math.max(1,total()))+'%…',
+      60*Math.min(1,state.position/Math.max(1,total())));
+    if(done){resolve();return}
+    if(state.position>last+.02){last=state.position;lastMovement=performance.now()}
+    if(performance.now()-lastMovement>10000)reject(Error('Video playback stalled during transcription.'));
+   },160);
+  });
+ }finally{
+  if(timer)clearInterval(timer);
+  pause();
+  if(state.audioMonitor)state.audioMonitor.gain.value=volume;
+  if(recorder.state!=='inactive')recorder.stop();
+ }
+ await stopResult;
+ const blob=new Blob(chunks,{type:mime});
+ if(blob.size<1024)throw Error('No usable audio was captured. Check that the imported video has sound.');
+ return blob;
+}
+function resampleSpeech(buffer){
+ // Model expects mono linear PCM at 16 kHz; keep source audio exclusively in memory.
+ const length=Math.ceil(buffer.duration*16000);
+ if(!length||length>16000*125)throw Error('Audio length is outside the 120-second limit.');
+ const out=new Float32Array(length),channels=[];
+ for(let k=0;k<Math.min(2,buffer.numberOfChannels);k++)channels.push(buffer.getChannelData(k));
+ if(!channels.length)throw Error('The soundtrack is empty.');
+ let energy=0;
+ for(let i=0;i<length;i++){
+  const at=Math.min(buffer.length-1,Math.floor(i*buffer.sampleRate/16000));
+  let sample=0;for(const channel of channels)sample+=channel[at];
+  sample/=channels.length;out[i]=sample;energy+=sample*sample;
+ }
+ if(Math.sqrt(energy/length)<.001)
+  throw Error('The captured audio is silent. Check that the source video contains audible speech.');
+ return out;
+}
+function segmentsFromTranscript(result,maximum){
+ if(!Array.isArray(result?.chunks))throw Error('The speech model did not return reliable caption timestamps.');
+ const captions=[];
+ for(const chunk of result.chunks){
+  const words=String(chunk?.text||'').trim().split(/\s+/).filter(Boolean);
+  const [a,b]=chunk?.timestamp||[];
+  const start=Number(a),end=Number(b);
+  if(!words.length||!Number.isFinite(start)||!Number.isFinite(end)||end<=start||start>=maximum)continue;
+  const limit=clamp(end,0,maximum),begin=clamp(start,0,limit);
+  const subdivisions=Math.max(1,Math.ceil(words.length/7),Math.ceil((limit-begin)/4.5));
+  for(let i=0;i<subdivisions;i++){
+   const from=Math.floor(words.length*i/subdivisions),to=Math.floor(words.length*(i+1)/subdivisions);
+   if(to<=from)continue;
+   const cStart=begin+(limit-begin)*i/subdivisions,cEnd=begin+(limit-begin)*(i+1)/subdivisions;
+   if(cEnd-cStart<.12)continue;
+   captions.push({id:key(),text:words.slice(from,to).join(' ').slice(0,240),start:cStart,end:cEnd,position:'bottom',color:'#FFFFFF',origin:'auto'});
+  }
+ }
+ if(!captions.length)throw Error('No timestamped speech was detected. Try a video with clear English dialogue.');
+ return captions.slice(0,160);
+}
+async function getLocalSpeechModel(){
+ if(localSpeechModel)return localSpeechModel;
+ captionProgress('Loading English speech recognition model · first use downloads model files…',65);
+ let engine;
+ try{engine=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1');}
+ catch{throw Error('The local AI engine could not load. Check your connection to the model CDN.')}
+ // Models download to the browser cache; they never receive the video file.
+ try{
+  engine.env.backends.onnx.wasm.numThreads=1;
+  localSpeechModel=await engine.pipeline('automatic-speech-recognition',
+   'Xenova/whisper-tiny.en',{device:'wasm',dtype:'q8',progress_callback:p=>{
+    if(p?.status==='progress'&&Number.isFinite(p.progress))
+     captionProgress('Downloading speech model · '+Math.round(p.progress)+'%…',
+      65+Math.min(15,p.progress*.15));
+    else if(p?.status==='done')
+     captionProgress('Preparing speech recognition…',82);
+   }});
+ }catch(e){throw Error('The speech model could not start on this device. It may lack memory, WebAssembly support, or model download access. '+(e?.message||''))}
+ return localSpeechModel;
+}
+async function runAutoCaptions(){
+ if(!state.clips.length){captionProgress('Import a video before generating captions.',0,true);return}
+ if(state.captioning||state.exporting)return;
+ if(total()>120){captionProgress('Auto Captions beta supports up to 120 seconds of edited video. Trim it first.',0,true);return}
+ if(!window.MediaRecorder||!(window.AudioContext||window.webkitAudioContext)){
+  captionProgress('This browser cannot capture audio for local AI captions. Use current Safari or Chrome.',0,true);return;
+ }
+ const oldPosition=state.position;
+ state.captioning=true;renderTimeline();
+ try{
+  captionProgress('Preparing audio from your timeline…',1);
+  const audio=await recordEditedAudio();
+  captionProgress('Decoding captured audio on your device…',62);
+  const buffer=await state.audioContext.decodeAudioData(await audio.arrayBuffer());
+  const speech=resampleSpeech(buffer);
+  const model=await getLocalSpeechModel();
+  captionProgress('Transcribing English speech locally · this can take several minutes on a phone…',84);
+  const result=await model(speech,{return_timestamps:true,chunk_length_s:30,stride_length_s:5});
+  const captions=segmentsFromTranscript(result,total());
+  // Keep existing manually authored captions; regenerate auto captions as a group.
+  state.captions=[...state.captions.filter(c=>c.origin!=='auto'),...captions]
+   .sort((a,b)=>a.start-b.start);
+  renderCaptions();renderTimeline();requestDraw();
+  captionProgress('✓ '+captions.length+' timed captions generated. Review the words and timing before publishing.',100);
+  toast(captions.length+' automatic captions added to your video.');
+ }catch(error){
+  captionProgress('Auto Captions unavailable: '+(error?.message||String(error)),0,true);
+ }finally{
+  pause();state.captioning=false;renderTimeline();
+  await seekTimeline(clamp(oldPosition,0,total()));
+ }
+}
 function preferredMime(){
  if(!('MediaRecorder'in window)||!canvas.captureStream)return null;
  const types=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
