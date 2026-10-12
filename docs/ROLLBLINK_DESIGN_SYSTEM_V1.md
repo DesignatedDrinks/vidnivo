@@ -1,12 +1,12 @@
-# VIDNIVO — Premium Product Design System v1.0
-**Owner:** VIDNIVO • **Platform:** mobile-first web studio • **Design principle:** calm precision, not visual noise.
+# ROLLBLINK — Premium Product Design System v1.0
+**Owner:** ROLLBLINK • **Platform:** mobile-first web studio • **Design principle:** calm precision, not visual noise.
 
 ## 1. Product experience goal
 For a creator like Kris: import a 30-second clip, press **Finish My Video**, review honest stage feedback, adjust captions with two fingers, export a correctly synchronized video. The interface should make decisions obvious and reduce handoffs. It is not a clone of Apple's trade dress; instead borrow principles of hierarchy, whitespace, craftsmanship, contrast, and spring-like interaction.
 
 ## 2. Brand assets
-- Primary wordmark: **VIDNIVO**, uppercase, carefully spaced, system geometric sans (Inter / system / SF on supported platforms).
-- Symbol: original two-stroke/folded-V mark in a rounded midnight frame, distributed as `vidnivo-mark.svg`.
+- Primary wordmark: **ROLLBLINK**, uppercase, carefully spaced, system geometric sans (Inter / system / SF on supported platforms).
+- Symbol: original two-stroke/folded-V mark in a rounded midnight frame, distributed as `rollblink-mark.svg`.
 - Never use a stock film clapperboard or conventional play-triangle as the primary mark.
 - Logo is functional: visible in navigation, page favicon, browser empty state, loading state, and on-video watermark.
 - Wordmark must be accessible as readable text even when images do not load. A title and alt text identify icon assets.
@@ -28,7 +28,7 @@ For a creator like Kris: import a 30-second clip, press **Finish My Video**, rev
 Display titles 24–44px, semibold 620–750; body 13–15px; labels 11–12px with slight tracking; tabular numbers for timecodes/progress. Use system fonts; no proprietary font binaries.
 
 ## 4. Layout and interaction
-- Top navigation: symbol + readable VIDNIVO wordmark, STUDIO designation, local-editing indicator and **New project**.
+- Top navigation: symbol + readable ROLLBLINK wordmark, STUDIO designation, local-editing indicator and **New project**.
 - Canvas is visually primary: spacious dark frame with video clearly separated from controls.
 - Creator Autopilot stays above the video, but it must not overpower the preview.
 - Inspector pills animate between Edit, Captions, Looks and Export and remain keyboard-operable.
@@ -53,7 +53,7 @@ Display titles 24–44px, semibold 620–750; body 13–15px; labels 11–12px w
 
 ## 6. Watermark
 - Enabled by default for browser beta exports; provide a clear toggle for testing and creators' choice. No fake locked pricing.
-- The mark and VIDNIVO wordmark are drawn **in the canvas** for both preview and MediaRecorder exports. Never merely overlay HTML on the preview.
+- The mark and ROLLBLINK wordmark are drawn **in the canvas** for both preview and MediaRecorder exports. Never merely overlay HTML on the preview.
 - Compact, approximately 10–20% of video width; dark translucent backing and balanced translucency; default lower right; alternate upper left.
 - Stay inside 16:9, 1:1 and 9:16 output bounds; do not display any editing handles in export.
 - Avoid caption collision by allowing position choice; later auto-positioning may be implemented when a stable encoder exists.

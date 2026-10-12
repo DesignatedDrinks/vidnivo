@@ -1,8 +1,8 @@
-/** VIDNIVO Creator Autopilot: a practical 30-second video finishing workflow.
+/** ROLLBLINK Creator Autopilot: a practical 30-second video finishing workflow.
  * Presets and custom styles are explicitly deterministic, not "AI magic".
  * No network requests, tracking or cloud persistence.
  */
-export const STYLE_KEY='vidnivo:creator-style:v1';
+export const STYLE_KEY='rollblink:creator-style:v1';
 export const STYLES={
  talking:{name:'On Camera',ratio:'9:16',look:'warm',size:1.14,x:.5,y:.70,color:'#FFFFFF',enhance:true,voice:true,retouch:0},
  product:{name:'Product Demo',ratio:'9:16',look:'vibrant',size:1.08,x:.5,y:.76,color:'#FFE178',enhance:true,voice:true,retouch:0},

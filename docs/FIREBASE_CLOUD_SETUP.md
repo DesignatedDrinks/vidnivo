@@ -1,4 +1,4 @@
-# VIDNIVO — Firebase and Google Cloud deployment
+# ROLLBLINK — Firebase and Google Cloud deployment
 
 This is a **development-ready cloud foundation**, not evidence that a live
 Google Cloud/Firebase project or production service has been provisioned.
@@ -14,7 +14,7 @@ The **existing Google Sheets editor metadata database remains unchanged**.
 | Firestore | Per-user profile and media-registration records | Server coded; database and rules must be deployed |
 | Cloud Storage for Firebase | Private original videos, photos and audio | Browser uploader/rules coded; Blaze and bucket required |
 | Cloud Run | HTTPS API with verified Firebase ID tokens | Server coded, unit tested; billing/deploy required |
-| Existing Google Sheets | VIDNIVO mobile timeline/edit data | Preserved; **not replaced or secured for multi-customer use by this change** |
+| Existing Google Sheets | ROLLBLINK mobile timeline/edit data | Preserved; **not replaced or secured for multi-customer use by this change** |
 | App Store/Play | iPhone and Android app distribution | Separate native build/signing/release process |
 
 The browser site is a **cloud dashboard**, NOT a fully functioning desktop
@@ -50,7 +50,7 @@ Refer to:
 1. Open https://console.firebase.google.com/ with the desired Google account
    (e.g. designateddrinksonline@gmail.com). Create a **dedicated** Firebase
    project with a unique project ID, or select an approved existing project.
-   **Do not make a second Firebase project if a VIDNIVO project already exists.**
+   **Do not make a second Firebase project if a ROLLBLINK project already exists.**
 2. Register a **Web App**. Copy its **public** web configuration values:
    apiKey, authDomain, projectId, storageBucket and appId. Never use an Admin
    SDK private key or OAuth client secret in web environment variables.
@@ -108,7 +108,7 @@ emulator for private-document tests and avoid local production bucket writes.
 
 ## Deployment and smoke tests
 
-After environment setup, go to GitHub Actions > **Deploy VIDNIVO cloud
+After environment setup, go to GitHub Actions > **Deploy ROLLBLINK cloud
 foundation** > Run workflow. Choose one:
 
 - `spark`: compiles the web site and deploys via `firebase.spark.json`.
@@ -147,7 +147,7 @@ After deploying, test in a real browser and phone:
 
 ## Important next work before public launch
 
-- The native VIDNIVO app currently uses Google OAuth/Google Sheets, not
+- The native ROLLBLINK app currently uses Google OAuth/Google Sheets, not
   Firebase Auth. Wire Firebase Auth and private cloud-media references into
   mobile editing separately, and test local media URI repair across phones.
 - Owner-scoped Firestore records are supplementary; do not pretend that the

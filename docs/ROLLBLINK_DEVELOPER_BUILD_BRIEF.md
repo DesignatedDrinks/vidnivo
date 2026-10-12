@@ -1,17 +1,17 @@
-# VIDNIVO — Developer Implementation Brief (actionable handoff)
+# ROLLBLINK — Developer Implementation Brief (actionable handoff)
 ## Role
-You are a senior design engineer working in `DesignatedDrinks/vidnivo`. Produce shipping-grade code, not mockups, status reports, slides, or a backlog alone. Respect the already published web editor.
+You are a senior design engineer working in `DesignatedDrinks/rollblink`. Produce shipping-grade code, not mockups, status reports, slides, or a backlog alone. Respect the already published web editor.
 
 ## Goal
-Deliver an unmistakably branded, quietly luxurious, Apple-quality-in-craft (not visually copied) mobile-first VIDNIVO Studio, with truthful animation through **real** processing work and a configurable rendered-video watermark. The purpose is to make a 30-second video fast, trustworthy and genuinely enjoyable to finish.
+Deliver an unmistakably branded, quietly luxurious, Apple-quality-in-craft (not visually copied) mobile-first ROLLBLINK Studio, with truthful animation through **real** processing work and a configurable rendered-video watermark. The purpose is to make a 30-second video fast, trustworthy and genuinely enjoyable to finish.
 
 ## Authoritative files
 - `index.html`: root browser editor.
 - `docs/index.html`: GitHub Pages hosted editor. Keep exact parity.
-- `vidnivo-branding.js` and `docs/vidnivo-branding.js`: shared canvas watermark renderer.
-- `vidnivo-mark.svg` and `docs/vidnivo-mark.svg`: original vector brand symbol.
-- `docs/VIDNIVO_DESIGN_SYSTEM_V1.md`: exact design tokens, motion, acceptance.
-- Existing modules: `vidnivo-caption-touch.js`, `vidnivo-face-retouch.js`, `vidnivo-export-sync.js`, `vidnivo-autopilot.js`.
+- `rollblink-branding.js` and `docs/rollblink-branding.js`: shared canvas watermark renderer.
+- `rollblink-mark.svg` and `docs/rollblink-mark.svg`: original vector brand symbol.
+- `docs/ROLLBLINK_DESIGN_SYSTEM_V1.md`: exact design tokens, motion, acceptance.
+- Existing modules: `rollblink-caption-touch.js`, `rollblink-face-retouch.js`, `rollblink-export-sync.js`, `rollblink-autopilot.js`.
 
 ## Required behaviors
 1. Retheme all existing surfaces consistently to navy glass and subtle cyan/violet highlights. Keep high contrast and legibility. Mobile layout must remain usable at 320px.

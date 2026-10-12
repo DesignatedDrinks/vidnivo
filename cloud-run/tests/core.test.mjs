@@ -5,7 +5,7 @@ import {once} from 'node:events';
 import {createHandler,validateRegistration} from '../src/core.mjs';
 const user='test_user-42';
 const path='users/'+user+'/media/0123456789ABCDEF/example.mp4';
-const allow=['https://vidnivo-demo.web.app'];
+const allow=['https://rollblink-demo.web.app'];
 function fakeDeps(overrides={}){
  const existing=new Map();
  return {
