@@ -112,3 +112,44 @@ test('look selection round trips in Google Sheets without hiding soft deleted pr
  await softDeleteProjectFromSheets('test',p.id);
  assert.equal((await loadRemoteProjects('test')).length,0);
 });
+
+test('deleting an individual caption row leaves its role column untouched',async t=>{
+ const oldFetch=globalThis.fetch,fake=fakeSheets();globalThis.fetch=fake.fetchStub;
+ t.after(()=>{globalThis.fetch=oldFetch;});
+ let project=addText(createProject('Caption sync'),'A reusable title',0);
+ const textId=project.texts[0].id;
+ await saveProjectToSheets('token',project);
+ project={...project,revision:project.revision+1,updatedAt:new Date(Date.now()+5000).toISOString(),texts:[]};
+ await saveProjectToSheets('token',project);
+ const row=fake.sheets.get('TextLayers').find(r=>r[0]===textId);
+ assert.equal(row[10],'TRUE','the deleted column K must be set');
+ assert.equal(row[11],'title','role column L must never be overwritten');
+ assert.equal((await loadRemoteProjects('token'))[0].texts.length,0);
+});
+test('removing project row does not destroy look_json metadata',async t=>{
+ const oldFetch=globalThis.fetch,fake=fakeSheets();globalThis.fetch=fake.fetchStub;
+ t.after(()=>{globalThis.fetch=oldFetch;});
+ let project=setProjectLook(createProject('Preserve look'),'sunset',65);
+ await saveProjectToSheets('token',project);
+ await softDeleteProjectFromSheets('token',project.id);
+ const row=fake.sheets.get('Projects')[1];
+ assert.equal(row[7],'TRUE');
+ assert.deepEqual(JSON.parse(row[8]),{preset:'sunset',intensity:65});
+ await assert.rejects(()=>saveProjectToSheets('token',project),/deleted from Google Sheets/);
+});
+test('invalid cloud project is not silently dropped during import',async t=>{
+ const oldFetch=globalThis.fetch,fake=fakeSheets();globalThis.fetch=fake.fetchStub;
+ t.after(()=>{globalThis.fetch=oldFetch;});
+ let p=addAsset(createProject('Broken remote'),{id:'asset',filename:'a.mp4',kind:'video',durationMs:3000,width:1080,height:1920,uri:'file:///a.mp4'});
+ await saveProjectToSheets('token',p);
+ fake.sheets.get('Clips')[1][6]='-100';
+ await assert.rejects(()=>loadRemoteProjects('token'),/invalid project/);
+});
+test('unexpected deleted header aborts writes without changing rows',async t=>{
+ const oldFetch=globalThis.fetch,fake=fakeSheets();globalThis.fetch=fake.fetchStub;
+ t.after(()=>{globalThis.fetch=oldFetch;});
+ const p=createProject('Schema safety');
+ fake.sheets.get('Projects')[0][7]='renamed';
+ await assert.rejects(()=>saveProjectToSheets('token',p),/schema/);
+ assert.equal(fake.sheets.get('Projects').length,1);
+});

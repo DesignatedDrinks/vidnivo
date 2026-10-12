@@ -52,7 +52,10 @@ const toText = (p: Project, t: TextLayer): string[] => [
   t.id, p.id, t.text, value(t.startMs), value(t.endMs), value(t.x),
   value(t.y), value(t.fontSize), t.color, p.updatedAt, 'FALSE', value(t.role ?? 'caption')
 ];
-function enabled(row: string[], sheet: Table): boolean { return String(row[sheet === 'Projects' ? 7 : sheet === 'TextLayers' ? 10 : row.length - 1]).toUpperCase() !== 'TRUE'; }
+const deletedCol: Record<Table,number>={Projects:7,Assets:9,Clips:11,TextLayers:10};
+function enabled(row:string[],sheet:Table):boolean {
+ return String(row[deletedCol[sheet]]).toUpperCase()!=='TRUE';
+}
 function n(row: string[], index: number, fallback = 0): number {
   const v = Number(row[index]); return Number.isFinite(v) ? v : fallback;
 }
@@ -66,7 +69,7 @@ export async function loadRemoteProjects(token: string): Promise<Project[]> {
     readTable(token, 'Projects'), readTable(token, 'Assets'),
     readTable(token, 'Clips'), readTable(token, 'TextLayers')
   ]);
-  const projects = ps.slice(1).filter(r => r[0] && enabled(r, 'Projects')).map(parsedProject);
+  const projects=ps.slice(1).filter(r=>r[0]&&enabled(r,'Projects')).map(parsedProject);
   const indexed = new Map(projects.map(p => [p.id, p]));
   for (const r of as.slice(1)) {
     const p = indexed.get(r[1]); if (!p || !r[0] || !enabled(r, 'Assets')) continue;
@@ -84,10 +87,20 @@ export async function loadRemoteProjects(token: string): Promise<Project[]> {
     p.texts.push({ id: r[0], text: r[2] || '', startMs: n(r, 3), endMs: n(r, 4),
       x: n(r, 5, .5), y: n(r, 6, .75), fontSize: n(r, 7, 32), color: r[8] || '#FFFFFF', role: r[11] === 'title' ? 'title' : 'caption' });
   }
-  return projects.filter(p => { try { validateProject(p); return true; } catch { return false; } });
+  // Fail closed: silently dropping an unreadable project from the cloud listing
+  // makes the next save look like a deletion and risks metadata loss.
+  for(const p of projects){
+    try {validateProject(p);}
+    catch {throw Error('Google Sheets contains an invalid project ('+p.id+'). Cloud import was stopped to protect existing local edits.');}
+  }
+  return projects;
 }
 async function upsert(token: string, sheet: Table, projectId: string, desired: Rows): Promise<void> {
-  const rows = await readTable(token, sheet), width = rows[0]?.length || desired[0]?.length || 8;
+  const rows = await readTable(token, sheet);
+  const deletedHeader=rows[0]?.[deletedCol[sheet]];
+  if(deletedHeader?.trim().toLowerCase()!=='deleted')
+    throw Error('Google Sheets '+sheet+' schema does not contain a deleted column at its expected position. Sync stopped to protect data.');
+
   const own = new Map<string, number>();
   rows.slice(1).forEach((r, idx) => {
     const projectColumn = sheet === 'Projects' ? 0 : 1;
@@ -103,7 +116,7 @@ async function upsert(token: string, sheet: Table, projectId: string, desired: R
   }
   for (const [key, index] of own) {
     if (!current.has(key)) {
-      const col = columnName(width);
+      const col = columnName(deletedCol[sheet]+1);
       updates.push({ range: `${sheet}!${col}${index}`, values: [['TRUE']] });
     }
   }
@@ -118,6 +131,11 @@ function columnName(index: number): string {
 export async function saveProjectToSheets(token: string, p: Project): Promise<void> {
   validateProject(p);
   const existing = await readTable(token, 'Projects');
+  if(existing[0]?.[deletedCol.Projects]?.toLowerCase()!=='deleted')
+    throw Error('Unexpected Google Sheets project schema. Sync stopped to avoid damaging saved data.');
+  const deletedRemote=existing.slice(1).find(r=>r[0]===p.id&&!enabled(r,'Projects'));
+  if(deletedRemote)
+    throw Error('This project has been deleted from Google Sheets. Restore it explicitly instead of silently recreating cloud records.');
   const remote = existing.slice(1).find(r => r[0] === p.id && enabled(r, 'Projects'));
   if (remote && (n(remote, 5) > p.revision ||
     (n(remote, 5) === p.revision && remote[4] !== p.updatedAt))) {
@@ -142,8 +160,9 @@ export async function softDeleteProjectFromSheets(token: string, projectId: stri
   tabs.forEach((tab, idx) => {
     const rows = all[idx];
     const parentColumn = tab === 'Projects' ? 0 : 1;
-    const deletedColumn = rows[0]?.indexOf('deleted') ?? -1;
-    if (deletedColumn < 0) throw new Error('Missing deleted column on ' + tab);
+    const deletedColumn = deletedCol[tab];
+    if (rows[0]?.[deletedColumn]?.toLowerCase()!=='deleted')
+      throw new Error('Unexpected deleted column on ' + tab + '. Delete was aborted.');
     rows.slice(1).forEach((row, n) => {
       if (row[parentColumn] === projectId && row[0] && String(row[deletedColumn]).toUpperCase() !== 'TRUE') {
         changes.push({ range: tab + '!' + columnName(deletedColumn + 1) + (n + 2), values: [['TRUE']] });
