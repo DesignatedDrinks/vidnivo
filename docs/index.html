@@ -392,7 +392,7 @@ input[type=range]{accent-color:#afc0ff}
       </section>
 
       <section class="rb-tools" aria-label="Creator finishing tools">
-        <div class="rb-row"><h2 style="flex:1">Make it yours.</h2><button class="rb-s" id="rb-qa-button" type="button">Check video</button></div>
+        <div class="rb-row"><h2 style="flex:1">Make it yours.</h2><button class="rb-s" id="rb-cover" type="button">Cover PNG</button><button class="rb-s" id="rb-qa-button" type="button">Check video</button></div>
         <div id="rb-qa" aria-live="polite" hidden></div>
         <div class="rb-banner" id="rb-recover" hidden><strong>Previous edit available</strong><p class="rb-note" id="rb-recover-note"></p>
           <div class="rb-row"><button id="rb-restore" class="rb-p" type="button">Restore</button><button id="rb-discard" class="rb-s" type="button">Discard</button></div></div>
@@ -1877,6 +1877,26 @@ $('rb-finish-all').onclick=async()=>{
   document.querySelector('.rb-tools')?.scrollIntoView({behavior:'smooth',block:'start'});
  }catch(e){$('rb-message').textContent='Finish needs attention: '+(e.message||String(e))}
  finally{button.disabled=false;button.textContent=oldLabel}
+};
+
+
+$('rb-cover').onclick=async()=>{
+ if(!state.clips.length||state.exporting||state.captioning||state.creatorBusy){
+  $('rb-message').textContent='Import a video and finish processing before making a cover.';return;
+ }
+ const prior=state.position,editing=state.editCaptionId;
+ try{
+  pause();state.editCaptionId=null;
+  await seekTimeline(Math.min(.65,Math.max(0,total()-.1)));
+  drawFrame();
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+  if(!blob)throw Error('The browser could not capture this frame.');
+  const url=URL.createObjectURL(blob),anchor=document.createElement('a');
+  anchor.href=url;anchor.download='rollblink-cover.png';document.body.append(anchor);anchor.click();anchor.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+  $('rb-message').textContent='Opening cover exported as PNG. Check it before posting.';
+ }catch(e){$('rb-message').textContent='Cover failed: '+(e.message||String(e))}
+ finally{state.editCaptionId=editing;await seekTimeline(Math.min(prior,total()));requestDraw()}
 };
 
 </script>
