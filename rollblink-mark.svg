@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+<title id="title">ROLLBLINK</title><desc id="desc">A geometric R mark with a single motion stroke in a rounded midnight frame.</desc>
+<defs>
+ <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#1A253B"/><stop offset="1" stop-color="#0A1020"/>
+ </linearGradient>
+ <linearGradient id="ribbon" x1="0" y1="1" x2="1" y2="0">
+  <stop offset="0" stop-color="#6FE3EA"/><stop offset=".51" stop-color="#69B7FF"/><stop offset="1" stop-color="#AD92FF"/>
+ </linearGradient>
+ <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#9DECF6" stop-opacity=".35"/><stop offset="1" stop-color="#A899FA" stop-opacity=".05"/>
+ </linearGradient>
+</defs>
+<rect x="8" y="8" width="240" height="240" rx="62" fill="url(#glass)"/>
+<rect x="9" y="9" width="238" height="238" rx="61" fill="none" stroke="url(#edge)" stroke-width="2"/>
+<path d="M77 190V70H135C173 70 190 89 190 115C190 143 168 158 135 158H78M137 158L187 190" fill="none" stroke="url(#ribbon)" stroke-width="24" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M160 89L176 104" stroke="#CBDAFF" stroke-opacity=".9" stroke-width="7" stroke-linecap="round"/>
+<path d="M77 107V152" stroke="#F3FFFF" stroke-opacity=".28" stroke-width="5" stroke-linecap="round"/>
+</svg>
