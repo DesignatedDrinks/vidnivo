@@ -105,7 +105,7 @@ export function HelpDesk({visible,onClose,project,cloudConnected,saveFailed,
     </View>:null}
     <Text style={{color:theme.muted,fontSize:12,lineHeight:19}}>
      {cloudConnected?
-      'When AI support is configured, your description and limited technical diagnostics are sent to VIDNIVO Cloud and its AI provider. No original video is uploaded by Help.':
+      'When AI support is configured, your description and limited technical diagnostics are sent to VIDNIVO Cloud and its AI provider. Unresolved problem categories are logged without your written report or footage.':
       'You are not signed into VIDNIVO Cloud, so Help uses built-in offline diagnostics. Sign into Cloud for AI-assisted troubleshooting when the support service is enabled.'}
     </Text>
    </ScrollView>
