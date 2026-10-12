@@ -31,7 +31,7 @@ const handler=createHandler({
   const snap=await users(uid).collection('media').limit(100).get();
   return snap.docs.map(d=>{
    const f=d.data();
-   return {assetId:d.id,name:f.name||'',contentType:f.contentType||'',size:f.size||0};
+   return {assetId:d.id,objectPath:f.objectPath||'',name:f.name||'',contentType:f.contentType||'',size:f.size||0};
   });
  },
  getMedia:async(uid,id)=>{
@@ -45,7 +45,12 @@ const handler=createHandler({
   return {size:Number(data.size||0),contentType:data.contentType||''};
  },
  registerMedia:async(uid,media)=>users(uid).collection('media')
-  .doc(media.assetId).create({...media,registeredAt:FieldValue.serverTimestamp()})
+  .doc(media.assetId).create({...media,registeredAt:FieldValue.serverTimestamp()}),
+ deleteObject:async path=>{
+  if(!bucket)throw Error('Media storage unavailable.');
+  await bucket.file(path).delete({ignoreNotFound:true});
+ },
+ deleteMedia:async(uid,id)=>users(uid).collection('media').doc(id).delete()
 });
 const server=createServer(handler);
 server.headersTimeout=15000;
