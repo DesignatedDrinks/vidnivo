@@ -33,7 +33,7 @@ test('all referenced control IDs exist and are unique',()=>{
 test('auto-caption engine uses local soundtrack and true timestamped speech model',()=>{
  assert.match(source,/decodeAudioData\(await audio\.arrayBuffer\(\)\)/);
  assert.match(source,/Xenova\/whisper-tiny\.en/);
- assert.match(source,/return_timestamps:true/);
+ assert.match(source,/return_timestamps:'word'/);
  assert.match(source,/origin:'auto'/);
  assert.match(source,/state\.captions\.filter\(c=>c\.origin!=='auto'\)/);
  assert.match(source,/state\.captioning=true/);
@@ -62,4 +62,32 @@ test('Safari gets a real GPU or CPU colour rendering path with export parity',()
  assert.match(shader,/gl\.drawArrays/);
  assert.match(shader,/getImageData/);
  assert.doesNotMatch(source,/ctx\.filter=previewFilter\(\)/);
+});
+
+
+test('Whisper word timings create speech-aligned phrases rather than guessed sentence splits',()=>{
+ const start=source.indexOf('function segmentsFromTranscript(result,maximum){');
+ const stop=source.indexOf('async function getLocalSpeechModel(){',start);
+ assert.ok(start>=0&&stop>start);
+ const fn=new Function('key','clamp',source.slice(start,stop)+';return segmentsFromTranscript')(
+  ()=>Math.random().toString(36), (x,a,b)=>Math.max(a,Math.min(b,x))
+ );
+ const output=fn({chunks:[
+  {text:' I',timestamp:[.3,.51]},{text:' never',timestamp:[.51,.91]},
+  {text:' expected',timestamp:[.91,1.33]},{text:' this.',timestamp:[1.33,1.75]},
+  {text:' Here',timestamp:[2.3,2.55]},{text:' is',timestamp:[2.55,2.76]},
+  {text:' why.',timestamp:[2.76,3.1]}
+ ]},5);
+ assert.equal(output.length,2);
+ assert.deepEqual(output.map(c=>[c.start,c.end]),[[.3,1.75],[2.3,3.1]]);
+ assert.equal(output[0].text,'I never expected this.');
+ assert.equal(output[1].text,'Here is why.');
+ assert.ok(output.every(c=>c.origin==='auto'));
+});
+test('soundtrack capture begins only after source playback starts',()=>{
+ const start=source.indexOf('async function recordEditedAudio(){');
+ const stop=source.indexOf('function resampleSpeech(buffer){',start);
+ const method=source.slice(start,stop);
+ assert.ok(start>0&&stop>start);
+ assert.ok(method.indexOf('await play();')<method.indexOf('recorder.start(250);'));
 });
