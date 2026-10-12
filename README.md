@@ -1,5 +1,19 @@
 # ROLLBLINK — mobile-first video editor
 
+## Rollblink creator update — October 2026
+
+The [browser editor](https://designateddrinks.github.io/vidnivo/) now offers 24 caption typefaces, editable transcript-caption words (without altering their timestamps), three visual directions (Clean / Punchy / Editorial), an optional smooth digital camera crop, an undoable continuous 30-second highlight selector, opening title layers, and platform-specific social post drafts.
+
+**Project recovery:** Browser storage preserves timeline and styling metadata only, not raw videos. After a refresh, re-import the identical local video source(s) and press **Restore**. Recovery is available only when the file name, byte size and duration match.
+
+**Export safety:** The browser exporter intentionally refuses discontinuous edits, reordered clips, and speed effects it cannot encode with safe source audio. The new **Check video** action catches unsupported exports, caption timing issues and overlapping text before recording. Video effects are not substitutes for listening to the final exported file.
+
+**AI copy:** The browser generates an honest transcript-derived draft without a server. OpenAI-powered title and caption rewriting requires the optional [secure Node backend](server/README.md) deployed separately with a server-side OpenAI API key and its own access token. GitHub Pages cannot run this backend; committing the code does not connect or deploy it.
+
+**Scope:** The new creator tools improve the **browser** editor. They are not yet part of the separate Expo mobile UI, and do not yet deliver full transcript-driven video cuts, multi-camera reframing, automatic highlight extraction from long podcasts, or a verified production publishing pipeline. Those features require additional engineering and device testing.
+
+---
+
 ## Open the working browser editor
 
 **[▶ Launch ROLLBLINK Studio — tap here to edit a video](https://designateddrinks.github.io/vidnivo/)**
