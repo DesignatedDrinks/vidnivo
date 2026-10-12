@@ -41,6 +41,10 @@ import { setProjectLook } from './src/domain/timeline';
 import { generateCaptionsFromScript } from './src/domain/captionGenerator';
 import { SPEECH_LANGUAGES, type SpeechLanguage } from './src/domain/speechLanguages';
 import { SocialStudio } from './src/ui/SocialStudio';
+import {CloudWorkspace} from './src/ui/CloudWorkspace';
+import {HelpDesk} from './src/ui/HelpDesk';
+import {restoreCloudSession,type CloudSession} from './src/cloud/account';
+import {backUpCloudProject} from './src/cloud/transfer';
 
 WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_ANDROID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
@@ -62,6 +66,7 @@ function EditorApp() {
   const [ready, setReady] = useState(false);
   const [loadFailure, setLoadFailure] = useState<string | null>(null);
   const [saveFailure, setSaveFailure] = useState<string | null>(null);
+  const [helpOpen,setHelpOpen]=useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
@@ -108,6 +113,7 @@ function EditorApp() {
   const voiceoverStart = useRef(0);
   const recordingLock = useRef(false);
   const [token, setToken] = useState<string | null>(null);
+  const [cloudSession,setCloudSession]=useState<CloudSession|null>(null);
   const undo = useRef<Project[]>([]);
   const redo = useRef<Project[]>([]);
   const writeQueue = useRef<Promise<void>>(Promise.resolve());
@@ -147,6 +153,12 @@ function EditorApp() {
     }
   };
   useEffect(() => { void reloadLibrary(); }, []);
+  useEffect(()=>{
+    let alive=true;
+    restoreCloudSession().then(account=>{if(alive)setCloudSession(account);})
+      .catch(()=>{if(alive)setCloudSession(null);});
+    return()=>{alive=false;};
+  },[]);
   useEffect(() => {
     if (!ready || loadFailure) return;
     writeQueue.current = writeQueue.current.catch(() => {}).then(async () => {
@@ -533,6 +545,23 @@ function EditorApp() {
     } catch (e) { Alert.alert('Cloud sync failed', String(e)); }
     finally { setBusy(false); }
   };
+  const backupActiveProject=async()=>{
+    if(!project||!cloudSession||busy)return;
+    const snapshot=project;
+    try{
+      setBusy(true);
+      const version=await backUpCloudProject(snapshot);
+      setProjects(items=>items.map(p=>p.id===snapshot.id &&
+        (p.cloudVersion??0)===(snapshot.cloudVersion??0)?
+        {...p,cloudVersion:version}:p));
+      Alert.alert('VIDNIVO backup complete',
+        'Your full project and original media are in your private account.');
+    }catch(e){
+      Alert.alert('Cloud backup not completed',
+        (e instanceof Error?e.message:String(e))+
+        '\nThe project remains safe on this phone. A cloud conflict requires restoring a separate copy.');
+    }finally{setBusy(false);}
+  };
   if (loadFailure) return <View style={[styles.center, { padding: 24 }]}>
     <Ionicons name="warning-outline" size={42} color="#F79B6D" />
     <Text style={[styles.projectName, { textAlign: 'center', marginTop: 18 }]}>Cannot safely open your projects</Text>
@@ -552,7 +581,13 @@ function EditorApp() {
         Local save failed — tap to retry. Keep the app open. {saveFailure}
       </Text>
     </Pressable> : null}
-    <View style={styles.heading}><Text style={styles.logo}>VID<Text style={{ color: theme.accent }}>NIVO</Text></Text><Text style={styles.eyebrow}>MOBILE VIDEO STUDIO</Text></View>
+    <View style={styles.heading}>
+      <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}>
+        <Text style={styles.logo}>VID<Text style={{color:theme.accent}}>NIVO</Text></Text>
+        <Tool label="Help" onPress={()=>setHelpOpen(true)}/>
+      </View>
+      <Text style={styles.eyebrow}>MOBILE VIDEO STUDIO</Text>
+    </View>
     <View style={styles.hero}><Text style={styles.heroTitle}>Make something worth watching.</Text><Text style={styles.heroCopy}>Cut video, arrange your timeline, add captions, and keep projects on your phone.</Text><Tool label="+ New project" primary onPress={create} /></View>
     <View style={styles.row}><Text style={styles.section}>YOUR PROJECTS</Text><Text style={styles.meta}>{projects.length} saved</Text></View>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
@@ -565,6 +600,8 @@ function EditorApp() {
         <Tool label="Copy" disabled={busy} onPress={() => duplicateSavedProject(p)} />
         <Tool label="Delete" disabled={busy} onPress={() => deleteProject(p)} />
       </View>)}
+      <CloudWorkspace session={cloudSession} setSession={setCloudSession}
+        setProjects={setProjects}/>
     </ScrollView>
     <View style={styles.connect}>
       <Text style={styles.section}>GOOGLE SHEETS DATABASE</Text>
@@ -575,6 +612,12 @@ function EditorApp() {
       </View>
     </View>
     {busy && <ActivityIndicator color={theme.accent} />}
+    <HelpDesk visible={helpOpen} onClose={()=>setHelpOpen(false)}
+      project={null} cloudConnected={!!cloudSession} saveFailed={!!saveFailure}
+      exportSupported={canExportNatively()} quality={exportQuality}
+      onRetrySave={retrySave} onRestartPreview={()=>{
+        setPlaying(false);setPositionMs(0);setSeekVersion(v=>v+1);
+      }} onLowerExportQuality={()=>setExportQuality(720)}/>
     <StatusBar style="light" />
   </View>;
 
@@ -662,6 +705,8 @@ function EditorApp() {
       disabled:timelineZoom<=.5,onPress:()=>setTimelineZoom(z=>Math.max(.5,z-.5))},
     {id:'save',label:'Save to Google Sheets',icon:'cloud-upload-outline',
       disabled:!token,onPress:cloudSave},
+    {id:'cloud-backup',label:'Back up project + media',icon:'cloud-done-outline',
+      disabled:!cloudSession||busy,onPress:()=>{void backupActiveProject();}},
     {id:'speech',label:'Review talking-head cuts',icon:'cut-outline',
       onPress:()=>{void removeLongPauses();}},
     {id:'story',label:'Story Finder',icon:'sparkles-outline',onPress:showStoryFinder}
@@ -697,6 +742,10 @@ function EditorApp() {
       <Pressable accessibilityLabel="Search clips and text" accessibilityRole="button"
         onPress={() => { setSearchTerm(''); setSearchOpen(true); }} style={styles.headerIcon}>
         <Ionicons name="search-outline" size={25} color="#E9EBED" /></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="Help troubleshoot VIDNIVO"
+        onPress={()=>setHelpOpen(true)} style={styles.headerIcon}>
+        <Ionicons name="help-circle-outline" size={25} color="#E9EBED"/>
+      </Pressable>
       <Pressable style={styles.headerProject} onPress={() => { setProjectName(project.name); setNamePrompt(true); }}>
         <Text style={styles.headerProjectText} numberOfLines={1}>{project.name}</Text>
       </Pressable>
@@ -778,6 +827,12 @@ function EditorApp() {
     {lastExport ? <Pressable accessibilityRole="button" onPress={() => shareExport(lastExport).catch(e => Alert.alert('Sharing failed', String(e)))}
       style={styles.shareResult}><Text style={styles.shareResultText}>✓ MP4 ready — Share</Text></Pressable> : null}
 
+    <HelpDesk visible={helpOpen} onClose={()=>setHelpOpen(false)}
+      project={project} cloudConnected={!!cloudSession} saveFailed={!!saveFailure}
+      exportSupported={canExportNatively()} quality={exportQuality}
+      onRetrySave={retrySave} onRestartPreview={()=>{
+        setPlaying(false);setPositionMs(0);setSeekVersion(v=>v+1);
+      }} onLowerExportQuality={()=>setExportQuality(720)}/>
     <StoryFinderSheet visible={storyFinderOpen} moments={storySuggestions}
       onClose={()=>setStoryFinderOpen(false)}
       onPreview={m=>{

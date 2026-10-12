@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {once} from 'node:events';
 import {createHandler,validateRegistration} from '../src/core.mjs';
+import {validateCloudProject} from '../src/projectCore.mjs';
 const user='test_user-42';
 const path='users/'+user+'/media/0123456789ABCDEF/example.mp4';
 const allow=['https://vidnivo-demo.web.app'];
@@ -22,6 +23,12 @@ function fakeDeps(overrides={}){
   getMedia:async(id,assetId)=>existing.get(assetId)||null,
   checkObject:async()=>({size:1024,contentType:'video/mp4'}),
   registerMedia:async(id,media)=>{existing.set(media.assetId,media);},
+  listProjects:async()=>[],
+  getProject:async()=>null,
+  saveProject:async()=>1,
+  uploadMedia:async()=>({size:1024}),
+  downloadMedia:async()=>{},
+   resolveSupport:async()=>({answer:'Retry a save safely.',action:'retry-save',category:'storage',aiGenerated:true,available:true}),
   deleteObject:async()=>{},
   deleteMedia:async(id,assetId)=>{existing.delete(assetId);},
   ...overrides
@@ -46,23 +53,13 @@ test('health is public but private routes require Firebase Auth',async t=>{
  assert.equal(valid.status,200);
  assert.equal((await valid.json()).uid,user);
 });
-test('media registration checks owner path, object and prevents asset ID collisions',async t=>{
+test('legacy unmetered media registration is disabled',async t=>{
  const base=await fixture(t,fakeDeps());
- const post=async body=>fetch(base+'/api/v1/media/register',{
-  method:'POST',headers,body:JSON.stringify(body)
- });
- let reply=await post({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'});
- assert.equal(reply.status,200);
+ const response=await fetch(base+'/api/v1/media/register',{method:'POST',headers,
+  body:JSON.stringify({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'})});
+ assert.equal(response.status,410);
  const list=await fetch(base+'/api/v1/media',{headers});
- assert.equal((await list.json()).media.length,1);
- reply=await post({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'});
- assert.equal(reply.status,200);
- reply=await post({assetId:'0123456789ABCDEF',
-  objectPath:'users/'+user+'/media/0123456789ABCDEF/other.mp4',name:'other.mp4'});
- assert.equal(reply.status,409);
- reply=await post({assetId:'0123456789ABCDEF',
-  objectPath:'users/other_user/media/0123456789ABCDEF/example.mp4',name:'example.mp4'});
- assert.equal(reply.status,403);
+ assert.equal((await list.json()).media.length,0);
 });
 test('refuses attempts to register private media outside owner folders',()=>{
  for(const invalid of ['users/other/media/0123456789ABCDEF/clip.mp4',
@@ -83,30 +80,29 @@ test('CORS protects browser origins and JSON payload size is bounded',async t=>{
  const options=await fetch(base+'/api/v1/media',{method:'OPTIONS',headers:{Origin:allow[0]}});
  assert.equal(options.status,204);
  const huge=await fetch(base+'/api/v1/me',{method:'PUT',headers,
-  body:JSON.stringify({displayName:'A'.repeat(30000)})});
+  body:JSON.stringify({displayName:'A'.repeat(600000)})});
  assert.equal(huge.status,413);
 });
-test('invalid uploads are rejected without exposing backend details',async t=>{
- const base=await fixture(t,fakeDeps({
-  checkObject:async()=>({size:500*1024*1024,contentType:'video/mp4'})
- }));
- const req=await fetch(base+'/api/v1/media/register',{method:'POST',headers,
-  body:JSON.stringify({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'})});
- assert.equal(req.status,400);
+test('oversized or misconfigured streamed media uploads fail closed',async t=>{
+ const base=await fixture(t,fakeDeps());
+ const tooLarge=await fetch(base+'/api/v1/media/0123456789ABCDEF/upload',{
+  method:'PUT',headers:{Authorization:'Bearer valid-token','Content-Type':'video/mp4',
+   'X-VIDNIVO-FILENAME':'example.mp4','X-VIDNIVO-SIZE':String(201*1024*1024)},
+  body:Buffer.alloc(1)});
+ assert.equal(tooLarge.status,400);
  const noBucket=await fixture(t,fakeDeps({storageReady:false}));
- const r=await fetch(noBucket+'/api/v1/media/register',{method:'POST',headers,
-  body:JSON.stringify({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'})});
- assert.equal(r.status,503);
+ const refused=await fetch(noBucket+'/api/v1/media/0123456789ABCDEF/upload',{
+  method:'PUT',headers:{Authorization:'Bearer valid-token','Content-Type':'video/mp4',
+   'X-VIDNIVO-FILENAME':'example.mp4','X-VIDNIVO-SIZE':'4'},
+  body:'abcd'});
+ assert.equal(refused.status,503);
 });
-
 test('signed-in owner can remove a registered file; deletion is retry-safe for missing cloud bytes',async t=>{
  const dependencies=fakeDeps();
  let deletedPath='';
  dependencies.deleteObject=async objectPath=>{deletedPath=objectPath;};
  const base=await fixture(t,dependencies);
- const created=await fetch(base+'/api/v1/media/register',{method:'POST',headers,
-  body:JSON.stringify({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'})});
- assert.equal(created.status,200);
+ await dependencies.registerMedia(user,{assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4',size:1024});
  const before=await fetch(base+'/api/v1/media',{headers});
  assert.equal((await before.json()).media[0].objectPath,path);
  const rejected=await fetch(base+'/api/v1/media/0123456789ABCDEF',{method:'DELETE',
@@ -137,8 +133,7 @@ test('deletion never crosses user boundaries or removes a file for a malformed r
 test('storage removal failures retain metadata for safe retries',async t=>{
  const deps=fakeDeps({deleteObject:async()=>{throw Error('Storage failure: private');}});
  const base=await fixture(t,deps);
- await fetch(base+'/api/v1/media/register',{method:'POST',headers,
-  body:JSON.stringify({assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4'})});
+ await deps.registerMedia(user,{assetId:'0123456789ABCDEF',objectPath:path,name:'example.mp4',size:1024});
  const failed=await fetch(base+'/api/v1/media/0123456789ABCDEF',{method:'DELETE',headers});
  assert.equal(failed.status,500);
  assert.doesNotMatch((await failed.json()).error,/Storage failure: private/);
@@ -187,4 +182,102 @@ test('a library larger than 50 files is retrievable without duplicates',async t=
  assert.equal(secondPage.nextCursor,null);
  const ids=[...firstPage.media,...secondPage.media].map(item=>item.assetId);
  assert.equal(new Set(ids).size,53);
+});
+
+const portable={
+ id:'project_001',name:'My edit',aspectRatio:'9:16',
+ createdAt:'2026-10-12T13:00:00.000Z',updatedAt:'2026-10-12T14:00:00.000Z',revision:3,
+ assets:[{id:'0123456789ABCDEF',kind:'video',uri:'cloud://0123456789ABCDEF',
+  filename:'example.mp4',durationMs:10000,width:720,height:1280}],
+ clips:[{id:'clip_0001',assetId:'0123456789ABCDEF',track:'video',startMs:0,
+  inMs:0,outMs:10000,speed:1,volume:1,muted:false}],texts:[]
+};
+test('only cloud:// media refs can be stored as portable project edits',()=>{
+ assert.equal(validateCloudProject(portable,'project_001').assets[0].uri,'cloud://0123456789ABCDEF');
+ assert.throws(()=>validateCloudProject({...portable,assets:[
+  {...portable.assets[0],uri:'file:///private/phone/video.mp4'}]},'project_001'));
+ assert.throws(()=>validateCloudProject(portable,'another_project'));
+ assert.throws(()=>validateCloudProject({...portable,clips:[
+  {...portable.clips[0],assetId:'missing_000'}]},'project_001'));
+});
+test('authorized cloud backup requires registered media and conditional version',async t=>{
+ let saved=0,version=0;
+ const deps=fakeDeps({
+  saveProject:async(uid,id,p,baseVersion)=>{
+   assert.equal(uid,user);
+   assert.equal(id,p.id);
+   if(baseVersion!==version)throw Object.assign(Error('Version conflict'),{status:409});
+   saved++;return ++version;
+  },
+  getProject:async()=>version?{project:portable,version}:null,
+  listProjects:async()=>version?[{id:portable.id,name:portable.name,version}]:[]
+ });
+ const base=await fixture(t,deps);
+ const put=body=>fetch(base+'/api/v1/projects/project_001',{
+  method:'PUT',headers,body:JSON.stringify(body)});
+ let resp=await put({baseVersion:0,project:portable});
+ assert.equal(resp.status,409);
+ await deps.registerMedia(user,{assetId:'0123456789ABCDEF',objectPath:path,
+  name:'example.mp4'});
+ resp=await put({baseVersion:0,project:portable});
+ assert.equal(resp.status,200);
+ assert.equal((await resp.json()).version,1);
+ resp=await put({baseVersion:0,project:portable});
+ assert.equal(resp.status,409);
+ assert.equal(saved,1);
+ const found=await fetch(base+'/api/v1/projects/project_001',{headers});
+ assert.equal((await found.json()).project.id,'project_001');
+ const listed=await fetch(base+'/api/v1/projects',{headers});
+ assert.equal((await listed.json()).projects.length,1);
+});
+test('mobile file transfer routes reject unauthorized users and bad uploads',async t=>{
+ let streamed=0;
+ const deps=fakeDeps({
+  uploadMedia:async()=>{streamed++;return {size:4};},
+  downloadMedia:async(media,res)=>{
+   res.statusCode=200;res.end('okay');
+  }
+ });
+ await deps.registerMedia(user,{assetId:'0123456789ABCDEF',objectPath:path,
+  name:'example.mp4',size:4,contentType:'video/mp4'});
+ const base=await fixture(t,deps);
+ const unauthorized=await fetch(base+'/api/v1/media/0123456789ABCDEF/download');
+ assert.equal(unauthorized.status,401);
+ const okay=await fetch(base+'/api/v1/media/0123456789ABCDEF/download',{headers});
+ assert.equal(await okay.text(),'okay');
+ const bad=await fetch(base+'/api/v1/media/unused_009/upload',{
+  method:'PUT',headers:{...headers,'Content-Type':'video/mp4','X-VIDNIVO-FILENAME':'../../bad.mp4'},
+  body:'abcd'});
+ assert.equal(bad.status,400);
+ assert.equal(streamed,0);
+ const collision=await fetch(base+'/api/v1/media/0123456789ABCDEF/upload',{
+  method:'PUT',headers:{...headers,'Content-Type':'video/mp4','X-VIDNIVO-FILENAME':'another.mp4'},
+  body:'abcd'});
+ assert.equal(collision.status,409);
+});
+
+test('AI support is private, validates diagnostics and never executes device code',async t=>{
+ let calls=0;
+ const base=await fixture(t,fakeDeps({resolveSupport:async(uid,request)=>{
+  assert.equal(uid,user);calls++;
+  assert.equal(request.diagnostics.cloudToken,undefined);
+  return {answer:'Check the preview.',action:'restart-preview',category:'playback',aiGenerated:true,available:true};
+ }}));
+ let answer=await fetch(base+'/api/v1/support/diagnose',{
+  method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({issue:'Preview is frozen',diagnostics:{platform:'ios',screen:'editor'}})
+ });
+ assert.equal(answer.status,401);
+ answer=await fetch(base+'/api/v1/support/diagnose',{method:'POST',headers,
+  body:JSON.stringify({issue:'Preview is frozen',diagnostics:{
+   platform:'ios',screen:'editor',cloudToken:'do-not-forward'}})});
+ assert.equal(answer.status,200);
+ const json=await answer.json();
+ assert.equal(json.action,'restart-preview');
+ assert.equal(json.autoApplied,false);
+ assert.equal(calls,1);
+ const invalid=await fetch(base+'/api/v1/support/diagnose',{method:'POST',headers,
+  body:JSON.stringify({issue:'hi',diagnostics:{screen:'editor'}})});
+ assert.equal(invalid.status,400);
+ assert.equal(calls,1);
 });

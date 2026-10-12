@@ -23,12 +23,15 @@ test('Firestore rules deny all unrelated documents and private writes',()=>{
  assert.match(rules,/allow create, update, delete: if false/);
  assert.match(rules,/allow read, write: if false/);
 });
-test('Cloud Storage rules limit per-user file upload size and MIME types',()=>{
+test('Cloud Storage denies all client media mutations; API enforces quota',()=>{
  const rules=file('storage.rules');
+ const api=file('cloud-run/src/index.mjs');
  assert.match(rules,/request\.auth\.uid == userId/);
- assert.match(rules,/200 \* 1024 \* 1024/);
- assert.match(rules,/request\.resource\.contentType\.matches/);
- assert.match(rules,/allow update: if false/);
+ assert.match(rules,/allow create, update, delete: if false/);
+ assert.match(rules,/allow read, write: if false/);
+ assert.match(api,/MAX_MEDIA_BYTES/);
+ assert.match(api,/MAX_ACCOUNT_BYTES/);
+ assert.match(api,/reserveMedia/);
 });
 test('No admin JSON credential or committed Firebase private key',()=>{
  const files=['firebase.json','firebase.spark.json','firestore.rules','storage.rules',

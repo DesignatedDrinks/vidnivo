@@ -1,4 +1,6 @@
-const LIMIT=16*1024;
+import {validateCloudProject} from './projectCore.mjs';
+import {validateSupportInput} from './supportCore.mjs';
+const LIMIT=512*1024;
 const ASSET_ID=/^[A-Za-z0-9_-]{8,80}$/;
 const NAME=/^[^\\/\u0000-\u001f\u007f]{1,180}$/;
 const PATH=/^users\/([A-Za-z0-9_-]{1,128})\/media\/([A-Za-z0-9_-]{8,80})\/([A-Za-z0-9_.-]{1,120})$/;
@@ -54,9 +56,12 @@ export function validateRegistration(uid,raw){
  * remains the editor's original metadata database.
  */
 export function createHandler({verifyToken,getProfile,saveProfile,listMedia,getMedia,
- checkObject,registerMedia,deleteObject,deleteMedia,storageReady=true,allowedOrigins=[]}){
+ checkObject,registerMedia,deleteObject,deleteMedia,
+ listProjects,getProject,saveProject,uploadMedia,downloadMedia,resolveSupport,storageReady=true,allowedOrigins=[]}){
  if(!verifyToken||!getProfile||!saveProfile||!listMedia||!getMedia||
-    !checkObject||!registerMedia||!deleteObject||!deleteMedia)throw Error('API dependencies missing.');
+    !checkObject||!registerMedia||!deleteObject||!deleteMedia||
+    !listProjects||!getProject||!saveProject||!uploadMedia||!downloadMedia||!resolveSupport)
+    throw Error('API dependencies missing.');
  return async function handle(req,res){
   const origin=req.headers.origin||'';
   if(origin && !allowedOrigins.includes(origin)){
@@ -66,7 +71,7 @@ export function createHandler({verifyToken,getProfile,saveProfile,listMedia,getM
    res.statusCode=204;
    res.setHeader('Vary','Origin');
    if(origin)res.setHeader('Access-Control-Allow-Origin',origin);
-   res.setHeader('Access-Control-Allow-Headers','Authorization, Content-Type');
+   res.setHeader('Access-Control-Allow-Headers','Authorization, Content-Type, X-VIDNIVO-FILENAME, X-VIDNIVO-SIZE');
    res.setHeader('Access-Control-Allow-Methods','GET, PUT, POST, DELETE, OPTIONS');
    res.setHeader('Access-Control-Max-Age','600');
    res.end();return;
@@ -93,6 +98,11 @@ export function createHandler({verifyToken,getProfile,saveProfile,listMedia,getM
    send(res,401,{error:errors[401]},origin,allowedOrigins);return;
   }
   try{
+   if(req.method==='POST'&&path==='/api/v1/support/diagnose'){
+    const input=validateSupportInput(await bodyJson(req));
+    const diagnosis=await resolveSupport(uid,input);
+    send(res,200,{...diagnosis,autoApplied:false},origin,allowedOrigins);return;
+   }
    if(req.method==='GET'&&path==='/api/v1/me'){
     const profile=await getProfile(uid);
     send(res,200,{uid,profile:profile||null},origin,allowedOrigins);return;
@@ -115,19 +125,73 @@ export function createHandler({verifyToken,getProfile,saveProfile,listMedia,getM
     const page=await listMedia(uid,after,50);
     send(res,200,page,origin,allowedOrigins);return;
    }
+   // Prevent legacy registrations from bypassing metered media storage.
    if(req.method==='POST'&&path==='/api/v1/media/register'){
+    send(res,410,{error:'Legacy registration is retired. Upload media through the authenticated API.'},
+     origin,allowedOrigins);return;
+   }
+   // Cloud projects carry cloud:// media IDs, never another phone's file:// paths.
+   // Optimistic versions prevent a stale second phone overwriting the first.
+   if(req.method==='GET'&&path==='/api/v1/projects'){
+    const projects=await listProjects(uid);
+    send(res,200,{projects},origin,allowedOrigins);return;
+   }
+   const projectRoute=path.match(/^\/api\/v1\/projects\/([A-Za-z0-9_-]{8,80})$/);
+   if(projectRoute&&req.method==='GET'){
+    const record=await getProject(uid,projectRoute[1]);
+    if(!record){send(res,404,{error:'Project not found.'},origin,allowedOrigins);return;}
+    send(res,200,{project:record.project,version:record.version},origin,allowedOrigins);return;
+   }
+   if(projectRoute&&req.method==='PUT'){
+    const input=await bodyJson(req);
+    if(!Number.isSafeInteger(input.baseVersion)||input.baseVersion<0)
+     throw Object.assign(Error('A nonnegative cloud version is required.'),{status:400});
+    const portable=validateCloudProject(input.project,projectRoute[1]);
+    for(const asset of portable.assets){
+     const registration=await getMedia(uid,asset.id);
+     if(!registration)throw Object.assign(
+      Error('Upload every project media file before backing up the timeline.'),{status:409});
+     validateRegistration(uid,{...registration,assetId:asset.id});
+    }
+    const version=await saveProject(uid,projectRoute[1],portable,input.baseVersion);
+    send(res,200,{id:portable.id,version},origin,allowedOrigins);return;
+   }
+   const mediaRecord=path.match(/^\/api\/v1\/media\/([A-Za-z0-9_-]{8,80})$/);
+   if(req.method==='GET'&&mediaRecord){
+    const assetId=mediaRecord[1],media=await getMedia(uid,assetId);
+    if(!media){send(res,404,{error:'Media file not found.'},origin,allowedOrigins);return;}
+    validateRegistration(uid,{...media,assetId});
+    send(res,200,{assetId,name:media.name,size:media.size,
+     contentType:media.contentType,md5Hex:media.md5Hex||null},origin,allowedOrigins);return;
+   }
+   const mediaUpload=path.match(/^\/api\/v1\/media\/([A-Za-z0-9_-]{8,80})\/upload$/);
+   if(req.method==='PUT'&&mediaUpload){
     if(!storageReady)throw Object.assign(Error(errors[503]),{status:503});
-    const input=validateRegistration(uid,await bodyJson(req));
-    const previous=await getMedia(uid,input.assetId);
-    if(previous && previous.objectPath!==input.objectPath)
-     throw Object.assign(Error(errors[409]),{status:409});
-    const item=await checkObject(input.objectPath);
-    if(!KIND.test(item.contentType||'')||!(item.size>0)||
-       item.size>MAX_MEDIA_BYTES)
-     throw Object.assign(Error('Media must be an audio, photo, or video file smaller than 200 MB.'),{status:400});
-    const record={...input,contentType:item.contentType,size:item.size};
-    if(!previous)await registerMedia(uid,record);
-    send(res,200,{assetId:input.assetId,registered:true},origin,allowedOrigins);return;
+    const rawName=req.headers['x-vidnivo-filename'];
+    const name=typeof rawName==='string'?rawName:'';
+    const contentType=(req.headers['content-type']||'').toLowerCase();
+    const size=Number(req.headers['x-vidnivo-size']||req.headers['content-length']);
+    if(!NAME.test(name)||!KIND.test(contentType)||
+       !Number.isSafeInteger(size)||size<=0||size>MAX_MEDIA_BYTES)
+     throw Object.assign(Error('Invalid media file name, type or size (maximum 200 MB).'),{status:400});
+    const assetId=mediaUpload[1];
+    const existing=await getMedia(uid,assetId);
+    if(existing){
+     validateRegistration(uid,{...existing,assetId});
+     if(existing.name!==name||existing.size!==size)throw Object.assign(
+      Error('Media identifier already registered to another file.'),{status:409});
+     send(res,200,{assetId,registered:true,alreadyUploaded:true,size:existing.size,md5Hex:existing.md5Hex||null},origin,allowedOrigins);return;
+    }
+    const stored=await uploadMedia(uid,assetId,name,req,contentType,size);
+    send(res,201,{assetId,registered:true,size:stored.size,md5Hex:stored.md5Hex},origin,allowedOrigins);return;
+   }
+   const mediaDownload=path.match(/^\/api\/v1\/media\/([A-Za-z0-9_-]{8,80})\/download$/);
+   if(req.method==='GET'&&mediaDownload){
+    if(!storageReady)throw Object.assign(Error(errors[503]),{status:503});
+    const assetId=mediaDownload[1],existing=await getMedia(uid,assetId);
+    if(!existing){send(res,404,{error:'Media file not found.'},origin,allowedOrigins);return;}
+    validateRegistration(uid,{...existing,assetId});
+    await downloadMedia(existing,res);return;
    }
    // The server, never the browser, performs both sides of deletion.
    // If removing Firestore fails, a retry is safe because object deletion
@@ -141,7 +205,7 @@ export function createHandler({verifyToken,getProfile,saveProfile,listMedia,getM
      send(res,404,{error:'Media asset not found.'},origin,allowedOrigins);return;
     }
     // Defend against corrupted or improperly owned registry records.
-    validateRegistration(uid,{assetId,...previous});
+    validateRegistration(uid,{...previous,assetId});
     await deleteObject(previous.objectPath);
     await deleteMedia(uid,assetId);
     send(res,200,{assetId,deleted:true},origin,allowedOrigins);return;
@@ -150,6 +214,8 @@ export function createHandler({verifyToken,getProfile,saveProfile,listMedia,getM
   }catch(error){
    const status=Number.isInteger(error?.status) && error.status>=400 && error.status<600
     ?error.status:500;
+   // Streams may already have sent response headers; never write JSON mid-file.
+   if(res.headersSent){res.destroy();return;}
    // Never echo provider errors, stack traces or credentials to the client.
    send(res,status,{error:status===500?'Service temporarily unavailable. Please retry.':error.message},
     origin,allowedOrigins);
