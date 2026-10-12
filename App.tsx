@@ -52,6 +52,8 @@ function EditorApp() {
   const insets = useSafeAreaInsets();
   const [projects, setProjects] = useState<Project[]>([]);
   const [ready, setReady] = useState(false);
+  const [loadFailure, setLoadFailure] = useState<string | null>(null);
+  const [saveFailure, setSaveFailure] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
@@ -95,14 +97,39 @@ function EditorApp() {
     selectAccount: true
   });
   useEffect(() => { if (response?.type === 'success' && response.authentication?.accessToken) setToken(response.authentication.accessToken); }, [response]);
+  // A failed library load must NEVER initialize the editor with an empty
+  // project list, as doing so would immediately overwrite recoverable data.
+  const reloadLibrary = async () => {
+    setLoadFailure(null);
+    try {
+      const recovered = await loadLocalProjects();
+      setProjects(recovered);
+      setReady(true);
+    } catch (e) {
+      setReady(false);
+      setLoadFailure(e instanceof Error ? e.message : String(e));
+    }
+  };
+  useEffect(() => { void reloadLibrary(); }, []);
   useEffect(() => {
-    loadLocalProjects().then(p => setProjects(p)).catch(e => Alert.alert('Could not load local projects', String(e))).finally(() => setReady(true));
-  }, []);
-  useEffect(() => {
-    if (!ready) return;
-    writeQueue.current = writeQueue.current.catch(() => {}).then(() => saveLocalProjects(projects));
-    writeQueue.current.catch(e => console.error('Local save failed', e));
-  }, [ready, projects]);
+    if (!ready || loadFailure) return;
+    writeQueue.current = writeQueue.current.catch(() => {}).then(async () => {
+      await saveLocalProjects(projects);
+      setSaveFailure(null);
+    });
+    writeQueue.current.catch(e => {
+      setSaveFailure(e instanceof Error ? e.message : String(e));
+    });
+  }, [ready, projects, loadFailure]);
+  const retrySave = async () => {
+    try {
+      await writeQueue.current.catch(() => {});
+      await saveLocalProjects(projects);
+      setSaveFailure(null);
+    } catch (e) {
+      setSaveFailure(e instanceof Error ? e.message : String(e));
+    }
+  };
   const project = projects.find(p => p.id === editingId) ?? null;
   const selected = project?.clips.find(c => c.id === selectedId) ?? null;
   const selectedText = project?.texts.find(t => t.id === selectedTextId) ?? null;
@@ -404,8 +431,25 @@ function EditorApp() {
     } catch (e) { Alert.alert('Cloud sync failed', String(e)); }
     finally { setBusy(false); }
   };
+  if (loadFailure) return <View style={[styles.center, { padding: 24 }]}>
+    <Ionicons name="warning-outline" size={42} color="#F79B6D" />
+    <Text style={[styles.projectName, { textAlign: 'center', marginTop: 18 }]}>Cannot safely open your projects</Text>
+    <Text style={[styles.meta, { textAlign: 'center', marginTop: 12, lineHeight: 19 }]}>
+      {loadFailure}
+    </Text>
+    <Text style={[styles.meta, { textAlign: 'center', marginTop: 10, lineHeight: 19 }]}>
+      Your projects have not been erased or overwritten. Do not uninstall the application.
+    </Text>
+    <Tool label="Try recovery again" primary onPress={() => { void reloadLibrary(); }} />
+  </View>;
   if (!ready) return <View style={styles.center}><ActivityIndicator color={theme.accent} /></View>;
   if (!project) return <View style={[styles.screen, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 16 }]}>
+    {saveFailure ? <Pressable accessibilityRole="button" onPress={() => { void retrySave(); }}
+      style={{ backgroundColor: '#653335', padding: 12, borderRadius: 10 }}>
+      <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>
+        Local save failed — tap to retry. Keep the app open. {saveFailure}
+      </Text>
+    </Pressable> : null}
     <View style={styles.heading}><Text style={styles.logo}>VID<Text style={{ color: theme.accent }}>NIVO</Text></Text><Text style={styles.eyebrow}>MOBILE VIDEO STUDIO</Text></View>
     <View style={styles.hero}><Text style={styles.heroTitle}>Make something worth watching.</Text><Text style={styles.heroCopy}>Cut video, arrange your timeline, add captions, and keep projects on your phone.</Text><Tool label="+ New project" primary onPress={create} /></View>
     <View style={styles.row}><Text style={styles.section}>YOUR PROJECTS</Text><Text style={styles.meta}>{projects.length} saved</Text></View>
@@ -525,6 +569,12 @@ function EditorApp() {
       disabled: !token, onPress: cloudSave }
   ];
   return <View style={[styles.editorScreen, { paddingTop: insets.top + 4, paddingBottom: insets.bottom }]}>
+    {saveFailure ? <Pressable accessibilityRole="button" onPress={() => { void retrySave(); }}
+      style={{ backgroundColor: '#653335', padding: 9, borderRadius: 8 }}>
+      <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>
+        Draft not saved. Tap to retry before leaving.
+      </Text>
+    </Pressable> : null}
     <View style={styles.mobileHeader}>
       <Pressable accessibilityLabel="Back to projects" accessibilityRole="button"
         disabled={recordingState.isRecording}
