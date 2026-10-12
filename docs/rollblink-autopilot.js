@@ -23,6 +23,8 @@ export function normalizeStyle(candidate){
   y:Number.isFinite(Number(candidate.y))?clamp(Number(candidate.y),.15,.85):.70,
   color:COLORS.has(candidate.color)?candidate.color:'#FFFFFF',
   fontId:fontById(candidate.fontId).id,
+  watermarkEnabled:candidate.watermarkEnabled!==false,
+  watermarkPosition:candidate.watermarkPosition==='top-left'?'top-left':'bottom-right',
   enhance:Boolean(candidate.enhance),voice:Boolean(candidate.voice),
   retouch:Number.isFinite(Number(candidate.retouch))?clamp(Number(candidate.retouch),0,60):0
  };
