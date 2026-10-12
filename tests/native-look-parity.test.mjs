@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { LOOKS,LOOK_ORDER } from '../src/domain/looks.ts';
 
-const swift=readFileSync('modules/vidnivo-export/ios/VidnivoExportModule.swift','utf8');
-const kotlin=readFileSync('modules/vidnivo-export/android/src/main/java/com/vidnivo/export/VidnivoExportModule.kt','utf8');
+const swift=readFileSync('modules/rollblink-export/ios/RollblinkExportModule.swift','utf8');
+const kotlin=readFileSync('modules/rollblink-export/android/src/main/java/com/rollblink/export/RollblinkExportModule.kt','utf8');
 function mapNative(text,pattern){
  const values=new Map();
  for(const match of text.matchAll(pattern)){
