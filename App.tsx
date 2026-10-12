@@ -114,10 +114,10 @@ function EditorApp() {
   const savedMedia = async (uri: string, filename: string): Promise<string> => {
     try {
       const folder = new Directory(Paths.document, 'vidnivo-media');
-      folder.create({ idempotent: true, intermediates: true });
+      await folder.create({ idempotent: true, intermediates: true });
       const ext = filename.match(/\.[a-zA-Z0-9]+$/)?.[0] ?? '.mp4';
       const file = new File(folder, makeId() + ext);
-      new File(uri).copy(file);
+      await new File(uri).copy(file);
       return file.uri;
     } catch {
       return uri; // Some Android content URIs cannot be copied in Expo Go.
