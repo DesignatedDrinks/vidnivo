@@ -652,6 +652,28 @@ $('addCaption').onclick=()=>{
 $('export').onclick=()=>void startExport();
 $('autoEnhance').onclick=toggleEnhancement;
 $('autoCaptions').onclick=()=>void runAutoCaptions();
+$('clearAutoCaptions').onclick=()=>{
+ if(state.exporting||state.captioning)return;
+ state.captions=state.captions.filter(c=>c.origin!=='auto');
+ state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';
+ renderCaptions();renderTimeline();requestDraw();
+ captionProgress('Generated captions cleared. Manually added captions were kept.',0);
+};
+$('downloadSrt').onclick=()=>{
+ if(!state.captions.length){captionProgress('Add or generate captions before exporting subtitles.',0,true);return}
+ const stamp=seconds=>{
+  const ms=Math.max(0,Math.round(seconds*1000));
+  const h=Math.floor(ms/3600000),m=Math.floor(ms/60000)%60;
+  const sec=Math.floor(ms/1000)%60,rem=ms%1000;
+  return [h,m,sec].map(n=>String(n).padStart(2,'0')).join(':')+','+String(rem).padStart(3,'0');
+ };
+ const lines=state.captions.slice().sort((a,b)=>a.start-b.start).map((c,i)=>
+  String(i+1)+'\n'+stamp(c.start)+' --> '+stamp(c.end)+'\n'+c.text.replace(/\r/g,'')+'\n').join('\n');
+ const url=URL.createObjectURL(new Blob([lines],{type:'application/x-subrip;charset=utf-8'}));
+ const anchor=document.createElement('a');anchor.href=url;anchor.download='vidnivo-captions.srt';
+ document.body.append(anchor);anchor.click();anchor.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),5000);
+};
 $('quickEnhance').onclick=()=>{setTab('looks');toggleEnhancement()};
 $('quickCaptions').onclick=()=>{setTab('captions');void runAutoCaptions()};
 document.querySelectorAll('[data-look]').forEach(b=>b.addEventListener('click',()=>{
