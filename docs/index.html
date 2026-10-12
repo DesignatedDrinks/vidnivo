@@ -335,6 +335,19 @@ input[type=range]{accent-color:#afc0ff}
 .rb-inline{width:100%;min-height:65px;color:#fff;background:#151e2b;border:1px solid #64748b;border-radius:8px;padding:8px}
 .rb-directions button[aria-pressed=true]{border-color:#bcf57e;background:#2d4230}
 @media(max-width:540px){.rb-tools{padding:14px}.rb-tools h2{font-size:21px}}
+
+.rb-caption-fonts{margin:13px 0 15px;padding:13px;border:1px solid #3a4859;background:linear-gradient(145deg,#202b3c,#171d29);border-radius:14px}
+.rb-caption-font-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:9px}
+.rb-caption-font-head label{font-size:15px;font-weight:750;color:#eef4ff}
+.rb-caption-font-head span{font-size:12px;color:#b8c6d8}
+.rb-caption-fonts select{display:block;min-height:43px;width:100%;border-radius:10px;border:1px solid #5e7187;background:#111a28;color:#fff;font-size:15px;padding:9px 12px}
+.rb-caption-font-preview{margin:11px 0;padding:15px 10px;min-height:62px;border-radius:10px;background:#0b101a;color:#fff;font-size:24px;line-height:1.3;text-align:center;font-weight:700;overflow-wrap:anywhere}
+.rb-caption-font-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.rb-caption-font-shortcuts button{border:1px solid #48576b;background:#253044;color:#f2f5fc;border-radius:10px;min-height:68px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.rb-caption-font-shortcuts button[aria-pressed="true"]{border:2px solid #b8f57d;background:#273b32}
+.rb-caption-font-shortcuts button span{font-size:28px;line-height:1}
+.rb-caption-font-shortcuts button small{font-size:11px;letter-spacing:0;color:#ccd5e1}
+.rb-caption-font-status{font-size:12px;color:#b9c8d5;margin:10px 0 0}
 </style></head>
 <body>
   <header class="topbar">
@@ -400,8 +413,7 @@ input[type=range]{accent-color:#afc0ff}
         <div class="rb-row rb-directions"><button class="rb-s" data-rb-direction="clean" aria-pressed="false">Clean</button><button class="rb-s" data-rb-direction="punchy" aria-pressed="false">Punchy</button><button class="rb-s" data-rb-direction="editorial" aria-pressed="false">Editorial</button></div>
         <div class="rb-row"><button class="rb-p" id="rb-highlight" type="button">Suggest 30s</button><button class="rb-s" id="rb-undo-highlight" type="button" hidden>Undo trim</button></div>
         <div class="rb-layout"><label>Camera motion<select id="rb-camera"><option value="off">Off</option><option value="subtle">Subtle</option><option value="dynamic">Dynamic</option></select></label></div>
-        <div class="rb-layout"><label>Caption font<select id="rb-font"></select></label>
-          <label>Post platform<select id="rb-platform"><option>Instagram</option><option>TikTok</option><option>YouTube Shorts</option><option>LinkedIn</option></select></label></div>
+        <div class="rb-layout"><label>Post platform<select id="rb-platform"><option>Instagram</option><option>TikTok</option><option>YouTube Shorts</option><option>LinkedIn</option></select></label></div>
         <div class="rb-row"><button id="rb-undo-look" class="rb-s" type="button" hidden>Undo style</button><button id="rb-undo-words" class="rb-s" type="button" hidden>Undo word fix</button></div>
         <div class="rb-layout"><div><label for="rb-title">Opening title</label><textarea id="rb-title" maxlength="150"></textarea><button id="rb-add-title" class="rb-s">Add to video</button></div>
           <div><label for="rb-post">Post copy</label><textarea id="rb-post"></textarea><div class="rb-row"><button id="rb-generate" class="rb-p">Generate</button><button id="rb-copy" class="rb-s">Copy</button></div></div></div>
@@ -438,7 +450,21 @@ input[type=range]{accent-color:#afc0ff}
         <div id="captionStatus" class="status" aria-live="polite" role="status"></div>
         <div class="progress"><div id="captionProgress"></div></div>
         <details class="quiet-details"><summary>Caption limits</summary><p>English · up to 2 minutes. First use downloads a speech model. Keep the editor open; older phones may not support local transcription.</p></details>
-        <div id="touchCaptionHint" class="touch-caption-hint"><span>Drag to move. Pinch to resize.</span></div>
+        <div id="touchCaptionHint" class="touch-caption-hint"><span>Drag one subtitle → move all. Pinch → resize all.</span></div>
+        <div class="rb-caption-fonts" aria-label="Subtitle fonts">
+          <div class="rb-caption-font-head"><label for="rb-font">Caption fonts</label><span>24 styles</span></div>
+          <select id="rb-font" aria-label="Caption font for all subtitles"></select>
+          <div id="rb-font-preview" class="rb-caption-font-preview">Make the moment.</div>
+          <div class="rb-caption-font-shortcuts" role="group" aria-label="Quick caption fonts">
+            <button type="button" data-rb-font="inter"><span style="font-family:Inter,Arial,sans-serif">Aa</span><small>Inter</small></button>
+            <button type="button" data-rb-font="anton"><span style="font-family:Anton,Impact,sans-serif">Aa</span><small>Anton</small></button>
+            <button type="button" data-rb-font="bebas-neue"><span style="font-family:'Bebas Neue',Impact,sans-serif">Aa</span><small>Bebas</small></button>
+            <button type="button" data-rb-font="montserrat"><span style="font-family:Montserrat,Arial,sans-serif">Aa</span><small>Montserrat</small></button>
+            <button type="button" data-rb-font="playfair-display"><span style="font-family:'Playfair Display',Georgia,serif">Aa</span><small>Playfair</small></button>
+            <button type="button" data-rb-font="oswald"><span style="font-family:Oswald,Impact,sans-serif">Aa</span><small>Oswald</small></button>
+          </div>
+          <p class="rb-caption-font-status" id="rb-font-status" role="status">Choose a font to style every subtitle.</p>
+        </div>
         <label class="field-label" for="captionText">Caption text</label><textarea id="captionText" rows="3" maxlength="240" placeholder="What should appear on screen?"></textarea>
         <div class="button-row two-cols"><label class="field-label">Start (seconds)<input type="number" id="captionStart" min="0" step="0.1" value="0" /></label><label class="field-label">End (seconds)<input type="number" id="captionEnd" min="0" step="0.1" value="3" /></label></div>
         <div class="button-row two-cols"><label class="field-label">Position preset<select id="captionPosition"><option value="bottom">Bottom</option><option value="middle">Middle</option><option value="top">Top</option><option value="custom">Custom (dragged)</option></select></label><label class="field-label">Colour<select id="captionColor"><option value="#FFFFFF">White</option><option value="#23D4E9">Cyan</option><option value="#FFE178">Yellow</option></select></label></div>
@@ -506,7 +532,7 @@ input[type=range]{accent-color:#afc0ff}
   <script type="module">import {drawGradedVideo} from './rollblink-filters.js';
 import {FaceRetouch} from './rollblink-face-retouch.js?v=5';
 import {planContinuousExport,PlaybackSyncGuard,inspectRecordedTracks,probeRecordedDuration} from './rollblink-export-sync.js';
-import {fontScale,captionAnchor,captionLayout,clampedCaptionAnchor,pointInCaption,gestureDistance,midpoint} from './rollblink-caption-touch.js';
+import {fontScale,captionAnchor,captionLayout,clampedCaptionAnchor,pointInCaption,gestureDistance,midpoint,isSubtitleCaption,setSubtitleAnchor,subtitleSafeArea,clampSubtitleAnchor} from './rollblink-caption-touch.js';
 import {STYLES,getStyle,loadStyle,saveStyle,styleCaptions,planSpeechEdgeTrim,shiftTimedCaptions,suggestOpeningHooks} from './rollblink-autopilot.js';
 import {drawBrandWatermark,normalizeWatermark} from './rollblink-branding.js';
 import {FONT_CHOICES,fontById,transcriptText,draftSocialCopy,EDIT_DIRECTIONS,applyDirection,inspectEdit,projectSnapshot,canRestoreSnapshot,hydrateSnapshot,selectContinuousHighlight} from './rollblink-creator-kit.js';
@@ -519,7 +545,7 @@ const canvas = $('preview');
 const ctx = canvas.getContext('2d', {alpha: false});
 const ui = {videoInput:$('videoInput'),play:$('play'),scrubber:$('scrubber'),timeline:$('timeline'),empty:$('emptyState'),trimStart:$('trimStart'),trimEnd:$('trimEnd'),speed:$('speed'),export:$('export'),status:$('exportStatus'),progress:$('exportProgress'),download:$('download')};
 const state = {
- sources:[], clips:[], captions:[], captionFontId:'inter', cameraMotion:'off', selected:null, position:0,
+ sources:[], clips:[], captions:[], captionFontId:'inter', captionGroupAnchor:null, cameraMotion:'off', selected:null, position:0,
  ratio:'9:16', playing:false, exporting:false, captioning:false, selectedTab:'edit',
   look:'original', enhancement:null, editCaptionId:null, faceRetouch:0, faceLoading:false,
   voicePolish:false, creatorBusy:false, creatorStyle:null, creatorCustom:null,
@@ -557,7 +583,7 @@ const toast=(message,isError=false)=>{ui.status.textContent=message;ui.status.st
 let drawQueued=false;
 let captionHitBoxes=[];
 const touchPointers=new Map();
-let dragAnchor=null,pinchOrigin=null,touchWasEdited=false;
+let dragAnchor=null,pinchOrigin=null,touchWasEdited=false,subtitleGestureArea=null;
 const PROCESS_STAGES={
  import:['Read file metadata','Prepare editing timeline'],
  captions:['Prepare audio','Capture soundtrack','Load speech model','Recognize speech','Place timed captions'],
