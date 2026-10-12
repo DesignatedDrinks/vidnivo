@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { activeClip, type Clip, type Project } from '../domain/timeline';
+import { type Clip, type Project } from '../domain/timeline';
+import { audibleClipsAt } from '../domain/audioPlayback';
 
 function ActiveAudio({ clip, uri, offsetSeconds, playing, seekVersion }:
   { clip: Clip; uri: string; offsetSeconds: number; playing: boolean; seekVersion: number }) {
@@ -23,10 +24,10 @@ function ActiveAudio({ clip, uri, offsetSeconds, playing, seekVersion }:
 }
 export function AudioStage({ project, playheadMs, playing, seekVersion }:
   { project: Project; playheadMs: number; playing: boolean; seekVersion: number }) {
-  const clip = activeClip(project, playheadMs, 'audio');
-  const asset = project.assets.find(a => a.id === clip?.assetId);
-  if (!clip || !asset || asset.kind !== 'audio') return null;
-  const offsetSeconds = (clip.inMs + (playheadMs - clip.startMs) * clip.speed) / 1000;
-  return <ActiveAudio key={clip.id} clip={clip} uri={asset.uri}
-    offsetSeconds={offsetSeconds} playing={playing} seekVersion={seekVersion} />;
+  // Each active audio track needs an independent player. Previously only the
+  // latest active track was audible, while native export mixed all of them.
+  const active = audibleClipsAt(project, playheadMs);
+  return <>{active.map(({clip,uri,offsetSeconds}) =>
+    <ActiveAudio key={clip.id} clip={clip} uri={uri} offsetSeconds={offsetSeconds}
+      playing={playing} seekVersion={seekVersion} />)}</>;
 }

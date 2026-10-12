@@ -24,7 +24,12 @@ async function api(token: string, url: string, init?: RequestInit): Promise<any>
 }
 async function readTable(token: string, sheet: Table): Promise<Rows> {
   const result = await api(token, address(sheet, 'A1:L2000'));
-  return (result.values ?? []) as Rows;
+  const rows = (result.values ?? []) as Rows;
+  // A range at its hard-coded upper bound may conceal additional rows.
+  // Refuse a silently incomplete import until paginated remote reads exist.
+  if (rows.length >= 2000)
+    throw Error(sheet + ' has reached the 2,000-row safe read limit. Remote import stopped to avoid missing projects.');
+  return rows;
 }
 async function batchWrite(token: string, entries: { range: string; values: string[][] }[]): Promise<void> {
   if (!entries.length) return;

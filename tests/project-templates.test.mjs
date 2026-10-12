@@ -18,3 +18,12 @@ test('copy saves a reusable project without shared identities',()=>{
  assert.equal(copy.assets[0].uri,base.assets[0].uri);
  validateProject(copy);
 });
+
+test('duplicating a project preserves its colour look without sharing mutable state',()=>{
+ const p={...createProject(),look:{preset:'sunset',intensity:65}};
+ const duplicate=duplicateProject(p);
+ assert.deepEqual(duplicate.look,p.look);
+ assert.notEqual(duplicate.look,p.look);
+ duplicate.look.intensity=20;
+ assert.equal(p.look.intensity,65);
+});
