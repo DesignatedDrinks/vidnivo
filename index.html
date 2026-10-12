@@ -113,6 +113,8 @@ textarea,input[type=number],select{background:#192538;border:1px solid rgba(168,
 @keyframes vidnivo-wave{0%,100%{height:6px;opacity:.48}50%{height:25px;opacity:1}}
 @media(max-width:770px){.app{padding-top:17px}.topbar{height:66px}.brand{font-size:21px;gap:8px}.brand-mark{width:32px;height:32px}.panel{border-radius:18px}.preview-wrap{min-height:320px}.processing-sheet{padding:12px 7px}.processing-headline{font-size:18px}}
 @media(max-width:360px){.brand{font-size:19px}.brand-mark{width:29px;height:29px}.brand-pill{font-size:8px;letter-spacing:1px;margin-left:3px}.processing-stages{margin:7px auto}.autopilot-card{padding:14px}}
+.progress>div.indeterminate{width:100%!important;background:linear-gradient(90deg,rgba(110,184,243,.1),#8EE1FF,#A99BFF,rgba(110,184,243,.1));background-size:210% 100%;animation:vidnivo-flow 1.9s ease-in-out infinite}
+@keyframes vidnivo-flow{0%{background-position:100% center}100%{background-position:-100% center}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}.processing-wave i{height:12px;opacity:1}}
 
 </style>
@@ -312,6 +314,53 @@ let drawQueued=false;
 let captionHitBoxes=[];
 const touchPointers=new Map();
 let dragAnchor=null,pinchOrigin=null,touchWasEdited=false;
+const PROCESS_STAGES={
+ import:['Read file metadata','Prepare editing timeline'],
+ captions:['Prepare audio','Capture soundtrack','Load speech model','Recognize speech','Place timed captions'],
+ creator:['Apply video look','Polish voice','Generate captions','Review finished edit'],
+ export:['Prepare audio and video','Record synchronized media','Verify exported file','Ready to download']
+};
+function showProcessing(kind,step,detail){
+ const effective=kind==='captions'&&state.creatorBusy?'creator':kind;
+ const actualStep=kind==='captions'&&state.creatorBusy?2:step;
+ const stages=PROCESS_STAGES[effective];
+ if(!stages)return;
+ const chosen=Math.max(0,Math.min(stages.length-1,actualStep));
+ if(!state.processing||state.processing.kind!==effective){
+  state.processing={kind:effective,step:-1,lastDetail:''};
+  $('processStages').replaceChildren();
+  for(let i=0;i<stages.length;i++){
+   const row=document.createElement('div');row.className='process-step';
+   const icon=document.createElement('span');icon.className='process-dot';icon.textContent='·';
+   const name=document.createElement('span');name.textContent=stages[i];
+   row.append(icon,name);$('processStages').append(row);
+  }
+ }
+ if(state.processing.step!==chosen){
+  state.processing.step=chosen;
+  [...$('processStages').children].forEach((row,i)=>{
+   row.className='process-step'+(i<chosen?' done':i===chosen?' current':'');
+   row.firstElementChild.textContent=i<chosen?'✓':i===chosen?'●':'·';
+  });
+  $('processHeadline').textContent=stages[chosen];
+ }
+ if(detail&&state.processing.lastDetail!==detail){
+  $('processDetail').textContent=detail;
+  state.processing.lastDetail=detail;
+ }
+ $('processingOverlay').hidden=false;
+}
+function hideProcessing(kind){
+ const effective=kind==='captions'&&state.creatorBusy?'creator':kind;
+ if(!state.processing||state.processing.kind!==effective)return;
+ $('processingOverlay').hidden=true;
+ state.processing=null;
+}
+function updateRealProcessingBar(id,finished=false,error=false){
+ const element=$(id);
+ element.classList.toggle('indeterminate',!finished&&!error);
+ element.style.width=error?'0%':'100%';
+}
 function drawFrame(){
  const quality=state.exporting?Number($('quality').value):null;
  const dimensions=quality?(state.ratio==='16:9'?[Math.round(quality*16/9),quality]:state.ratio==='1:1'?[quality,quality]:[quality,Math.round(quality*16/9)]):(state.ratio==='16:9'?[960,540]:state.ratio==='1:1'?[720,720]:[540,960]);
