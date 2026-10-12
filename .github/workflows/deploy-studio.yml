@@ -6,6 +6,7 @@ on:
       - 'docs/index.html'
       - 'docs/vidnivo-filters.js'
       - 'docs/vidnivo-face-retouch.js'
+      - 'docs/vidnivo-export-sync.js'
       - '.github/workflows/deploy-studio.yml'
   workflow_dispatch:
 permissions:
@@ -31,7 +32,7 @@ jobs:
           grep -q 'startExport()' docs/index.html
           grep -q 'MediaRecorder' docs/index.html
       - name: Validate browser editor and Safari shader
-        run: node --test tests/web-studio.test.mjs tests/web-face-retouch.test.mjs
+        run: node --test tests/web-studio.test.mjs tests/web-face-retouch.test.mjs tests/web-export-sync.test.mjs
       - name: Prepare GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload VIDNIVO Studio
