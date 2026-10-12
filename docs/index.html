@@ -1922,7 +1922,7 @@ $('rb-restore').onclick=()=>{
  try{
   const d=hydrateSnapshot(rbPending,state.sources,key);pause();
   state.clips=d.clips;state.captions=d.captions;state.selected=d.clips[0].id;state.position=0;
-  state.ratio=d.ratio;state.look=d.look;state.voicePolish=d.voicePolish;state.enhancement=d.enhancement;state.watermark=normalizeWatermark(d.watermark||state.watermark);
+  state.ratio=d.ratio;state.look=d.look;state.voicePolish=d.voicePolish;state.sourceMuted=d.sourceMuted;video.muted=!state.audioContext&&d.sourceMuted;state.enhancement=d.enhancement;state.watermark=normalizeWatermark(d.watermark||state.watermark);
   $('watermarkEnabled').checked=state.watermark.enabled;$('watermarkPosition').value=state.watermark.position;
   state.cameraMotion=d.cameraMotion;state.captionFontId=d.fontId;state.captionGroupAnchor=d.captionGroupAnchor;$('rb-camera').value=d.cameraMotion;
   $('rb-font').value=d.fontId;applyVoicePolish();
