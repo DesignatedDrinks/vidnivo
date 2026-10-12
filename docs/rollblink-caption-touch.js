@@ -59,3 +59,36 @@ export function clampedCaptionAnchor(x,y,layout,width,height){
   y:bound(y,layout.bounds.height/2,height-layout.bounds.height/2)/height
  };
 }
+
+/** Subtitles are one visual track. Opening titles stay separate. */
+export const isSubtitleCaption=cap=>Boolean(cap&&cap.origin!=='title'&&cap.origin!=='opening-hook');
+export function setSubtitleAnchor(captions,anchor){
+ const x=Number(anchor?.x),y=Number(anchor?.y);
+ if(!Number.isFinite(x)||!Number.isFinite(y))throw Error('Caption position must have finite coordinates.');
+ const result={x:bound(x,0,1),y:bound(y,0,1)};
+ for(const cap of captions||[]){
+  if(!isSubtitleCaption(cap))continue;
+  cap.position='custom';cap.x=result.x;cap.y=result.y;
+ }
+ return result;
+}
+/** Determine a single safe-area rectangle for *all* subtitle lines, so all
+ * their rendered centres match even if some captions are longer than others.
+ * This is computed on touch start, not once per animation frame. */
+export function subtitleSafeArea(ctx,captions,width,height){
+ if(!(width>0&&height>0))throw Error('Canvas size must be positive.');
+ let maxHalfWidth=0,maxHalfHeight=0;
+ for(const cap of captions||[]){
+  if(!isSubtitleCaption(cap))continue;
+  const layout=captionLayout(ctx,{...cap,x:.5,y:.5},width,height);
+  maxHalfWidth=Math.max(maxHalfWidth,layout.bounds.width/2);
+  maxHalfHeight=Math.max(maxHalfHeight,layout.bounds.height/2);
+ }
+ return {minX:maxHalfWidth/width,maxX:1-maxHalfWidth/width,
+  minY:maxHalfHeight/height,maxY:1-maxHalfHeight/height};
+}
+export function clampSubtitleAnchor(anchor,area){
+ const x=Number(anchor?.x),y=Number(anchor?.y);
+ if(!Number.isFinite(x)||!Number.isFinite(y))throw Error('Caption position must have finite coordinates.');
+ return {x:bound(x,area.minX,area.maxX),y:bound(y,area.minY,area.maxY)};
+}
