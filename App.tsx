@@ -592,9 +592,9 @@ function EditorApp() {
         <Tool label="Copy" disabled={busy} onPress={() => duplicateSavedProject(p)} />
         <Tool label="Delete" disabled={busy} onPress={() => deleteProject(p)} />
       </View>)}
+      <CloudWorkspace session={cloudSession} setSession={setCloudSession}
+        setProjects={setProjects}/>
     </ScrollView>
-    <CloudWorkspace session={cloudSession} setSession={setCloudSession}
-      setProjects={setProjects}/>
     <View style={styles.connect}>
       <Text style={styles.section}>GOOGLE SHEETS DATABASE</Text>
       <Text style={styles.meta}>{token ? 'Connected — authorized for Google Sheets' : configured ? 'Sign in to sync project metadata' : 'Local editing ready. Google OAuth client IDs must be configured for sync.'}</Text>
