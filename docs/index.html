@@ -3,7 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#101116" />
+  <meta name="theme-color" content="#080D18" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" type="image/svg+xml" href="./vidnivo-mark.svg" />
   <meta name="description" content="VIDNIVO Studio — a private, browser-based video editor. Import, trim, caption and export locally." />
   <title>VIDNIVO Studio — Video Editor</title>
   <style>:root{color-scheme:dark;--bg:#101116;--panel:#1b1d24;--panel2:#22252c;--line:#333842;--text:#f5f8fc;--muted:#9ba3af;--accent:#27d2e5;--accent-dark:#07363f;--danger:#ed8c89;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#171b23 0,#101116 250px);color:var(--text);font-size:14px}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.42;cursor:not-allowed}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.topbar{height:67px;border-bottom:1px solid #30333b;display:flex;justify-content:space-between;align-items:center;padding:0 clamp(14px,3vw,42px);background:#12151a}.brand{font-size:23px;letter-spacing:-1.5px;font-weight:950;display:flex;align-items:center}.brand-accent{color:var(--accent)}.brand-pill{font-size:9px;letter-spacing:1.5px;margin-left:12px;padding:5px 7px;border:1px solid #536572;border-radius:5px;color:#bdced4}.header-actions{display:flex;align-items:center;gap:18px}.privacy{color:#b6c4c9;font-size:12px}.privacy-dot{display:inline-block;background:#66dcac;width:7px;height:7px;border-radius:50%;margin-right:6px}.app{display:grid;grid-template-columns:minmax(0,1fr) 354px;gap:20px;max-width:1460px;margin:auto;padding:24px clamp(15px,3vw,40px) 45px}.workbench,.inspector{min-width:0}.workbench{display:flex;flex-direction:column;gap:18px}.stage-top{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:3px 0 0}.eyebrow,.section-label{font-size:10px;font-weight:850;letter-spacing:1.8px;color:var(--accent)}h1{font-size:clamp(25px,3vw,38px);margin:9px 0 5px;line-height:1.1;letter-spacing:-1px}h2{font-size:21px;line-height:1.2;margin:7px 0 0;letter-spacing:-.5px}.muted,.subheading,.section-desc{color:var(--muted)}.subheading{margin:0;font-size:13px}.tag{font-size:10px;white-space:nowrap;background:#303238;color:#cdd4da;padding:9px 11px;border-radius:30px;font-weight:700;letter-spacing:.8px}.viewer,.timeline-card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:15px}.viewer{overflow:hidden}.viewer-toolbar{height:52px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #30343c}.ratio-pills{display:flex;gap:6px}.pill{border:1px solid #3d414b;background:#262a31;color:#b5bec9;padding:6px 10px;border-radius:7px;font-size:12px}.pill.active{background:#0f3d47;color:#54e1f1;border-color:#226c77}.preview-wrap{position:relative;background:repeating-linear-gradient(45deg,#101217,#101217 12px,#12141a 12px,#12141a 24px);height:clamp(340px,49vh,510px);display:flex;align-items:center;justify-content:center;padding:15px;overflow:hidden}#preview{height:100%;width:auto;max-width:100%;object-fit:contain;background:#08090d;box-shadow:0 15px 35px #0009;border-radius:4px}.empty-state{position:absolute;inset:0;background:#101218ed;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:25px;gap:11px}.empty-state[hidden]{display:none}.empty-state h2{font-size:23px;margin:5px 0 0}.empty-state p{max-width:260px;color:var(--muted);line-height:1.5;margin:0 0 10px}.empty-symbol{font-size:44px;color:var(--accent);border:1px solid #264e56;border-radius:18px;padding:15px 20px}.tiny{font-size:11px;color:#8a929d}.button{display:inline-flex;justify-content:center;align-items:center;border:1px solid #454b58;padding:11px 14px;border-radius:9px;background:#30353f;color:var(--text);font-weight:700;min-height:40px;white-space:nowrap;text-decoration:none;text-align:center;gap:6px}.button.primary{color:#06232a;background:var(--accent);border-color:var(--accent)}.button.primary:hover{background:#5de4ee}.button.secondary{background:#16424d;border-color:#256c7b;color:#8deaf4}.button.ghost{background:#292d35;color:#d7e1ea}.button.danger{background:#362b33;color:#efb3b3;border-color:#6e454e}.button.small{padding:8px 11px;min-height:34px;font-size:12px}.button.full{width:100%}.transport{display:flex;align-items:center;justify-content:center;gap:13px;height:66px;border-top:1px solid #30343c}.icon-button,.play-button{border:0;background:transparent;color:#e9f0f5;display:flex;gap:3px;align-items:center;justify-content:center}.icon-button span{font-size:11px}.play-button{width:41px;height:41px;background:#2d3640;border-radius:50%;font-size:18px}.timecounter{position:absolute;right:calc(354px + clamp(15px,3vw,40px) + 46px);font-variant-numeric:tabular-nums;font-size:12px;color:#9aabba}.timecounter b{color:white}.timecounter span{margin-left:3px}.timeline-card{padding:19px}.section-head,.section-actions,.button-row,.info-line{display:flex;justify-content:space-between;align-items:center;gap:10px}.section-head{flex-wrap:wrap}.section-desc{font-size:11px;margin:8px 0 0}.section-actions{gap:7px}.timeline-card input[type=range]{width:100%;margin:22px 0 13px}.clip-track{display:flex;gap:5px;overflow:auto;min-height:89px;padding-bottom:7px;border-bottom:1px solid #373c45}.clip{background:#294952;color:#dcf4f6;border:2px solid #346371;border-radius:8px;min-width:70px;min-height:79px;flex:1 0 0;padding:8px;display:flex;flex-direction:column;justify-content:space-between;text-align:left}.clip.selected{border-color:#64e8f4;box-shadow:0 0 0 1px #64e8f4}.clip-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;font-weight:800}.clip-time{font-size:11px;color:#b5dde4}.clip-number{font-size:10px;color:#84e2ed}.blank-track{display:flex;align-items:center;justify-content:center;flex:1;background:#232830;border-radius:8px;color:#919aa7;font-size:12px}.timeline-help{display:flex;justify-content:space-between;font-size:11px;color:#929ba7;margin-top:12px}.inspector{display:flex;flex-direction:column;gap:12px}.panel{padding:20px}.inspector-tabs{display:flex;padding:5px;gap:4px}.inspector-tab{flex:1;border:0;border-radius:9px;background:transparent;color:#9ba5b1;font-weight:700;padding:12px}.inspector-tab.active{background:#33414a;color:#67dfeb}.panel-head{margin-bottom:22px}.hint-block{color:#aebbc6;background:#242a33;line-height:1.7;border-radius:10px;padding:15px}.info-line{color:var(--muted);margin:15px 0;font-size:12px}.info-line strong{color:var(--text);font-size:12px}.field-group{margin:20px 0}.field-group label{display:flex;justify-content:space-between;color:#bfc9d4;font-size:12px}.field-group input{width:100%;margin:15px 0 0}input[type=range]{accent-color:var(--accent);touch-action:pan-y}.button-row{margin:10px 0}.button-row>*{flex:1;min-width:0}.two-cols{align-items:flex-end;gap:11px}.field-label{display:block;color:#c0cbd6;font-size:12px;margin:14px 0 8px}textarea,input[type=number],select{width:100%;border:1px solid #49515c;background:#242831;border-radius:9px;padding:11px;color:var(--text);margin-top:8px;outline:0}textarea{resize:vertical}.fine-print{font-size:11px;color:#9ba6b1;line-height:1.65;margin:16px 0 0}.spacing-top{margin-top:25px}.captions-list{display:flex;flex-direction:column;gap:8px;margin-top:12px;max-height:260px;overflow:auto}.caption-item{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#282d35;border-radius:9px;padding:11px}.caption-item strong{display:block;font-size:12px;font-weight:600;margin-bottom:4px;overflow-wrap:anywhere}.caption-item span{font-size:10px;color:#afbdc7}.caption-item button{background:transparent;border:1px solid #70555c;border-radius:6px;color:#f2b0b0;padding:6px}.export-summary{background:#232c33;border:1px solid #31505b;border-radius:9px;padding:13px;margin:15px 0 19px;line-height:1.8;color:#d4e0e6;font-size:12px}.export-button{min-height:48px}.progress{height:6px;border-radius:8px;overflow:hidden;background:#323b43;margin:14px 0}.progress>div{height:100%;width:0;background:var(--accent);transition:width .2s}.status{line-height:1.6;color:#d3e1e8;font-size:12px;margin-top:12px;min-height:16px}.footer-note{padding:14px;color:#808d9a;font-size:11px;line-height:1.8}.footer-note b{color:#b7c7d2}@media(max-width:1030px){.app{grid-template-columns:minmax(0,1fr) 310px}.timecounter{right:calc(310px + clamp(15px,3vw,40px) + 31px)}}@media(max-width:770px){.app{display:block;padding:15px 12px 50px}.inspector{margin-top:13px}.stage-top{margin-bottom:14px}.viewer{margin-bottom:12px}.preview-wrap{height:44vh;min-height:310px;max-height:540px}.transport{justify-content:flex-start;padding-left:20px}.timecounter{position:static;margin-left:auto;margin-right:16px}.timeline-card{padding:14px;margin-bottom:8px}.panel{padding:16px}.inspector-tabs{padding:5px}.privacy{display:none}.topbar{height:58px;padding:0 14px}.brand{font-size:21px}.tag{font-size:9px}.section-head{align-items:flex-start}h1{font-size:25px}.header-actions{gap:5px}}@media(max-width:360px){.ratio-pills{gap:2px}.pill{padding:5px 6px}.section-actions{width:100%;justify-content:flex-end}.brand-pill{display:none}}
@@ -11,11 +14,114 @@
 .touch-caption-hint{display:flex;flex-direction:column;gap:6px;margin:0 0 15px}.touch-caption-hint strong{color:#eaf5fa;font-size:13px}.touch-caption-hint span{font-size:12px}.caption-active{border-color:#2de3f2;box-shadow:inset 0 0 0 1px #2de3f2}.caption-item .caption-item-actions{display:flex;gap:6px;flex:none}.caption-touch-ready{touch-action:none;cursor:move}.caption-item.selected-caption{outline:2px solid #27d2e5;outline-offset:-2px}
 .autopilot-card{border:1px solid #2c6572;background:linear-gradient(130deg,#18333b,#1b1d24 70%);padding:19px}.autopilot-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}.autopilot-heading h2{font-size:20px;margin:6px 0}.autopilot-icon{font-size:32px;color:#3ddcea}.autopilot-options{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 12px}.autopilot-options label{display:flex;align-items:center;gap:6px;font-size:12px;color:#d6e3eb;cursor:pointer}.autopilot-options input{width:17px;height:17px;accent-color:var(--accent)}.autopilot-run{flex:2!important;min-width:160px!important}.autopilot-card .button-row>*{min-width:0}.autopilot-card select{margin-top:2px}.autopilot-card .fine-print{margin-top:7px}
 .creator-hooks{padding:14px 0 8px;margin-top:11px;border-top:1px solid #345962}.creator-hook-choices{display:flex;flex-direction:column;gap:7px;margin:12px 0}.creator-hook-choices button{background:#263d44;color:#e7f9ff;border:1px solid #46808a;border-radius:9px;padding:10px 12px;text-align:left;white-space:normal;font-size:12px;font-weight:650}.creator-hook-choices button:hover{background:#31525b}
+
+/* VIDNIVO — midnight glass design system v1.0 */
+:root{--bg:#070B14;--panel:#101827;--panel2:#182237;--line:rgba(174,207,246,.13);--text:#F1F7FF;--muted:#9FAFC5;--accent:#85DCFF;--accent-dark:#163745;--danger:#FF9CAB;--violet:#A99AFE;--mint:#81E6C4;color-scheme:dark}
+html{scroll-behavior:smooth}
+body{background:radial-gradient(ellipse 70% 25% at 75% -2%,rgba(88,113,211,.14),transparent 75%),radial-gradient(ellipse 35% 30% at 7% 18%,rgba(53,162,199,.09),transparent 80%),linear-gradient(150deg,#0A111D 0%,#070B14 66%,#0C1120 100%);color:var(--text);min-height:100vh;letter-spacing:-.007em}
+.topbar{height:75px;background:rgba(9,15,26,.84);backdrop-filter:blur(22px) saturate(135%);-webkit-backdrop-filter:blur(22px) saturate(135%);border-bottom:1px solid rgba(169,194,238,.12);position:relative;z-index:4}
+.brand{gap:10px;letter-spacing:-1.4px;font-size:24px;font-weight:790}
+.brand-mark{width:37px;height:37px;border-radius:10px;box-shadow:0 5px 22px rgba(76,139,252,.12)}
+.brand .wordmark{white-space:nowrap}
+.brand-accent{color:#91DEFF}
+.brand-pill{background:rgba(155,177,222,.075);font-size:9px;font-weight:800;border:1px solid rgba(154,185,222,.2);color:#B7C9DE;border-radius:7px;padding:5px 8px;letter-spacing:1.6px}
+.privacy{border:1px solid rgba(129,230,196,.16);background:rgba(36,83,77,.14);padding:9px 12px;border-radius:50px;font-weight:550;color:#B8E8DD}
+.privacy-dot{box-shadow:0 0 12px rgba(129,230,196,.33);background:#81E6C4}
+.app{max-width:1490px;gap:22px;padding-top:30px}
+.workbench{gap:19px}
+.viewer,.timeline-card,.panel{background:linear-gradient(160deg,rgba(27,40,64,.72),rgba(13,21,34,.9));border:1px solid rgba(176,208,255,.13);border-radius:21px;box-shadow:0 16px 55px rgba(2,6,15,.22),inset 0 1px 0 rgba(220,238,255,.035)}
+.viewer{overflow:hidden}
+.stage-top h1{font-size:clamp(29px,3.2vw,43px);letter-spacing:-1.65px;font-weight:745}
+.stage-top .subheading{line-height:1.5;color:#A9BED0}
+.eyebrow,.section-label{color:#88D9FD;letter-spacing:1.75px}
+.tag{background:rgba(141,150,202,.12);border:1px solid rgba(168,184,242,.12);color:#D3DDF4;font-size:9px;letter-spacing:1.3px}
+.viewer-toolbar{border-color:var(--line);height:60px}
+.preview-wrap{background:radial-gradient(circle at 50% 33%,#1A2741 0,#0A111E 64%,#050910 100%);min-height:340px}
+#preview{border-radius:11px;box-shadow:0 22px 70px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.06)}
+.empty-state{background:linear-gradient(155deg,rgba(12,22,39,.96),rgba(8,14,26,.97));gap:13px}
+.empty-state h2{font-size:25px;letter-spacing:-.65px}
+.empty-state p{max-width:315px}
+.empty-symbol{border:0;background:none;padding:0}
+.empty-symbol img{filter:drop-shadow(0 14px 20px rgba(70,131,229,.18))}
+.button{border-radius:12px;border-color:rgba(153,177,212,.19);transition:background .22s ease,transform .2s ease,border-color .2s ease,box-shadow .22s ease}
+.button:not(:disabled):active{transform:translateY(1px) scale(.99)}
+.button.primary{color:#06151F;background:linear-gradient(115deg,#A3E8FC 0%,#75D3FF 53%,#ACAAFF 100%);border-color:rgba(195,235,255,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 7px 24px rgba(80,159,228,.13)}
+.button.primary:not(:disabled):hover{background:linear-gradient(115deg,#B5F0FF,#92DBFF,#C2BEFF);box-shadow:0 10px 30px rgba(93,153,244,.25)}
+.button.secondary{background:rgba(50,119,150,.24);border-color:rgba(106,194,235,.32);color:#A4E7FF}
+.button.ghost{background:rgba(143,164,199,.075);border-color:rgba(185,208,244,.13);color:#DFE9F9}
+.button.ghost:not(:disabled):hover{background:rgba(151,182,235,.15);border-color:rgba(175,214,255,.3)}
+.button:disabled{opacity:.45}
+.play-button{background:linear-gradient(135deg,#2D415B,#202B40);box-shadow:inset 0 1px 0 rgba(255,255,255,.1);transition:transform .18s,background .18s}
+.play-button:hover{transform:scale(1.04)}
+.timeline-card,.panel{backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.clip{background:linear-gradient(145deg,#244556,#182B46);border-color:#365B71;border-radius:11px;transition:border-color .16s,box-shadow .16s}
+.clip.selected{border-color:#8CDEFF;box-shadow:0 0 0 1px rgba(128,221,255,.7),0 7px 16px rgba(63,153,219,.13)}
+.inspector-tabs{padding:5px;gap:5px;background:rgba(26,39,59,.56)}
+.inspector-tab{border-radius:12px;font-size:12px;font-weight:720;transition:color .22s ease,background .22s ease,box-shadow .22s ease}
+.inspector-tab.active{background:linear-gradient(145deg,rgba(66,109,156,.34),rgba(89,75,146,.26));color:#D8F3FF;box-shadow:inset 0 1px 0 rgba(195,231,250,.16),0 3px 12px rgba(0,0,0,.14)}
+.pill{background:rgba(126,149,184,.08);border:1px solid rgba(173,206,244,.16);border-radius:9px;color:#AABDD4;transition:all .2s}
+.pill.active{background:linear-gradient(145deg,rgba(59,146,171,.22),rgba(100,99,200,.15));border-color:rgba(142,218,246,.47);color:#A3E8FF}
+textarea,input[type=number],select{background:#192538;border:1px solid rgba(168,198,235,.23);border-radius:11px;color:#F0F6FF}
+.field-label{color:#CAD8EB}
+.hint-block,.caption-item,.export-summary{background:rgba(28,42,65,.63);border:1px solid rgba(175,206,251,.08);border-radius:12px}
+.progress{height:5px;background:rgba(140,168,205,.15);border-radius:99px}
+.progress>div{background:linear-gradient(90deg,#78CFFA,#B1A1FF);border-radius:99px;transition:width .28s ease}
+.autopilot-card{background:radial-gradient(circle at 100% 0%,rgba(143,110,244,.13),transparent 38%),linear-gradient(135deg,rgba(29,58,77,.75),rgba(21,29,49,.84) 70%);border:1px solid rgba(120,199,252,.32)}
+.autopilot-heading h2{font-size:clamp(21px,2.2vw,28px);letter-spacing:-.75px}
+.autopilot-icon{color:#A4C7FF;text-shadow:0 0 24px rgba(123,159,255,.22);font-size:34px}
+.look-chip{background:#1A2739;border-color:rgba(169,200,242,.13);border-radius:12px;transition:transform .2s,border-color .2s}
+.look-chip.active{background:#214057;border-color:#89DDFB;color:#E5F6FF}
+.look-chip:hover{transform:translateY(-1px)}
+.retouch-panel{background:rgba(24,36,57,.68);border-color:rgba(172,205,244,.14)}
+.footer-note{display:block;padding:17px 12px;font-size:11px;line-height:1.8}
+.footer-note img{vertical-align:middle;margin-right:6px;border-radius:4px}
+.watermark-settings{padding:15px;background:linear-gradient(150deg,rgba(31,48,68,.6),rgba(19,30,45,.62));border:1px solid rgba(144,191,236,.2);border-radius:15px;margin:15px 0 20px}
+.watermark-head{display:flex;align-items:center;gap:10px}
+.watermark-icon img{border-radius:8px;display:block}
+.watermark-head strong{display:block;font-size:13px;letter-spacing:-.1px}
+.watermark-head span{display:block;font-size:11px;color:#A5B8CF;margin-top:3px}
+.watermark-toggle{display:flex;gap:10px;align-items:center;margin-top:17px;color:#DDE8F6;font-size:12px;font-weight:600}
+.watermark-toggle input{width:19px;height:19px;accent-color:#86DFFF}
+.watermark-settings .field-label{margin:12px 0}
+.watermark-settings .fine-print{margin-top:8px}
+/* Honest animated process states: no simulated percentage or fake countdown. */
+.processing-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:3;background:rgba(5,10,19,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:16px}
+.processing-overlay[hidden]{display:none!important}
+.processing-sheet{width:min(100%,360px);max-height:100%;overflow:auto;text-align:center;padding:18px 13px;border-radius:20px;background:radial-gradient(circle at 50% 0%,rgba(68,137,179,.15),transparent 75%);border:1px solid rgba(153,204,241,.11)}
+.processing-emblem{position:relative;width:78px;height:78px;margin:0 auto 15px;display:flex;align-items:center;justify-content:center}
+.processing-emblem img{z-index:2;width:48px;height:48px;filter:drop-shadow(0 8px 12px rgba(112,171,246,.18))}
+.processing-ring{position:absolute;inset:0;border:1px solid rgba(129,213,243,.12);border-top:2px solid #97D9FF;border-right:2px solid #B3A4FF;border-radius:50%;animation:vidnivo-orbit 3.2s linear infinite}
+.processing-eyebrow{color:#92CDEB;letter-spacing:2px;font-size:10px;font-weight:800}
+.processing-headline{font-size:21px;line-height:1.18;font-weight:730;letter-spacing:-.5px;margin-top:11px}
+.processing-detail{color:#B0C2D7;font-size:12px;line-height:1.55;margin:11px 0}
+.processing-wave{height:29px;display:flex;gap:4px;align-items:center;justify-content:center;margin:13px auto}
+.processing-wave i{width:3px;height:13px;display:block;border-radius:99px;background:linear-gradient(180deg,#8FE2FF,#A49AFD);animation:vidnivo-wave 1.15s ease-in-out infinite}
+.processing-wave i:nth-child(2),.processing-wave i:nth-child(8){animation-delay:.11s}
+.processing-wave i:nth-child(3),.processing-wave i:nth-child(7){animation-delay:.21s}
+.processing-wave i:nth-child(4),.processing-wave i:nth-child(6){animation-delay:.34s}
+.processing-wave i:nth-child(5){animation-delay:.45s}
+.processing-stages{display:flex;flex-direction:column;gap:6px;max-width:240px;margin:15px auto;text-align:left}
+.process-step{display:flex;align-items:center;gap:9px;color:#889BB3;font-size:11px;padding:6px 8px;border-radius:8px}
+.process-step .process-dot{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;flex:none;border:1px solid #51627B;border-radius:99px;font-size:11px}
+.process-step.current{color:#F3FAFF;background:rgba(127,184,244,.1)}
+.process-step.current .process-dot{color:#A4EFFF;border-color:#9BDFFF;box-shadow:0 0 9px rgba(120,213,255,.18)}
+.process-step.done{color:#B7DDDA}
+.process-step.done .process-dot{background:rgba(117,222,193,.13);border-color:rgba(117,222,193,.55);color:#91EBD0}
+.processing-privacy{font-size:10px;color:#8FBDAD;padding-top:5px}
+.processing-privacy span{color:#7FE2B8;margin-right:4px}
+@keyframes vidnivo-orbit{to{transform:rotate(360deg)}}
+@keyframes vidnivo-wave{0%,100%{height:6px;opacity:.48}50%{height:25px;opacity:1}}
+@media(max-width:770px){.app{padding-top:17px}.topbar{height:66px}.brand{font-size:21px;gap:8px}.brand-mark{width:32px;height:32px}.panel{border-radius:18px}.preview-wrap{min-height:320px}.processing-sheet{padding:12px 7px}.processing-headline{font-size:18px}}
+@media(max-width:360px){.brand{font-size:19px}.brand-mark{width:29px;height:29px}.brand-pill{font-size:8px;letter-spacing:1px;margin-left:3px}.processing-stages{margin:7px auto}.autopilot-card{padding:14px}}
+.progress>div.indeterminate{width:100%!important;background:linear-gradient(90deg,rgba(110,184,243,.1),#8EE1FF,#A99BFF,rgba(110,184,243,.1));background-size:210% 100%;animation:vidnivo-flow 1.9s ease-in-out infinite}
+@keyframes vidnivo-flow{0%{background-position:100% center}100%{background-position:-100% center}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}.processing-wave i{height:12px;opacity:1}}
+
 </style>
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><span>VIDNI</span><span class="brand-accent">VO</span><div class="brand-pill">STUDIO</div></div>
+    <div class="brand"><img class="brand-mark" src="./vidnivo-mark.svg" alt="VIDNIVO icon" width="37" height="37" /><span class="wordmark"><span>VIDNI</span><span class="brand-accent">VO</span></span><div class="brand-pill">STUDIO</div></div>
     <div class="header-actions"><span class="privacy"><span class="privacy-dot"></span> Local editing</span><button id="resetProject" class="button ghost small" title="Start a new project">New project</button></div>
   </header>
   <main class="app">
@@ -46,7 +152,18 @@
         <div class="viewer-toolbar"><span class="section-label">PREVIEW</span><div class="ratio-pills" role="group" aria-label="Video aspect ratio"><button data-ratio="9:16" class="pill active">9:16</button><button data-ratio="1:1" class="pill">1:1</button><button data-ratio="16:9" class="pill">16:9</button></div></div>
         <div id="previewWrap" class="preview-wrap">
           <canvas id="preview" width="540" height="960" aria-label="Video and captions preview"></canvas>
-          <div id="emptyState" class="empty-state"><div class="empty-symbol">▶</div><h2>Make something worth watching.</h2><p>Choose a video from your phone or computer to start editing.</p><label for="videoInput" class="button primary upload-label">+ Import video</label><div class="tiny">Your footage stays on your device.</div></div>
+          <div id="processingOverlay" class="processing-overlay" hidden role="status" aria-live="polite">
+            <div class="processing-sheet">
+              <div class="processing-emblem" aria-hidden="true"><span class="processing-ring"></span><img src="./vidnivo-mark.svg" width="55" height="55" alt="" /></div>
+              <div class="processing-eyebrow">VIDNIVO WORKING</div>
+              <div id="processHeadline" class="processing-headline">Preparing your clip</div>
+              <p id="processDetail" class="processing-detail">Reading local media.</p>
+              <div class="processing-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div id="processStages" class="processing-stages" aria-label="Real processing stages"></div>
+              <div class="processing-privacy"><span aria-hidden="true">●</span> Original footage stays on this device</div>
+            </div>
+          </div>
+          <div id="emptyState" class="empty-state"><div class="empty-symbol"><img src="./vidnivo-mark.svg" width="67" height="67" alt="VIDNIVO" /></div><h2>Make something worth watching.</h2><p>Choose a video from your phone or computer to start editing.</p><label for="videoInput" class="button primary upload-label">+ Import video</label><div class="tiny">Your footage stays on your device.</div></div>
         </div>
         <div class="transport"><button id="back5" class="icon-button" aria-label="Back five seconds" disabled>↶ <span>5s</span></button><button id="play" class="play-button" aria-label="Play video" disabled>▶</button><button id="forward5" class="icon-button" aria-label="Forward five seconds" disabled><span>5s</span> ↷</button><div class="timecounter"><b id="currentTime">00:00.0</b> <span>/</span> <span id="totalTime">00:00.0</span></div></div>
       </div>
@@ -122,6 +239,14 @@
         <div class="info-line"><span>Video format</span><strong id="outputFormat">Detecting browser…</strong></div>
         <label class="field-label" for="quality">Resolution</label><select id="quality"><option value="720">720p — best on mobile</option><option value="1080">1080p — high quality</option></select>
         <div class="export-summary" id="exportSummary">Import a video to calculate the edited runtime.</div>
+        <div class="watermark-settings">
+          <div class="watermark-head"><div class="watermark-icon"><img src="./vidnivo-mark.svg" width="28" height="28" alt="" /></div><div><strong>VIDNIVO watermark</strong><span>Subtle brand signature on exported frames</span></div></div>
+          <label class="watermark-toggle"><input id="watermarkEnabled" type="checkbox" checked /><span>Include VIDNIVO watermark</span></label>
+          <label class="field-label" for="watermarkPosition">Position
+            <select id="watermarkPosition"><option value="bottom-right">Bottom right · default</option><option value="top-left">Top left</option></select>
+          </label>
+          <p class="fine-print">Visible on preview and in the recorded export. Optional for this beta; no watermark if disabled.</p>
+        </div>
         <div class="section-label">LIP SYNC · AUDIO SAFETY</div>
         <p id="syncStatus" class="status" role="status" aria-live="polite">VIDNIVO checks audio/video timing, encoded tracks, and output duration. If they cannot be checked, export is blocked.</p>
         <button id="export" class="button primary full export-button" disabled>Export finished video ↗</button>
@@ -130,7 +255,7 @@
         <a id="download" class="button secondary full" hidden download>↓ Download video</a>
         <p class="fine-print">Audio-safe browser export currently supports one continuous source at 1× speed (including adjacent, unaltered splits). Reordered cuts, audio remixing and speed changes require native timestamped encoding. Keep the browser visible. Timing checks cannot independently verify lip movement — always review the downloaded video.</p>
       </div>
-      <div class="footer-note"><b>VIDNIVO STUDIO</b> · Browser preview edition<br />No account required. Original files are never uploaded. This is not yet feature-equivalent to the native mobile editor.</div>
+      <div class="footer-note"><img src="./vidnivo-mark.svg" width="18" height="18" alt="" /> <b>VIDNIVO STUDIO</b> · Browser preview edition<br />No account required. Source video stays local. This is not yet feature-equivalent to the native mobile editor.</div>
     </aside>
   </main>
   <input id="videoInput" type="file" accept="video/*" hidden />
@@ -140,6 +265,7 @@ import {FaceRetouch} from './vidnivo-face-retouch.js?v=5';
 import {planContinuousExport,PlaybackSyncGuard,inspectRecordedTracks,probeRecordedDuration} from './vidnivo-export-sync.js';
 import {fontScale,captionAnchor,captionLayout,clampedCaptionAnchor,pointInCaption,gestureDistance,midpoint} from './vidnivo-caption-touch.js';
 import {STYLES,getStyle,loadStyle,saveStyle,styleCaptions,planSpeechEdgeTrim,shiftTimedCaptions,suggestOpeningHooks} from './vidnivo-autopilot.js';
+import {drawBrandWatermark,normalizeWatermark} from './vidnivo-branding.js';
 // VIDNIVO Browser Studio — all source media remains in local object URLs.
 // Exports use the browser's own MediaRecorder; no video is sent to a server.
 const $ = id => document.getElementById(id);
@@ -153,6 +279,7 @@ const state = {
  ratio:'9:16', playing:false, exporting:false, captioning:false, selectedTab:'edit',
   look:'original', enhancement:null, editCaptionId:null, faceRetouch:0, faceLoading:false,
   voicePolish:false, creatorBusy:false, creatorStyle:null, creatorCustom:null,
+  watermark:normalizeWatermark({}), processing:null,
  objectUrl:null, sourceId:null, pendingSeek:0, clock:0,
  audioContext:null, audioInput:null, audioDestination:null
 };
@@ -187,6 +314,53 @@ let drawQueued=false;
 let captionHitBoxes=[];
 const touchPointers=new Map();
 let dragAnchor=null,pinchOrigin=null,touchWasEdited=false;
+const PROCESS_STAGES={
+ import:['Read file metadata','Prepare editing timeline'],
+ captions:['Prepare audio','Capture soundtrack','Load speech model','Recognize speech','Place timed captions'],
+ creator:['Apply video look','Polish voice','Generate captions','Review finished edit'],
+ export:['Prepare audio and video','Record synchronized media','Verify exported file','Ready to download']
+};
+function showProcessing(kind,step,detail){
+ const effective=kind==='captions'&&state.creatorBusy?'creator':kind;
+ const actualStep=kind==='captions'&&state.creatorBusy?2:step;
+ const stages=PROCESS_STAGES[effective];
+ if(!stages)return;
+ const chosen=Math.max(0,Math.min(stages.length-1,actualStep));
+ if(!state.processing||state.processing.kind!==effective){
+  state.processing={kind:effective,step:-1,lastDetail:''};
+  $('processStages').replaceChildren();
+  for(let i=0;i<stages.length;i++){
+   const row=document.createElement('div');row.className='process-step';
+   const icon=document.createElement('span');icon.className='process-dot';icon.textContent='·';
+   const name=document.createElement('span');name.textContent=stages[i];
+   row.append(icon,name);$('processStages').append(row);
+  }
+ }
+ if(state.processing.step!==chosen){
+  state.processing.step=chosen;
+  [...$('processStages').children].forEach((row,i)=>{
+   row.className='process-step'+(i<chosen?' done':i===chosen?' current':'');
+   row.firstElementChild.textContent=i<chosen?'✓':i===chosen?'●':'·';
+  });
+  $('processHeadline').textContent=stages[chosen];
+ }
+ if(detail&&state.processing.lastDetail!==detail){
+  $('processDetail').textContent=detail;
+  state.processing.lastDetail=detail;
+ }
+ $('processingOverlay').hidden=false;
+}
+function hideProcessing(kind){
+ const effective=kind==='captions'&&state.creatorBusy?'creator':kind;
+ if(!state.processing||state.processing.kind!==effective)return;
+ $('processingOverlay').hidden=true;
+ state.processing=null;
+}
+function updateRealProcessingBar(id,finished=false,error=false){
+ const element=$(id);
+ element.classList.toggle('indeterminate',!finished&&!error);
+ element.style.width=error?'0%':'100%';
+}
 function drawFrame(){
  const quality=state.exporting?Number($('quality').value):null;
  const dimensions=quality?(state.ratio==='16:9'?[Math.round(quality*16/9),quality]:state.ratio==='1:1'?[quality,quality]:[quality,Math.round(quality*16/9)]):(state.ratio==='16:9'?[960,540]:state.ratio==='1:1'?[720,720]:[540,960]);
@@ -229,6 +403,7 @@ function drawFrame(){
    ctx.restore();
   }
  }
+ drawBrandWatermark(ctx,state.watermark);
  canvas.classList.toggle('caption-touch-ready',
   !state.exporting&&!state.captioning&&captions.length>0);
 }
@@ -387,6 +562,7 @@ async function importFile(file){
  if(!file)return;
  if(state.captioning||state.creatorBusy||state.exporting){toast('Finish the current operation before importing more footage.',true);return}
   if(!file.type.startsWith('video/')){toast('Choose an MP4, MOV, or another playable video file.',true);return}
+ showProcessing('import',0,'Reading '+file.name+' directly from your device.');
  const url=URL.createObjectURL(file),probe=document.createElement('video');probe.preload='metadata';probe.playsInline=true;probe.src=url;
  try{
   const seconds=await new Promise((resolve,reject)=>{
@@ -396,6 +572,7 @@ async function importFile(file){
   });
   if(!Number.isFinite(seconds)||seconds<=MIN_CLIP)throw Error('Video has an invalid or very short duration.');
   if(state.playing)pause();
+  showProcessing('import',1,'File length '+fmt(seconds)+' · setting up the local timeline.');
   const source={id:key(),url,name:file.name,duration:seconds,size:file.size};
   state.sources.push(source);
   const clip={id:key(),sourceId:source.id,start:0,end:seconds,speed:1};
@@ -404,7 +581,7 @@ async function importFile(file){
   renderTimeline();renderEditor();void seekTimeline(oldTotal);
   toast('Imported '+file.name+'. Select a clip to trim or split.');
  }catch(e){URL.revokeObjectURL(url);toast(e.message||String(e),true)}
- finally{probe.removeAttribute('src');probe.load()}
+ finally{probe.removeAttribute('src');probe.load();hideProcessing('import')}
 }
 function activeCaption(){
  return state.captions.find(c=>c.id===state.editCaptionId)||null;
@@ -469,8 +646,15 @@ function renderCaptions(){
 let localSpeechModel=null;
 function captionProgress(message,percent,error=false){
  $('captionStatus').textContent=message;
- $('captionStatus').style.color=error?'#ffaca9':'#d3e1e8';
- $('captionProgress').style.width=Math.max(0,Math.min(100,percent))+'%';
+ $('captionStatus').style.color=error?'#FF9CAB':'#D3E1E8';
+ if(state.captioning)updateRealProcessingBar('captionProgress',percent>=100&&!error,error);
+ else{$('captionProgress').classList.remove('indeterminate');$('captionProgress').style.width=percent>=100?'100%':'0%'}
+ if(state.captioning){
+  const stage=/Capturing soundtrack/i.test(message)?1:
+   /Loading|Downloading|speech model|Preparing speech|AI engine/i.test(message)?2:
+   /Transcrib/i.test(message)?3:/caption/i.test(message)&&percent>=100?4:0;
+  showProcessing('captions',stage,message);
+ }
 }
 function audioRecordMime(){
  if(!window.MediaRecorder)return null;
@@ -659,6 +843,7 @@ async function runAutoCaptions(options={}){
   return {error:message};
  }finally{
   pause();state.captioning=false;renderTimeline();
+  if(!state.creatorBusy)hideProcessing('captions');
   await seekTimeline(clamp(oldPosition,0,total()));
  }
 }
@@ -697,7 +882,7 @@ const waitRecorderStop=recorder=>new Promise((resolve,reject)=>{
 });
 let exportTimer=null;
 async function startExport(){
- if(!state.clips.length||state.exporting||state.captioning||state.faceLoading)return;
+ if(!state.clips.length||state.exporting||state.captioning||state.faceLoading||state.creatorBusy)return;
  if(state.faceRetouch>0&&!faceTracker.supported){
   toast('Face Retouch is still loading. Turn it off or retry after the model loads.',true);return;
  }
@@ -725,6 +910,9 @@ async function startExport(){
   // behind an artificially frozen face/video frame.
   state.clips=[plan.clip];state.selected=plan.clip.id;
   state.exporting=true;pause();
+  showProcessing('export',0,'Preparing a synchronized video and audio recording from the local source.');
+  $('watermarkEnabled').disabled=true;
+  $('watermarkPosition').disabled=true;
   ui.download.hidden=true;ui.progress.style.width='0';
   $('syncStatus').textContent='Preparing synchronized video and soundtrack…';
   renderTimeline();
@@ -768,6 +956,7 @@ async function startExport(){
   }
   const stopped=waitRecorderStop(recorder).catch(error=>{recorderFailure=error});
   recorder.start(100);
+  showProcessing('export',1,'Recording real playback and preserving the original sound clock.');
   const startedAt=performance.now();
   $('syncStatus').textContent='Recording audio and video together. Monitoring playback drift…';
   toast('Exporting with audio/video sync monitoring. Keep VIDNIVO open.');
@@ -793,6 +982,13 @@ async function startExport(){
      }
      const progress=Math.min(99,100*(video.currentTime-plan.start)/plan.duration);
      ui.progress.style.width=progress.toFixed(1)+'%';
+     if(state.processing?.kind==='export'){
+      const bucket=Math.floor(progress/10);
+      if(state.processing.lastBucket!==bucket){
+       state.processing.lastBucket=bucket;
+       showProcessing('export',1,'Recording '+Math.floor(progress)+'% of your video · audio and video captured together.');
+      }
+     }
      $('syncStatus').textContent='Checking sync · maximum source-clock drift '+Math.round(check.maxDriftMs)+' ms';
     }catch(error){reject(error)}
    },85);
@@ -806,6 +1002,7 @@ async function startExport(){
   const blob=new Blob(chunks,{type:mime});
   if(blob.size<2048)throw Error('The browser produced an empty recording.');
   $('syncStatus').textContent='Inspecting recorded audio/video tracks and file duration…';
+  showProcessing('export',2,'Checking the actual recorded file for video, audio and duration integrity.');
   const tracks=await inspectRecordedTracks(blob,mime);
   const verified=await probeRecordedDuration(blob,plan.duration);
   if(!tracks.audio||!tracks.video)throw Error('Export is missing an audio or video stream.');
@@ -819,6 +1016,7 @@ async function startExport(){
   $('syncStatus').textContent='Timing checks passed · audio and video tracks confirmed · max playback drift '+
     Math.round(summary.maxDriftMs)+' ms · output duration difference '+
     Math.round(verified.durationErrorMs)+' ms. Review the finished video for visual lip sync.';
+  showProcessing('export',3,'The recorded file passed available browser integrity checks.');
   toast('Export ready after audio/video integrity checks. Review the downloaded video.');
  }catch(error){
   const message=error?.message||String(error);
@@ -832,6 +1030,9 @@ async function startExport(){
   if(stream)stream.getVideoTracks().forEach(track=>track.stop());
   pause();
   state.exporting=false;state.clips=savedClips;state.selected=savedSelected;
+  hideProcessing('export');
+  $('watermarkEnabled').disabled=false;
+  $('watermarkPosition').disabled=false;
   renderTimeline();renderEditor();renderCaptions();
   await seekTimeline(Math.min(savedPosition,total()));
   drawFrame();
@@ -1001,8 +1202,15 @@ $('creatorHookRemove').onclick=()=>{
 };
 function creatorStatus(message,progress=0,error=false){
  $('creatorStatus').textContent=message;
- $('creatorStatus').style.color=error?'#ffaca9':'#d9edf4';
- $('creatorProgress').style.width=String(Math.max(0,Math.min(100,progress)))+'%';
+ $('creatorStatus').style.color=error?'#FF9CAB':'#D9EDF4';
+ if(state.creatorBusy){
+  updateRealProcessingBar('creatorProgress',progress>=100&&!error,error);
+  const stage=progress>=100?3:progress>=55?2:progress>=35?1:0;
+  if(!error)showProcessing('creator',stage,message);
+ }else{
+  $('creatorProgress').classList.remove('indeterminate');
+  $('creatorProgress').style.width=progress>=100?'100%':'0%';
+ }
 }
 function creatorSelectedStyle(){
  return getStyle($('creatorStyle').value,state.creatorCustom);
@@ -1066,6 +1274,7 @@ async function runCreatorAutopilot(){
   creatorStatus('Partially finished: '+(e?.message||String(e))+'. Your existing edits are preserved.',85,true);
  }finally{
   state.creatorBusy=false;renderTimeline();
+  hideProcessing('creator');
   await seekTimeline(Math.min(restorePosition,total()));
   requestDraw();
  }
@@ -1103,6 +1312,16 @@ function loadCreatorPreference(){
  }
 }
 // Event wiring
+$('watermarkEnabled').addEventListener('change',event=>{
+ if(state.exporting){event.target.checked=state.watermark.enabled;return}
+ state.watermark=normalizeWatermark({...state.watermark,enabled:event.target.checked});
+ requestDraw();
+});
+$('watermarkPosition').addEventListener('change',event=>{
+ if(state.exporting){event.target.value=state.watermark.position;return}
+ state.watermark=normalizeWatermark({...state.watermark,position:event.target.value});
+ requestDraw();
+});
 $('creatorRun').onclick=()=>void runCreatorAutopilot();
 $('creatorSave').onclick=storeCurrentCreatorStyle;
 $('creatorStyle').addEventListener('change',()=>creatorStatus('Ready for '+$('creatorStyle').selectedOptions[0].textContent+'. Import your footage and finish in one tap.',0));
