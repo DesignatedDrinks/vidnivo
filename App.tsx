@@ -29,6 +29,9 @@ import { loadRemoteProjects, saveProjectToSheets, softDeleteProjectFromSheets } 
 import { VideoStage } from './src/ui/VideoStage';
 import { Timeline } from './src/ui/Timeline';
 import { theme } from './src/ui/theme';
+import { LOOKS, LOOK_ORDER, resolveLook } from './src/domain/looks';
+import { setProjectLook } from './src/domain/timeline';
+import { generateCaptionsFromScript } from './src/domain/captionGenerator';
 
 WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_ANDROID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
@@ -66,6 +69,10 @@ function EditorApp() {
   const [exportQuality, setExportQuality] = useState<720 | 1080>(1080);
   const [fullPreview, setFullPreview] = useState(false);
   const [captionPanelOpen, setCaptionPanelOpen] = useState(false);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [scriptPanelOpen, setScriptPanelOpen] = useState(false);
+  const [captionScript, setCaptionScript] = useState('');
+  const [scriptWords, setScriptWords] = useState(5);
   const [preciseTrimOpen, setPreciseTrimOpen] = useState(false);
   const [captionStylesOpen, setCaptionStylesOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -254,6 +261,18 @@ function EditorApp() {
     } catch (e) { Alert.alert('Pause detection failed', String(e)); }
     finally { setBusy(false); }
   };
+  const generateFromScript = () => {
+    if(!project)return;
+    try {
+      const limit = Math.max(0,...project.clips.filter(c=>c.track==='video').map(c=>c.startMs+clipDurationSafe(c)));
+      if(limit<=0)throw Error('Import a video before generating timed captions.');
+      const cues=generateCaptionsFromScript(captionScript,0,limit,scriptWords);
+      apply(p=>addCaptionCues(p,cues,'punch'));
+      setScriptPanelOpen(false);
+      Alert.alert('Script captions added',cues.length+
+        ' editable caption groups were distributed across the video. Timing is estimated, not speech-recognized; review synchronization before export.');
+    } catch(e) { Alert.alert('Script generator',e instanceof Error?e.message:String(e)); }
+  };
   const importSubtitles = async () => {
     if (!project) return;
     setCaptionPanelOpen(false);
@@ -272,31 +291,38 @@ function EditorApp() {
     } catch (e) { Alert.alert('Subtitle import failed', String(e)); }
     finally { setBusy(false); }
   };
-  const generateAutoCaptions = async () => {
-    if (!project || busy) return;
+  const generateAutoCaptions = async (allClips = false) => {
+    if(!project || busy)return;
     setCaptionPanelOpen(false);
-    if (!speechRecognitionAvailable()) {
-      Alert.alert('Offline transcription needs the iPhone build',
-        'Use a VIDNIVO iPhone development build to generate captions on-device. You can import SRT or VTT files right now.');
+    if(!speechRecognitionAvailable()){
+      Alert.alert('iPhone development build required',
+        'Offline speech recognition currently requires VIDNIVO on iPhone. Script captions and imported subtitles work on Android and iPhone.');
       return;
     }
-    const target = (selected && selected.track === 'video' ? selected : undefined)
-      || activeClip(project, positionMs) || project.clips.find(c => c.track === 'video');
-    const asset = project.assets.find(a => a.id === target?.assetId);
-    if (!target || asset?.kind !== 'video') {
-      Alert.alert('Add a video first', 'Select a video clip to transcribe.'); return;
-    }
+    const selectedVideo=selected?.track==='video'?selected:
+      activeClip(project,positionMs) || project.clips.find(c=>c.track==='video');
+    const videos=allClips ?
+      project.clips.filter(c=>c.track==='video').sort((a,b)=>a.startMs-b.startMs) :
+      selectedVideo?[selectedVideo]:[];
+    if(!videos.length) {Alert.alert('Add a video first','Choose footage to transcribe.');return;}
+    if(videos.length>30){Alert.alert('Too many clips','Generate captions in batches of up to 30 video clips.');return;}
     setBusy(true);
     try {
-      const words = await transcribeLocalVideo(asset.uri);
-      const mapped = mapWordsToTimeline(words, target);
-      const captions = groupRecognizedWords(mapped);
-      if (!captions.length) throw new Error('No spoken words could be recognized in this clip.');
-      apply(p => addCaptionCues(p, captions, 'punch'));
-      Alert.alert('Captions generated', captions.length +
-        ' editable caption groups were created locally. Review wording and timing before exporting.');
-    } catch (e) { Alert.alert('Could not generate captions', String(e)); }
-    finally { setBusy(false); }
+      const cache=new Map<string,Awaited<ReturnType<typeof transcribeLocalVideo>>>();
+      const captions=[];
+      for(const clip of videos){
+        const asset=project.assets.find(a=>a.id===clip.assetId);
+        if(!asset || asset.kind!=='video')continue;
+        let words=cache.get(asset.uri);
+        if(!words){words=await transcribeLocalVideo(asset.uri);cache.set(asset.uri,words);}
+        captions.push(...groupRecognizedWords(mapWordsToTimeline(words,clip)));
+      }
+      if(!captions.length)throw Error('No speech was detected in this footage.');
+      apply(p=>addCaptionCues(p,captions,'punch'));
+      Alert.alert('Captions generated',captions.length+
+        ' timed caption groups were created locally. Review every caption before sharing.');
+    }catch(e){Alert.alert('Caption generation failed',String(e));}
+    finally{setBusy(false);}
   };
   const exportSubtitleFile = async () => {
     if (!project) return;
@@ -437,6 +463,8 @@ function EditorApp() {
       onPress: () => { setPlaying(false); setPreciseTrimOpen(true); } },
     { id: 'trim-left', label: 'Trim start', icon: 'play-back-outline', onPress: () => apply(p => rippleTrimClip(p, selected.id, 'left', 500)) },
     { id: 'trim-right', label: 'Trim end', icon: 'play-forward-outline', onPress: () => apply(p => rippleTrimClip(p, selected.id, 'right', -500)) },
+    { id: 'looks', label: 'Looks', icon: 'color-filter-outline',
+      onPress: () => setFilterPanelOpen(true) },
     { id: 'duplicate', label: 'Duplicate', icon: 'duplicate-outline',
       onPress: () => apply(p => duplicateClip(p, selected.id)) },
     { id: 'before', label: 'Earlier', icon: 'arrow-back-circle-outline', onPress: () => apply(p => reorderClip(p, selected.id, -1)) },
@@ -485,7 +513,7 @@ function EditorApp() {
     { id: 'voiceover', label: recordingState.isRecording ? 'Stop voice' : 'Voiceover',
       icon: recordingState.isRecording ? 'stop-circle-outline' : 'mic-outline', onPress: toggleVoiceover },
     { id: 'ratio', label: 'Aspect ratio', icon: 'crop-outline', onPress: showRatioMenu },
-    { id: 'filters', label: 'Filters', icon: 'color-filter-outline', onPress: () => comingSoon('Filters'), hint: 'Soon' },
+    { id: 'filters', label: 'Filters', icon: 'color-filter-outline', onPress: () => setFilterPanelOpen(true) },
     { id: 'zoom', label: 'Timeline +', icon: 'add-circle-outline',
       disabled: timelineZoom >= 3, onPress: () => setTimelineZoom(z => Math.min(3, z + .5)) },
     { id: 'zoom-out', label: 'Timeline −', icon: 'remove-circle-outline',
@@ -583,6 +611,63 @@ function EditorApp() {
     {lastExport ? <Pressable accessibilityRole="button" onPress={() => shareExport(lastExport).catch(e => Alert.alert('Sharing failed', String(e)))}
       style={styles.shareResult}><Text style={styles.shareResultText}>✓ MP4 ready — Share</Text></Pressable> : null}
 
+    <Modal visible={filterPanelOpen} animationType="slide" transparent onRequestClose={()=>setFilterPanelOpen(false)}>
+      <View style={styles.captionBackdrop}>
+        <View style={styles.captionSheet}>
+          <View style={styles.row}>
+            <Text style={styles.captionSheetTitle}>Colour looks</Text>
+            <Pressable onPress={()=>setFilterPanelOpen(false)} accessibilityLabel="Close colour looks">
+              <Ionicons name="close" color="#F3F4F6" size={25}/>
+            </Pressable>
+          </View>
+          <Text style={styles.trimHint}>Apply a translucent colour grade across the entire video. Preview and export use the same tint and strength.</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:12,paddingVertical:14}}>
+            {LOOK_ORDER.map(preset=><Pressable key={preset}
+              accessibilityLabel={'Use '+LOOKS[preset].label+' colour look'}
+              onPress={()=>apply(p=>setProjectLook(p,preset,project?.look?.intensity??75))}
+              style={[styles.lookCard,
+                (project.look?.preset??'none')===preset && {borderColor:'#23D4E9',borderWidth:2}]}>
+              <View style={[styles.lookSwatch,{backgroundColor:LOOKS[preset].color}]}/>
+              <Text numberOfLines={1} style={styles.lookName}>{LOOKS[preset].label}</Text>
+            </Pressable>)}
+          </ScrollView>
+          <Text style={styles.trimTitle}>Intensity · {resolveLook(project.look).intensity}%</Text>
+          <Slider style={{height:48}} minimumValue={0} maximumValue={100}
+            step={5} value={resolveLook(project.look).intensity}
+            minimumTrackTintColor="#23D4E9" maximumTrackTintColor="#70777F" thumbTintColor="#23D4E9"
+            onSlidingComplete={v=>apply(p=>setProjectLook(p,resolveLook(p.look).preset,v))}/>
+          <Pressable style={styles.trimDone} onPress={()=>setFilterPanelOpen(false)}>
+            <Text style={styles.trimDoneText}>Apply look</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+    <Modal visible={scriptPanelOpen} animationType="slide" onRequestClose={()=>setScriptPanelOpen(false)}>
+      <KeyboardAvoidingView behavior={Platform.OS==='ios'?'padding':undefined}
+        style={[styles.searchPage,{paddingTop:insets.top+18,paddingBottom:insets.bottom+18}]}>
+        <View style={styles.row}>
+          <Text style={styles.captionSheetTitle}>Script caption generator</Text>
+          <Pressable onPress={()=>setScriptPanelOpen(false)} accessibilityLabel="Close script generator">
+            <Ionicons name="close" color="white" size={25}/>
+          </Pressable>
+        </View>
+        <Text style={styles.trimHint}>Paste your script. VIDNIVO estimates timings across the video, creates editable timed subtitles, and lets you correct them afterward. This is not speech recognition.</Text>
+        <TextInput multiline value={captionScript} onChangeText={setCaptionScript}
+          placeholder="Enter or paste your spoken script…"
+          placeholderTextColor="#7F8992"
+          style={styles.scriptInput} textAlignVertical="top"/>
+        <Text style={styles.trimTitle}>Words per caption</Text>
+        <View style={styles.trimRow}>
+          {[3,5,7].map(n=><Tool key={n} label={n+' words'} primary={n===scriptWords}
+            onPress={()=>setScriptWords(n)}/>)}
+        </View>
+        <Text style={styles.trimHint}>Preview duration: {(Math.max(0,...project.clips.filter(c=>c.track==='video')
+          .map(c=>c.startMs+clipDurationSafe(c)))/1000).toFixed(1)} seconds</Text>
+        <Pressable style={styles.trimDone} onPress={generateFromScript}>
+          <Text style={styles.trimDoneText}>Generate editable captions</Text>
+        </Pressable>
+      </KeyboardAvoidingView>
+    </Modal>
     <Modal visible={preciseTrimOpen} animationType="slide" transparent
       onRequestClose={() => setPreciseTrimOpen(false)}>
       <View style={styles.captionBackdrop}>
@@ -644,11 +729,27 @@ function EditorApp() {
                 <Ionicons name="chevron-forward" color="#7E858E" size={16}/>
               </Pressable>) :
             <>
-              <Pressable style={styles.captionChoice} onPress={generateAutoCaptions} disabled={busy}>
+              <Pressable style={styles.captionChoice} onPress={() => { void generateAutoCaptions(false); }} disabled={busy}>
                 <Ionicons name="sparkles-outline" size={24} color="#23D4E9" />
                 <View style={{flex:1}}>
-                  <Text style={styles.captionChoiceLabel}>Generate captions</Text>
+                  <Text style={styles.captionChoiceLabel}>Transcribe selected clip</Text>
                   <Text style={styles.captionChoiceSub}>Offline speech recognition · iPhone native build</Text>
+                </View>
+              </Pressable>
+              <Pressable style={styles.captionChoice} disabled={busy} onPress={() => { void generateAutoCaptions(true); }}>
+                <Ionicons name="mic-outline" size={24} color="#23D4E9" />
+                <View style={{flex:1}}>
+                  <Text style={styles.captionChoiceLabel}>Transcribe entire video</Text>
+                  <Text style={styles.captionChoiceSub}>Offline on iPhone · works across multiple clips</Text>
+                </View>
+              </Pressable>
+              <Pressable style={styles.captionChoice} onPress={() => {
+                setCaptionPanelOpen(false);setCaptionScript('');setScriptPanelOpen(true);
+              }}>
+                <Ionicons name="create-outline" size={24} color="#23D4E9" />
+                <View style={{flex:1}}>
+                  <Text style={styles.captionChoiceLabel}>Generate from script</Text>
+                  <Text style={styles.captionChoiceSub}>Android and iPhone · editable estimated timing</Text>
                 </View>
               </Pressable>
               <Pressable style={styles.captionChoice} onPress={removeLongPauses}>
@@ -779,6 +880,12 @@ function clipDurationSafe(c: { inMs: number; outMs: number; speed: number }): nu
 export default function App() { return <SafeAreaProvider><EditorApp /></SafeAreaProvider>; }
 const styles = StyleSheet.create({
 
+  lookCard: {backgroundColor:'#2A3036',width:92,padding:6,borderRadius:11,
+    borderColor:'#3D4248',borderWidth:1,alignItems:'center',gap:6},
+  lookSwatch: {height:52,width:74,borderRadius:8},
+  lookName: {color:'#F5F7F8',fontSize:11,fontWeight:'600'},
+  scriptInput: {color:'#F6F8FA',backgroundColor:'#25282C',borderRadius:12,
+    padding:14,fontSize:15,minHeight:200,maxHeight:350,marginVertical:12},
   trimHint: { color:'#A5ABB0',fontSize:12,marginTop:14,marginBottom:10,lineHeight:18 },
   trimHeader: { flexDirection:'row',justifyContent:'space-between',marginTop:8 },
   trimTitle: { color:'#F4F6F7',fontSize:13,fontWeight:'600' },
