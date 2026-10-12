@@ -398,7 +398,7 @@ input[type=range]{accent-color:#afc0ff}
           <div class="rb-row"><button id="rb-restore" class="rb-p" type="button">Restore</button><button id="rb-discard" class="rb-s" type="button">Discard</button></div></div>
         <button id="rb-finish-all" type="button" class="rb-p" style="width:100%;min-height:48px">Finish video + write post ↗</button>
         <div class="rb-row rb-directions"><button class="rb-s" data-rb-direction="clean" aria-pressed="false">Clean</button><button class="rb-s" data-rb-direction="punchy" aria-pressed="false">Punchy</button><button class="rb-s" data-rb-direction="editorial" aria-pressed="false">Editorial</button></div>
-        <div class="rb-row"><button class="rb-p" id="rb-highlight" type="button">Find strongest 30s</button><button class="rb-s" id="rb-undo-highlight" type="button" hidden>Undo trim</button></div>
+        <div class="rb-row"><button class="rb-p" id="rb-highlight" type="button">Suggest 30s</button><button class="rb-s" id="rb-undo-highlight" type="button" hidden>Undo trim</button></div>
         <div class="rb-layout"><label>Camera motion<select id="rb-camera"><option value="off">Off</option><option value="subtle">Subtle</option><option value="dynamic">Dynamic</option></select></label></div>
         <div class="rb-layout"><label>Caption font<select id="rb-font"></select></label>
           <label>Post platform<select id="rb-platform"><option>Instagram</option><option>TikTok</option><option>YouTube Shorts</option><option>LinkedIn</option></select></label></div>
@@ -1846,7 +1846,7 @@ $('rb-highlight').onclick=()=>{
   .filter(cap=>cap.end>cap.start+.08);
  state.position=0;$('rb-undo-highlight').hidden=false;
  pause();renderTimeline();renderEditor();renderCaptions();void seekTimeline(0);rbSave();
- $('rb-message').textContent='Selected a continuous 30-second spoken highlight. No internal cuts or audio desync. Review before exporting.';
+ $('rb-message').textContent='Suggested a continuous 30-second section based on transcript cues. No internal cuts; review before exporting.';
 };
 $('rb-undo-highlight').onclick=()=>{
  if(!rbTrimUndo)return;
