@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "VIDNIVO",
+    "slug": "vidnivo",
+    "scheme": "vidnivo",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "com.vidnivo.editor",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "VIDNIVO uses videos and photos you choose for editing.",
+        "NSPhotoLibraryAddUsageDescription": "VIDNIVO saves completed videos to your library."
+      }
+    },
+    "android": {
+      "package": "com.vidnivo.editor",
+      "permissions": ["READ_MEDIA_VIDEO", "READ_MEDIA_IMAGES"]
+    },
+    "plugins": ["expo-image-picker", "expo-document-picker", "expo-video", "expo-web-browser"],
+    "extra": {
+      "sheetId": "1MclQpsLuNcq4hv28m-UByxImcqLcv1BqO3vcMsIWfYM"
+    }
+  }
+}
