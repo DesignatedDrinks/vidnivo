@@ -168,3 +168,11 @@ export function rippleDeleteClip(p: Project, id: string): Project {
       : c
   ) };
 }
+
+/** Restoring a prior edit must still advance the saved revision. */
+export function restoreHistorySnapshot(current: Project, snapshot: Project): Project {
+  if (current.id !== snapshot.id) throw new Error('Cannot restore a different project');
+  const revived = { ...snapshot, revision: current.revision + 1, updatedAt: stamp() };
+  validateProject(revived);
+  return revived;
+}

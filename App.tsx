@@ -11,7 +11,7 @@ import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { AudioStage } from './src/ui/AudioStage';
 import { canExportNatively, exportMp4, shareExport } from './src/export/native';
-import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip } from './src/domain/timeline';
+import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot } from './src/domain/timeline';
 import { loadLocalProjects, saveLocalProjects } from './src/data/storage';
 import { loadRemoteProjects, saveProjectToSheets } from './src/data/sheets';
 import { VideoStage } from './src/ui/VideoStage';
@@ -99,13 +99,13 @@ function EditorApp() {
     if (!project) return;
     const prior = undo.current.pop(); if (!prior) return;
     redo.current.push(project);
-    setProjects(existing => existing.map(p => p.id === project.id ? prior : p));
+    setProjects(existing => existing.map(p => p.id === project.id ? restoreHistorySnapshot(project, prior) : p));
   };
   const redoAction = () => {
     if (!project) return;
     const next = redo.current.pop(); if (!next) return;
     undo.current.push(project);
-    setProjects(existing => existing.map(p => p.id === project.id ? next : p));
+    setProjects(existing => existing.map(p => p.id === project.id ? restoreHistorySnapshot(project, next) : p));
   };
   const seek = (ms: number) => { setPlaying(false); setPositionMs(Math.max(0, Math.min(total, ms))); setSeekVersion(v => v + 1); };
   const openProject = (p: Project) => {

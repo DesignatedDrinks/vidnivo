@@ -118,8 +118,9 @@ export async function saveProjectToSheets(token: string, p: Project): Promise<vo
   validateProject(p);
   const existing = await readTable(token, 'Projects');
   const remote = existing.slice(1).find(r => r[0] === p.id && enabled(r));
-  if (remote && n(remote, 5) > p.revision) {
-    throw new Error('A newer version exists in Google Sheets. Import it before saving to prevent overwriting edits.');
+  if (remote && (n(remote, 5) > p.revision ||
+    (n(remote, 5) === p.revision && remote[4] !== p.updatedAt))) {
+    throw new Error('This project changed in Google Sheets. Import the newer version before saving to avoid overwriting edits.');
   }
   await upsert(token, 'Assets', p.id, p.assets.map(a => toAsset(p, a)));
   await upsert(token, 'Clips', p.id, p.clips.map(c => toClip(p, c)));
