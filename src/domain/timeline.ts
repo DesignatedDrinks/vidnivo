@@ -148,11 +148,15 @@ export function rippleTrimClip(p: Project, id: string, edge: 'left' | 'right', d
   const originalEndMs = clipEndMs(original);
   const clips = result.clips.map(c => {
     if (c.id === id) return { ...c, startMs: original.startMs };
-    if (c.track === 'video' && c.startMs >= originalEndMs - 0.01)
+    if (c.startMs >= originalEndMs - 0.01)
       return { ...c, startMs: Math.max(0, c.startMs - changeMs) };
     return c;
   });
-  return { ...result, clips };
+  const texts = result.texts.map(text =>
+    text.startMs >= originalEndMs - 0.01 ?
+      { ...text, startMs: Math.max(0,text.startMs-changeMs),
+        endMs: Math.max(250,text.endMs-changeMs) } : text);
+  return { ...result, clips, texts };
 }
 /** Removes a clip and closes its gap on the primary video track. */
 export function rippleDeleteClip(p: Project, id: string): Project {
@@ -162,11 +166,22 @@ export function rippleDeleteClip(p: Project, id: string): Project {
   if (original.track !== 'video') return deleted;
   const endMs = clipEndMs(original);
   const spanMs = clipDurationMs(original);
-  return { ...deleted, clips: deleted.clips.map(c =>
-    c.track === 'video' && c.startMs >= endMs - 0.01
-      ? { ...c, startMs: Math.max(0, c.startMs - spanMs) }
-      : c
-  ) };
+  const clips = deleted.clips.map(c => c.startMs >= endMs - 0.01
+      ? { ...c, startMs: Math.max(0, c.startMs - spanMs) } : c);
+  const texts = deleted.texts.flatMap(t => {
+    if (t.endMs <= original.startMs) return [t];
+    if (t.startMs >= endMs - .01)
+      return [{ ...t, startMs: Math.max(0,t.startMs-spanMs),
+        endMs: Math.max(250,t.endMs-spanMs) }];
+    if (t.startMs >= original.startMs && t.endMs <= endMs) return [];
+    if (t.startMs < original.startMs && t.endMs > endMs)
+      return [{ ...t, endMs: Math.max(t.startMs+250,t.endMs-spanMs) }];
+    if (t.startMs < original.startMs)
+      return original.startMs-t.startMs >= 250 ? [{...t,endMs:original.startMs}]:[];
+    return t.endMs-endMs >= 250 ?
+      [{...t,startMs:original.startMs,endMs:t.endMs-spanMs}]:[];
+  });
+  return { ...deleted, clips, texts };
 }
 
 /** Restoring a prior edit must still advance the saved revision. */
@@ -209,9 +224,14 @@ export function rippleSpeedClip(p: Project, id: string, speed: number): Project 
   const shift = clipDurationMs(updated) - clipDurationMs(target);
   if (Math.abs(shift) < 0.001) return adjusted;
   const end = clipEndMs(target);
-  return { ...adjusted, clips: adjusted.clips.map(c =>
-    c.track === 'video' && c.id !== id && c.startMs >= end - 0.01
-      ? { ...c, startMs: Math.max(0, c.startMs + shift) } : c) };
+  const clips = adjusted.clips.map(c =>
+    c.id !== id && c.startMs >= end - 0.01
+      ? { ...c, startMs: Math.max(0, c.startMs + shift) } : c);
+  const texts = adjusted.texts.map(text =>
+    text.startMs >= end - 0.01 ?
+      { ...text, startMs: Math.max(0,text.startMs+shift),
+        endMs: Math.max(250,text.endMs+shift) } : text);
+  return { ...adjusted, clips, texts };
 }
 
 /** Make a new reusable editing draft without changing the original project's IDs. */
