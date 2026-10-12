@@ -31,7 +31,7 @@ func vidnivoRenderPhotoClip(_ source: URL, targetSize: CGSize, durationMs: Doubl
   let renderer = UIGraphicsImageRenderer(size: targetSize)
   let prepared = renderer.image { render in
     UIColor.black.setFill()
-    render.fill(CGRect(origin: .zero, size: targetSize))
+    render.cgContext.fill(CGRect(origin: .zero, size: targetSize))
     let scale = min(targetSize.width / photo.size.width, targetSize.height / photo.size.height)
     let imageWidth = photo.size.width * scale
     let imageHeight = photo.size.height * scale
