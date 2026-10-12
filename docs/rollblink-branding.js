@@ -1,6 +1,6 @@
-/** VIDNIVO brand overlays. Drawn directly into the shared canvas used for
+/** ROLLBLINK brand overlays. Drawn directly into the shared canvas used for
  * preview AND MediaRecorder export. No external font or image load is needed.
- * Logo asset: vidnivo-mark.svg. Browser-safe canvas equivalent below.
+ * Logo asset: rollblink-mark.svg. Browser-safe canvas equivalent below.
  */
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 export const DEFAULT_WATERMARK={enabled:true,position:'bottom-right',opacity:.62};
@@ -57,7 +57,7 @@ export function drawBrandWatermark(ctx,raw=DEFAULT_WATERMARK){
  ctx.textAlign='left';ctx.textBaseline='middle';
  ctx.font='750 '+Math.round(g.fontSize)+'px -apple-system,system-ui,Arial,sans-serif';
  ctx.fillStyle='#F2FAFF';
- ctx.fillText('VIDNIVO',iconX+g.iconSize*1.25,g.y+g.height/2);
+ ctx.fillText('ROLLBLINK',iconX+g.iconSize*1.25,g.y+g.height/2);
  ctx.restore();
  return {x:g.x,y:g.y,width:g.width,height:g.height};
 }

@@ -1,5 +1,5 @@
 /*
- * VIDNIVO real-time export synchronization guard.
+ * ROLLBLINK real-time export synchronization guard.
  * A browser MediaRecorder is NOT a timeline encoder. The only reliable
  * real-time browser route is one continuous video at original speed.
  * This module explicitly blocks edits requiring discontinuous playback

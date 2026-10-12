@@ -1,4 +1,4 @@
-/* VIDNIVO colour renderer. Uses GPU shaders for Safari/Chrome; falls back
+/* ROLLBLINK colour renderer. Uses GPU shaders for Safari/Chrome; falls back
  * to a software conversion when the browser refuses a video-texture upload.
  * Shared by preview and recorded export; captions are composited afterwards.
  */

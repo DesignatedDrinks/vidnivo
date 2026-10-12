@@ -1,4 +1,4 @@
-/* VIDNIVO — caption layout geometry, independent of viewport pixel density.
+/* ROLLBLINK — caption layout geometry, independent of viewport pixel density.
  * Every caption stores a normalized anchor and fontScale so on-screen finger
  * adjustments render exactly the same at 720p and 1080p export.
  */
