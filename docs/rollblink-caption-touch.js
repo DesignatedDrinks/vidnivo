@@ -1,3 +1,4 @@
+import {fontById} from './rollblink-creator-kit.js';
 /* ROLLBLINK — caption layout geometry, independent of viewport pixel density.
  * Every caption stores a normalized anchor and fontScale so on-screen finger
  * adjustments render exactly the same at 720p and 1080p export.
@@ -28,7 +29,7 @@ export function captionLayout(ctx,cap,width,height){
  const text=String(cap.text||'').trim();
  const size=Math.max(19,width*.051)*fontScale(cap.fontScale);
  const leading=size*1.35;
- ctx.font='900 '+size.toFixed(2)+'px system-ui,sans-serif';
+ ctx.font='900 '+size.toFixed(2)+'px '+fontById(cap.fontId).family;
  const lines=[];
  let line='';
  for(const word of text.split(/\s+/)){
