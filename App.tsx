@@ -47,7 +47,8 @@ import {restoreCloudSession,type CloudSession} from './src/cloud/account';
 import {backUpCloudProject} from './src/cloud/transfer';
 import {cloudRequest} from './src/cloud/account';
 import {applyAiMomentRanking} from './src/domain/aiMomentRanking';
-import {listSavedVideos,deleteSavedVideo,formatExportSize,type SavedVideo} from './src/export/library';
+import {listSavedVideos,deleteSavedVideo,formatExportSize,saveVideoDetails,type SavedVideo} from './src/export/library';
+import {createExportPlan} from './src/export/plan';
 
 WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_ANDROID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
@@ -489,6 +490,11 @@ function EditorApp() {
     try {
       setPlaying(false); setBusy(true); setRendering(true);
       const uri = await exportMp4(project, exportQuality);
+      try{
+        saveVideoDetails(uri,{title:project.name,
+          durationMs:createExportPlan(project,exportQuality).durationMs,
+          quality:exportQuality,ratio:project.aspectRatio});
+      }catch{/* The verified video is still saved; metadata can be rebuilt. */}
       setLastExport(uri);
       Alert.alert('Export verified', 'The MP4 passed native video, duration and format checks, and was saved in VIDNIVO’s finished-video library.', [
         { text: 'Done' },
@@ -659,8 +665,13 @@ function EditorApp() {
         {(showAllExports?savedVideos:savedVideos.slice(0,5)).map(video=>
           <View key={video.uri} style={styles.projectCard}>
             <View style={{flex:1,gap:3}}>
-              <Text style={styles.projectName} numberOfLines={1}>✓ MP4 ready</Text>
-              <Text style={styles.meta}>{formatExportSize(video.sizeBytes)} · Saved on device</Text>
+              <Text style={styles.projectName} numberOfLines={1}>{video.title}</Text>
+              <Text style={styles.meta}>
+                {video.resolution} · {video.durationMs?fmt(video.durationMs)+' · ':''}
+                {formatExportSize(video.sizeBytes)}
+              </Text>
+              <Text style={styles.meta}>{video.updatedAt?
+                new Date(video.updatedAt).toLocaleDateString():'Saved on device'}</Text>
             </View>
             <Tool label="Share" disabled={busy} onPress={()=>{
               void shareExport(video.uri).catch(e=>Alert.alert('Cannot share video',String(e)));
