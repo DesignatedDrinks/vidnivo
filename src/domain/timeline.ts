@@ -276,6 +276,7 @@ export function duplicateClip(p: Project, id: string): Project {
 
 /** Precisely set the media source in/out point while preserving ripple alignment. */
 export function setClipSourceEdge(p:Project,id:string,edge:'left'|'right',sourceTimeMs:number):Project {
+  if(edge!=='left' && edge!=='right')return p;
   const clip=p.clips.find(c=>c.id===id);
   if(!clip)return p;
   const asset=p.assets.find(a=>a.id===clip.assetId);
