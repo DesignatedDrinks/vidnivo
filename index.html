@@ -559,7 +559,8 @@ const waitRecorderStop=recorder=>new Promise((resolve,reject)=>{
 });
 let exportTimer=null;
 async function startExport(){
- if(!state.clips.length||state.exporting||state.captioning)return;
+ if(!state.clips.length||state.exporting||state.captioning||state.faceLoading)return;
+ if(state.faceRetouch>0&&!faceTracker.supported){toast('Face Retouch is still loading. Turn it off or retry after the model loads.',true);return;}
  if(!canvas.captureStream||!window.MediaRecorder){toast('This browser cannot record the editing canvas. Try recent Safari or Chrome.',true);return}
  const mime=preferredMime();if(!mime){toast('This browser does not have a supported video recording format.',true);return}
  const originalQuality=$('quality').value;
@@ -623,7 +624,7 @@ function setTab(tab){state.selectedTab=tab;document.querySelectorAll('[data-tab]
 function reset(){
  if(state.exporting||state.captioning){toast('Finish exporting or auto captions before starting a new project.',true);return}
  if(state.clips.length&&!confirm('Start a new project? This removes the current timeline and captions (not the original files).'))return;
- pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
+ pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.faceRetouch=0;faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
  video.removeAttribute('src');video.load();ui.empty.hidden=false;ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();renderEditor();renderCaptions();toast('Ready for a new project.');
 }
 // Event wiring
