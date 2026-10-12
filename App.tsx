@@ -41,6 +41,9 @@ import { setProjectLook } from './src/domain/timeline';
 import { generateCaptionsFromScript } from './src/domain/captionGenerator';
 import { SPEECH_LANGUAGES, type SpeechLanguage } from './src/domain/speechLanguages';
 import { SocialStudio } from './src/ui/SocialStudio';
+import {CloudWorkspace} from './src/ui/CloudWorkspace';
+import {restoreCloudSession,type CloudSession} from './src/cloud/account';
+import {backUpCloudProject} from './src/cloud/transfer';
 
 WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_ANDROID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
@@ -108,6 +111,7 @@ function EditorApp() {
   const voiceoverStart = useRef(0);
   const recordingLock = useRef(false);
   const [token, setToken] = useState<string | null>(null);
+  const [cloudSession,setCloudSession]=useState<CloudSession|null>(null);
   const undo = useRef<Project[]>([]);
   const redo = useRef<Project[]>([]);
   const writeQueue = useRef<Promise<void>>(Promise.resolve());
@@ -147,6 +151,12 @@ function EditorApp() {
     }
   };
   useEffect(() => { void reloadLibrary(); }, []);
+  useEffect(()=>{
+    let alive=true;
+    restoreCloudSession().then(account=>{if(alive)setCloudSession(account);})
+      .catch(()=>{if(alive)setCloudSession(null);});
+    return()=>{alive=false;};
+  },[]);
   useEffect(() => {
     if (!ready || loadFailure) return;
     writeQueue.current = writeQueue.current.catch(() => {}).then(async () => {
@@ -533,6 +543,23 @@ function EditorApp() {
     } catch (e) { Alert.alert('Cloud sync failed', String(e)); }
     finally { setBusy(false); }
   };
+  const backupActiveProject=async()=>{
+    if(!project||!cloudSession||busy)return;
+    const snapshot=project;
+    try{
+      setBusy(true);
+      const version=await backUpCloudProject(snapshot);
+      setProjects(items=>items.map(p=>p.id===snapshot.id &&
+        (p.cloudVersion??0)===(snapshot.cloudVersion??0)?
+        {...p,cloudVersion:version}:p));
+      Alert.alert('VIDNIVO backup complete',
+        'Your full project and original media are in your private account.');
+    }catch(e){
+      Alert.alert('Cloud backup not completed',
+        (e instanceof Error?e.message:String(e))+
+        '\nThe project remains safe on this phone. A cloud conflict requires restoring a separate copy.');
+    }finally{setBusy(false);}
+  };
   if (loadFailure) return <View style={[styles.center, { padding: 24 }]}>
     <Ionicons name="warning-outline" size={42} color="#F79B6D" />
     <Text style={[styles.projectName, { textAlign: 'center', marginTop: 18 }]}>Cannot safely open your projects</Text>
@@ -566,6 +593,8 @@ function EditorApp() {
         <Tool label="Delete" disabled={busy} onPress={() => deleteProject(p)} />
       </View>)}
     </ScrollView>
+    <CloudWorkspace session={cloudSession} setSession={setCloudSession}
+      setProjects={setProjects}/>
     <View style={styles.connect}>
       <Text style={styles.section}>GOOGLE SHEETS DATABASE</Text>
       <Text style={styles.meta}>{token ? 'Connected — authorized for Google Sheets' : configured ? 'Sign in to sync project metadata' : 'Local editing ready. Google OAuth client IDs must be configured for sync.'}</Text>
@@ -662,6 +691,8 @@ function EditorApp() {
       disabled:timelineZoom<=.5,onPress:()=>setTimelineZoom(z=>Math.max(.5,z-.5))},
     {id:'save',label:'Save to Google Sheets',icon:'cloud-upload-outline',
       disabled:!token,onPress:cloudSave},
+    {id:'cloud-backup',label:'Back up project + media',icon:'cloud-done-outline',
+      disabled:!cloudSession||busy,onPress:()=>{void backupActiveProject();}},
     {id:'speech',label:'Review talking-head cuts',icon:'cut-outline',
       onPress:()=>{void removeLongPauses();}},
     {id:'story',label:'Story Finder',icon:'sparkles-outline',onPress:showStoryFinder}
