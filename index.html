@@ -159,6 +159,9 @@ const key=()=>crypto.randomUUID?.()||String(Date.now())+Math.random().toString(3
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const toast=(message,isError=false)=>{ui.status.textContent=message;ui.status.style.color=isError?'#ffaca9':'#d3e1e8'};
 let drawQueued=false;
+let captionHitBoxes=[];
+const touchPointers=new Map();
+let dragAnchor=null,pinchOrigin=null,touchWasEdited=false;
 function drawFrame(){
  const quality=state.exporting?Number($('quality').value):null;
  const dimensions=quality?(state.ratio==='16:9'?[Math.round(quality*16/9),quality]:state.ratio==='1:1'?[quality,quality]:[quality,Math.round(quality*16/9)]):(state.ratio==='16:9'?[960,540]:state.ratio==='1:1'?[720,720]:[540,960]);
@@ -173,26 +176,36 @@ function drawFrame(){
    faceTracker.draw(ctx,video,{x:(W-w)/2,y:(H-h)/2,w,h},state.faceRetouch,state.sourceId);
  }
  const captions=state.captions.filter(c=>state.position>=c.start&&state.position<c.end);
+ captionHitBoxes=[];
  for(const cap of captions){
-  const base=Math.max(19,Math.round(W*.051));
-  const text=cap.text||'';
-  const y=cap.position==='top'?H*.17:cap.position==='middle'?H*.53:H*.8;
-  ctx.font=`900 ${base}px system-ui,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
-  const lines=[];let current='';
-  for(const word of text.split(/\s+/)){
-   const candidate=current?current+' '+word:word;
-   if(ctx.measureText(candidate).width>W*.84&&current){lines.push(current);current=word;}
-   else current=candidate;
-  }
-  if(current)lines.push(current);
-  const max=5,show=lines.slice(0,max),leading=base*1.35;
-  show.forEach((line,i)=>{
-   const yy=clamp(y+(i-(show.length-1)/2)*leading,base*.8,H-base*.8);
-   ctx.lineJoin='round';ctx.lineWidth=Math.max(5,base*.22);
-   ctx.strokeStyle='rgba(0,0,0,.9)';ctx.strokeText(line,W/2,yy);
-   ctx.fillStyle=cap.color;ctx.fillText(line,W/2,yy);
+  const layout=captionLayout(ctx,cap,W,H);
+  const {x,y,size,leading,lines,bounds}=layout;
+  captionHitBoxes.push({id:cap.id,bounds});
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='900 '+size.toFixed(2)+'px system-ui,sans-serif';
+  ctx.lineJoin='round';
+  lines.forEach((line,i)=>{
+   const yy=y+(i-(lines.length-1)/2)*leading;
+   ctx.lineWidth=Math.max(5,size*.22);
+   ctx.strokeStyle='rgba(0,0,0,.9)';ctx.strokeText(line,x,yy);
+   ctx.fillStyle=cap.color||'#FFFFFF';ctx.fillText(line,x,yy);
   });
+  // Editing affordances live only in preview, never in the recorded video.
+  if(!state.exporting&&state.editCaptionId===cap.id&&state.selectedTab==='captions'){
+   ctx.save();
+   ctx.strokeStyle='#27d2e5';ctx.fillStyle='#27d2e5';
+   ctx.lineWidth=Math.max(2,W*.0035);ctx.setLineDash([W*.013,W*.009]);
+   ctx.strokeRect(bounds.left,bounds.top,bounds.width,bounds.height);
+   ctx.setLineDash([]);
+   const radius=Math.max(5,W*.012);
+   for(const [hx,hy] of [[bounds.left,bounds.top],[bounds.right,bounds.top],[bounds.left,bounds.bottom],[bounds.right,bounds.bottom]]){
+    ctx.beginPath();ctx.arc(hx,hy,radius,0,Math.PI*2);ctx.fill();
+   }
+   ctx.restore();
+  }
  }
+ canvas.classList.toggle('caption-touch-ready',
+  !state.exporting&&!state.captioning&&state.selectedTab==='captions'&&captions.length>0);
 }
 function requestDraw(){if(drawQueued)return;drawQueued=true;requestAnimationFrame(()=>{drawQueued=false;drawFrame()})}
 function locate(time){
