@@ -33,6 +33,7 @@ import { LOOKS, LOOK_ORDER, resolveLook } from './src/domain/looks';
 import { setProjectLook } from './src/domain/timeline';
 import { generateCaptionsFromScript } from './src/domain/captionGenerator';
 import { SPEECH_LANGUAGES, type SpeechLanguage } from './src/domain/speechLanguages';
+import { SocialStudio } from './src/ui/SocialStudio';
 
 WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_ANDROID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
@@ -72,6 +73,8 @@ function EditorApp() {
   const [exportQuality, setExportQuality] = useState<720 | 1080>(1080);
   const [fullPreview, setFullPreview] = useState(false);
   const [captionPanelOpen, setCaptionPanelOpen] = useState(false);
+  const [socialOpen, setSocialOpen] = useState(false);
+  const [youtubeToken, setYoutubeToken] = useState<string | null>(null);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [scriptPanelOpen, setScriptPanelOpen] = useState(false);
   const [captionScript, setCaptionScript] = useState('');
@@ -97,6 +100,20 @@ function EditorApp() {
     selectAccount: true
   });
   useEffect(() => { if (response?.type === 'success' && response.authentication?.accessToken) setToken(response.authentication.accessToken); }, [response]);
+  // Separate, user-consented OAuth scope for YouTube uploads.
+  // Tokens remain in memory, never written into Google Sheets or project files.
+  const [, youtubeResponse, youtubePromptAsync] = Google.useAuthRequest({
+    iosClientId: GOOGLE_IOS || 'not-configured.apps.googleusercontent.com',
+    androidClientId: GOOGLE_ANDROID || 'not-configured.apps.googleusercontent.com',
+    webClientId: GOOGLE_WEB || 'not-configured.apps.googleusercontent.com',
+    scopes: ['openid', 'email', 'profile', 'https://www.googleapis.com/auth/youtube.upload'],
+    selectAccount: true
+  });
+  useEffect(() => {
+    if (youtubeResponse?.type === 'success' && youtubeResponse.authentication?.accessToken)
+      setYoutubeToken(youtubeResponse.authentication.accessToken);
+    else if (youtubeResponse?.type === 'error') setYoutubeToken(null);
+  }, [youtubeResponse]);
   // A failed library load must NEVER initialize the editor with an empty
   // project list, as doing so would immediately overwrite recoverable data.
   const reloadLibrary = async () => {
@@ -557,6 +574,8 @@ function EditorApp() {
     { id: 'effects', label: 'Effects', icon: 'sparkles-outline', onPress: () => comingSoon('Effects'), hint: 'Soon' },
     { id: 'overlay', label: 'Add video', icon: 'albums-outline', onPress: importVisual },
     { id: 'captions', label: 'Captions', icon: 'chatbox-ellipses-outline', onPress: () => setCaptionPanelOpen(true) },
+    { id: 'social', label: 'Social Studio', icon: 'share-social-outline',
+      onPress: () => { setPlaying(false); setSocialOpen(true); } },
     { id: 'voiceover', label: recordingState.isRecording ? 'Stop voice' : 'Voiceover',
       icon: recordingState.isRecording ? 'stop-circle-outline' : 'mic-outline', onPress: toggleVoiceover },
     { id: 'ratio', label: 'Aspect ratio', icon: 'crop-outline', onPress: showRatioMenu },
@@ -664,6 +683,16 @@ function EditorApp() {
     {lastExport ? <Pressable accessibilityRole="button" onPress={() => shareExport(lastExport).catch(e => Alert.alert('Sharing failed', String(e)))}
       style={styles.shareResult}><Text style={styles.shareResultText}>✓ MP4 ready — Share</Text></Pressable> : null}
 
+    <SocialStudio visible={socialOpen} project={project} onClose={() => setSocialOpen(false)}
+      exportUri={lastExport} exportVideo={() => { setSocialOpen(false); void renderVideo(); }}
+      youtubeToken={youtubeToken} canConnectYouTube={configured}
+      connectYouTube={() => {
+        if (!configured) {
+          Alert.alert('Google OAuth setup needed','Configure Google OAuth client IDs and enable YouTube Data API v3.');
+          return;
+        }
+        void youtubePromptAsync();
+      }} />
     <Modal visible={filterPanelOpen} animationType="slide" transparent onRequestClose={()=>setFilterPanelOpen(false)}>
       <View style={styles.captionBackdrop}>
         <View style={styles.captionSheet}>
