@@ -562,6 +562,7 @@ async function importFile(file){
  if(!file)return;
  if(state.captioning||state.creatorBusy||state.exporting){toast('Finish the current operation before importing more footage.',true);return}
   if(!file.type.startsWith('video/')){toast('Choose an MP4, MOV, or another playable video file.',true);return}
+ showProcessing('import',0,'Reading '+file.name+' directly from your device.');
  const url=URL.createObjectURL(file),probe=document.createElement('video');probe.preload='metadata';probe.playsInline=true;probe.src=url;
  try{
   const seconds=await new Promise((resolve,reject)=>{
@@ -571,6 +572,7 @@ async function importFile(file){
   });
   if(!Number.isFinite(seconds)||seconds<=MIN_CLIP)throw Error('Video has an invalid or very short duration.');
   if(state.playing)pause();
+  showProcessing('import',1,'File length '+fmt(seconds)+' · setting up the local timeline.');
   const source={id:key(),url,name:file.name,duration:seconds,size:file.size};
   state.sources.push(source);
   const clip={id:key(),sourceId:source.id,start:0,end:seconds,speed:1};
@@ -579,7 +581,7 @@ async function importFile(file){
   renderTimeline();renderEditor();void seekTimeline(oldTotal);
   toast('Imported '+file.name+'. Select a clip to trim or split.');
  }catch(e){URL.revokeObjectURL(url);toast(e.message||String(e),true)}
- finally{probe.removeAttribute('src');probe.load()}
+ finally{probe.removeAttribute('src');probe.load();hideProcessing('import')}
 }
 function activeCaption(){
  return state.captions.find(c=>c.id===state.editCaptionId)||null;
@@ -644,8 +646,14 @@ function renderCaptions(){
 let localSpeechModel=null;
 function captionProgress(message,percent,error=false){
  $('captionStatus').textContent=message;
- $('captionStatus').style.color=error?'#ffaca9':'#d3e1e8';
- $('captionProgress').style.width=Math.max(0,Math.min(100,percent))+'%';
+ $('captionStatus').style.color=error?'#FF9CAB':'#D3E1E8';
+ updateRealProcessingBar('captionProgress',percent>=100&&!error,error);
+ if(state.captioning){
+  const stage=/Capturing soundtrack/i.test(message)?1:
+   /Loading|Downloading|speech model|Preparing speech|AI engine/i.test(message)?2:
+   /Transcrib/i.test(message)?3:/caption/i.test(message)&&percent>=100?4:0;
+  showProcessing('captions',stage,message);
+ }
 }
 function audioRecordMime(){
  if(!window.MediaRecorder)return null;
@@ -834,6 +842,7 @@ async function runAutoCaptions(options={}){
   return {error:message};
  }finally{
   pause();state.captioning=false;renderTimeline();
+  hideProcessing('captions');
   await seekTimeline(clamp(oldPosition,0,total()));
  }
 }
