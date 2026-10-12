@@ -354,6 +354,7 @@ function drawFrame(){
    ctx.restore();
   }
  }
+ drawBrandWatermark(ctx,state.watermark);
  canvas.classList.toggle('caption-touch-ready',
   !state.exporting&&!state.captioning&&captions.length>0);
 }
@@ -850,6 +851,8 @@ async function startExport(){
   // behind an artificially frozen face/video frame.
   state.clips=[plan.clip];state.selected=plan.clip.id;
   state.exporting=true;pause();
+  $('watermarkEnabled').disabled=true;
+  $('watermarkPosition').disabled=true;
   ui.download.hidden=true;ui.progress.style.width='0';
   $('syncStatus').textContent='Preparing synchronized video and soundtrack…';
   renderTimeline();
@@ -957,6 +960,8 @@ async function startExport(){
   if(stream)stream.getVideoTracks().forEach(track=>track.stop());
   pause();
   state.exporting=false;state.clips=savedClips;state.selected=savedSelected;
+  $('watermarkEnabled').disabled=false;
+  $('watermarkPosition').disabled=false;
   renderTimeline();renderEditor();renderCaptions();
   await seekTimeline(Math.min(savedPosition,total()));
   drawFrame();
@@ -1228,6 +1233,16 @@ function loadCreatorPreference(){
  }
 }
 // Event wiring
+$('watermarkEnabled').addEventListener('change',event=>{
+ if(state.exporting){event.target.checked=state.watermark.enabled;return}
+ state.watermark=normalizeWatermark({...state.watermark,enabled:event.target.checked});
+ requestDraw();
+});
+$('watermarkPosition').addEventListener('change',event=>{
+ if(state.exporting){event.target.value=state.watermark.position;return}
+ state.watermark=normalizeWatermark({...state.watermark,position:event.target.value});
+ requestDraw();
+});
 $('creatorRun').onclick=()=>void runCreatorAutopilot();
 $('creatorSave').onclick=storeCurrentCreatorStyle;
 $('creatorStyle').addEventListener('change',()=>creatorStatus('Ready for '+$('creatorStyle').selectedOptions[0].textContent+'. Import your footage and finish in one tap.',0));
