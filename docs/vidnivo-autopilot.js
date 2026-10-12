@@ -79,3 +79,33 @@ export function shiftTimedCaptions(captions,front,newDuration){
   end:clamp(Number(c.end)-front,0,newDuration)
  })).filter(c=>Number.isFinite(c.start)&&Number.isFinite(c.end)&&c.end>c.start+.08);
 }
+
+/** Generate honest on-screen hook suggestions from phrases actually spoken.
+ * No fabricated claims, no external AI API, and no voice replacement.
+ */
+export function suggestOpeningHooks(captions,limit=3){
+ if(!Array.isArray(captions))return [];
+ const candidates=captions.filter(c=>c.origin==='auto'&&Number.isFinite(c.start)
+  &&c.start<20&&typeof c.text==='string').slice(0,30);
+ const scored=candidates.map((c,index)=>{
+  const text=c.text.replace(/\s+/g,' ').trim();
+  const words=text.split(' ');
+  if(words.length<3||words.length>18||text.length>90)return null;
+  const short=text.replace(/[.!?]+$/,'').trim();
+  const scoring=(/\b(how|why|what|would|can|could|did|should|ever)\b/i.test(text)?4:0)
+    +(/\b(but|instead|never|stop|before|secret|mistake|biggest|actually|surprise|truth|real)\b/i.test(text)?3:0)
+    +(/\b\d+\b/.test(text)?2:0)
+    +(text.includes('?')?3:0)
+    +(words.length>=5&&words.length<=12?2:0)
+    +(Math.max(0,3-index*.25));
+  return {text:short,score:scoring,time:c.start};
+ }).filter(Boolean).sort((a,b)=>b.score-a.score||a.time-b.time);
+ const seen=new Set(),output=[];
+ for(const c of scored){
+  const key=c.text.toLowerCase();
+  if(seen.has(key))continue;
+  seen.add(key);output.push({text:c.text,time:c.time});
+  if(output.length>=limit)break;
+ }
+ return output;
+}
