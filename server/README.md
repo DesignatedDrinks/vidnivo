@@ -28,6 +28,8 @@ This backend sends only the transcript (not source video) to OpenAI when the use
 
 ## Direct publishing beta: Instagram Reels, YouTube Shorts and TikTok
 
+The Expo native app's **Social Studio** now supports a separate secure beta backend connection for direct Instagram/TikTok OAuth, mobile MP4 submission, and provider-status checks; its existing native YouTube uploader remains intact. Save the backend URL and unrelated beta access token there, then open platform authorization in the browser and tap **Refresh accounts** when you return. Mobile direct uploads require a valid exported local MP4 and real-device testing.
+
 The `docs/` browser editor now contains **Publish video** under the Generate panel
 (and a Publish action next to Export). Exports or chosen MP4 files upload to this
 backend only after the creator presses **Review & Publish** and confirms. The
