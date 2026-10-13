@@ -67,6 +67,10 @@ try{
  await page.locator('#rb-font-grid button[data-font-card="anton"]').click();
  assert.equal(await page.locator('#rb-font').inputValue(),'anton','Font card must change stored selection');
  await page.locator('#mobileDrawerBackdrop').click({position:{x:10,y:125}});
+ await page.waitForFunction(()=>{
+  const frames=[...document.querySelectorAll('#timeline .mobile-clip-thumbnails img')];
+  return frames.length>=3&&frames.some(img=>img.complete&&img.naturalWidth>0);
+ },null,{timeout:15000});
  await page.screenshot({path:'/tmp/rollblink-mobile-smoke.png'});
  const saved=await page.evaluate(()=>localStorage.getItem('rollblink:metadata-draft:v2'));
  assert.ok(saved&&JSON.parse(saved).captions.length===1,'Timed caption and font must persist to a draft');
