@@ -1,5 +1,17 @@
 # ROLLBLINK — mobile-first video editor
 
+## New mobile editing layout — October 12, 2026
+
+Both the GitHub Pages **browser editor** and the separate **Expo native app** now follow the touch-first editing pattern shown in the Rollblink mobile design reference.
+
+**Browser editor:** A centered 9:16 preview, compact top export control, playable/scrubbable filmstrip timeline, actual timestamp-based caption track, original audio lane, selected-caption editing tray, and seven-item bottom navigation (Edit, Audio, Text, Effects, Overlay, Captions, Generate). Advanced panels slide up from the bottom rather than occupying the main preview. Preview thumbnails are generated locally when the browser supports offscreen video seeking. If thumbnails cannot be decoded, normal timeline editing still works.
+
+**Native iOS/Android:** Rollblink branding and a permanent global editing rail. Selecting a caption shows a compact contextual tray (Style, Edit text, Auto captions, Split, Delete) while keeping the main tools available. Selecting a video clip shows contextual editing controls. On the native video preview, dragging a visible subtitle moves **all non-title subtitles** to the same normalized placement; pinching changes their common size. Opening titles remain independently positioned. The preview interaction commits one undoable project change when released, not an undo entry for every touch event.
+
+The updated browser code is covered by pure timeline tests and a GitHub Actions Chromium mobile smoke test. Native subtitle placement has unit tests. Browser export restrictions and the native development-build requirement **have not changed**; never present unsupported editing or export actions as working. Test on actual iPhone and Android devices before commercial launch.
+
+---
+
 ## Rollblink creator update — October 2026
 
 The [browser editor](https://designateddrinks.github.io/vidnivo/) now offers 24 caption typefaces, editable transcript-caption words (without altering their timestamps), three visual directions (Clean / Punchy / Editorial), an optional smooth digital camera crop, an undoable continuous 30-second highlight selector, opening title layers, and platform-specific social post drafts.
