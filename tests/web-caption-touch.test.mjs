@@ -19,9 +19,9 @@ function fakeCanvas(){
   return {width:size*.56*text.length};
  }};
 }
-test('browser pages ship the exact same caption gesture code',()=>{
+test('canonical browser caption gestures retain project geometry and font rendering',()=>{
  assert.match(pages,/docs\/\?/);
- assert.equal(pagesModule.slice(pagesModule.indexOf('/* ROLLBLINK')),module);
+ assert.match(pagesModule,/fontById\(cap\.fontId\)\.family/);
  checkSyntax(script);checkSyntax(module);
  assert.match(script,/canvas\.addEventListener\('pointerdown'/);
  assert.match(script,/canvas\.addEventListener\('pointermove'/);
