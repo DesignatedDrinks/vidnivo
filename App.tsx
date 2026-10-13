@@ -552,7 +552,7 @@ function EditorApp() {
         Local save failed — tap to retry. Keep the app open. {saveFailure}
       </Text>
     </Pressable> : null}
-    <View style={styles.heading}><Text style={styles.logo}>VID<Text style={{ color: theme.accent }}>NIVO</Text></Text><Text style={styles.eyebrow}>MOBILE VIDEO STUDIO</Text></View>
+    <View style={styles.heading}><Text style={styles.logo}>ROLL<Text style={{ color: theme.accent }}>BLINK</Text></Text></View>
     <View style={styles.hero}><Text style={styles.heroTitle}>Make something worth watching.</Text><Text style={styles.heroCopy}>Cut video, arrange your timeline, add captions, and keep projects on your phone.</Text><Tool label="+ New project" primary onPress={create} /></View>
     <View style={styles.row}><Text style={styles.section}>YOUR PROJECTS</Text><Text style={styles.meta}>{projects.length} saved</Text></View>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
@@ -671,17 +671,26 @@ function EditorApp() {
       const clip=activeClip(project,positionMs)||project.clips.find(c=>c.track==='video');
       if(clip)setSelectedId(clip.id);else void importVisual();
     }},
-    {id:'captions',label:'Captions',icon:'chatbox-ellipses-outline',onPress:()=>setCaptionPanelOpen(true)},
     {id:'audio',label:'Audio',icon:'musical-notes-outline',onPress:importAudio},
     {id:'text',label:'Text',icon:'text-outline',onPress:()=>{setTitleText('');setTextPrompt(true);}},
-    {id:'looks',label:'Looks',icon:'color-filter-outline',onPress:()=>setFilterPanelOpen(true)},
-    {id:'social',label:'Social',icon:'share-social-outline',
+    {id:'effects',label:'Effects',icon:'star-outline',onPress:()=>setFilterPanelOpen(true)},
+    {id:'overlay',label:'Overlay',icon:'images-outline',
+      onPress:()=>{if(selectedText)setCaptionStylesOpen(true);else{setTitleText('');setTextPrompt(true);}}},
+    {id:'captions',label:'Captions',icon:'chatbox-ellipses-outline',onPress:()=>setCaptionPanelOpen(true)},
+    {id:'generate',label:'Generate',icon:'sparkles-outline',
       onPress:()=>{setPlaying(false);setSocialOpen(true);}},
-    {id:'review',label:'Review',icon:'checkmark-done-outline',
-      onPress:()=>{setPlaying(false);setCreatorReviewOpen(true);}},
     {id:'more',label:'More',icon:'ellipsis-horizontal-circle-outline',
       onPress:()=>setAdvancedToolsOpen(true)}
   ];
+  const captionQuickActions: EditorAction[]=selectedText?[
+    {id:'style',label:'Style',icon:'color-palette-outline',onPress:()=>setCaptionStylesOpen(true)},
+    {id:'edit',label:'Edit text',icon:'create-outline',
+      onPress:()=>{setTitleText(selectedText.text);setEditTextPrompt(true);}},
+    {id:'auto',label:'Auto captions',icon:'sparkles-outline',onPress:()=>setCaptionPanelOpen(true)},
+    {id:'split',label:'Split',icon:'git-branch-outline',onPress:()=>apply(p=>splitCaption(p,selectedText.id))},
+    {id:'delete',label:'Delete',icon:'trash-outline',
+      onPress:()=>{apply(p=>removeText(p,selectedText.id));setSelectedTextId(null);}}
+  ]:[];
   return <View style={[styles.editorScreen, { paddingTop: insets.top + 4, paddingBottom: insets.bottom }]}>
     {saveFailure ? <Pressable accessibilityRole="button" onPress={() => { void retrySave(); }}
       style={{ backgroundColor: '#653335', padding: 9, borderRadius: 8 }}>
@@ -698,6 +707,7 @@ function EditorApp() {
         onPress={() => { setSearchTerm(''); setSearchOpen(true); }} style={styles.headerIcon}>
         <Ionicons name="search-outline" size={25} color="#E9EBED" /></Pressable>
       <Pressable style={styles.headerProject} onPress={() => { setProjectName(project.name); setNamePrompt(true); }}>
+        <Text style={styles.headerProjectBrand}>Roll<Text style={{color:'#1CDAE9'}}>blink</Text></Text>
         <Text style={styles.headerProjectText} numberOfLines={1}>{project.name}</Text>
       </Pressable>
       <Pressable style={styles.qualityButton} accessibilityRole="button"
@@ -766,15 +776,19 @@ function EditorApp() {
         maximumTrackTintColor="#575B60" thumbTintColor="#27D3E7"
         onSlidingComplete={speed => apply(p => rippleSpeedClip(p, selected.id, speed))} />
     </View> : null}
-    {selectedText ? <View style={styles.contextBar}>
-      <Text style={styles.contextTitle}>TEXT  ·  {selectedText.text}</Text>
-      <Text style={styles.contextVolume}>{fmt(selectedText.startMs)} – {fmt(selectedText.endMs)}  ·  {selectedText.fontSize} pt</Text>
+    {selectedText ? <View style={styles.captionContextCard}>
+      <View style={styles.captionContextHeading}>
+        <Ionicons name="create-outline" size={19} color="#DCE4E9" />
+        <Text style={styles.captionContextText} numberOfLines={1}>{selectedText.text}</Text>
+        <Text style={styles.captionContextTime}>{fmt(selectedText.startMs)} – {fmt(selectedText.endMs)}</Text>
+      </View>
+      <EditorRail actions={captionQuickActions} compact selectedId="style" />
     </View> : null}
     {recordingState.isRecording ? <View style={styles.recordingBanner}>
       <Ionicons name="radio-button-on" size={17} color="#FF6875" />
       <Text style={styles.recordingBannerText}>Recording voiceover  {Math.round(recordingState.durationMillis / 1000)}s</Text>
     </View> : null}
-    <EditorRail actions={selected ? clipActions : selectedText ? textActions : baseActions} />
+    <EditorRail actions={selected ? clipActions : baseActions} selectedId={selectedText ? "captions" : undefined} />
     {lastExport ? <Pressable accessibilityRole="button" onPress={() => shareExport(lastExport).catch(e => Alert.alert('Sharing failed', String(e)))}
       style={styles.shareResult}><Text style={styles.shareResultText}>✓ MP4 ready — Share</Text></Pressable> : null}
 
@@ -1180,7 +1194,8 @@ const styles = StyleSheet.create({
     gap: 7, backgroundColor: '#111214' },
   headerIcon: { width: 36, height: 42, alignItems: 'center', justifyContent: 'center' },
   headerProject: { flex: 1, justifyContent: 'center', minWidth: 30 },
-  headerProjectText: { color: '#777C84', fontSize: 11 },
+  headerProjectBrand: { color: '#F3F6F8', fontSize: 17, fontWeight: '800', letterSpacing: -0.8 },
+  headerProjectText: { color: '#818891', fontSize: 9 },
   qualityButton: { height: 39, minWidth: 81, paddingHorizontal: 9, borderRadius: 10,
     backgroundColor: '#292B2F', flexDirection: 'row', justifyContent: 'center',
     alignItems: 'center', gap: 5 },
@@ -1195,6 +1210,12 @@ const styles = StyleSheet.create({
   transportSide: { width: 65, alignItems: 'flex-start', justifyContent: 'center' },
   playControl: { height: 46, width: 76, alignItems: 'center', justifyContent: 'center' },
   transportRight: { width: 100, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
+  captionContextCard: { backgroundColor: '#1D1F22', paddingHorizontal: 8, paddingTop: 6, paddingBottom: 0,
+    borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  captionContextHeading: { flexDirection: 'row', gap: 9, alignItems: 'center', backgroundColor:'#282A2D',
+    borderRadius: 10, minHeight: 34, paddingHorizontal: 10 },
+  captionContextText: { color:'#F3F5F7', fontSize:13, fontWeight:'700', flex:1 },
+  captionContextTime: { color:'#ADB4BF', fontSize:10, fontVariant:['tabular-nums'] },
   contextBar: { backgroundColor: '#1D1F22', paddingHorizontal: 14, paddingTop: 5, paddingBottom: 2,
     height: 102, justifyContent: 'center' },
   contextTitle: { color: '#F1F3F4', fontSize: 12, fontWeight: '700' },
