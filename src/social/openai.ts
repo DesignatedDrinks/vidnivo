@@ -1,7 +1,7 @@
 import { socialPrompt,parseSocialPostDraft,type SocialPostDraft } from './copy.ts';
 import type {Project} from '../domain/timeline.ts';
 
-export const OPENAI_MODEL='gpt-5-mini';
+export const OPENAI_MODEL='gpt-5.4-mini';
 type Fetcher=typeof fetch;
 export function readResponseText(response:unknown):string {
  if(!response || typeof response!=='object')throw Error('OpenAI returned an invalid response.');
@@ -31,7 +31,7 @@ export async function generateSocialPostDraft(project:Project,key:string,
    body:JSON.stringify({model:OPENAI_MODEL,store:false,
     instructions:content.instructions,input:content.input,
     text:{format:{type:'json_schema',name:'social_posts',strict:true,schema}},
-    max_output_tokens:1800})
+    max_output_tokens:2900})
   });
  }catch {throw Error('Could not contact OpenAI. Check your connection and try again.');}
  if(!response.ok){
@@ -45,4 +45,17 @@ export async function generateSocialPostDraft(project:Project,key:string,
  let parsed:unknown;
  try{parsed=JSON.parse(data);}catch{throw Error('OpenAI returned an incomplete draft. Try generating again.');}
  return parseSocialPostDraft(parsed);
+}
+
+/** Non-generating credential check for the owner-only device beta. */
+export async function testOpenAIKey(key:string,fetcher:Fetcher=fetch):Promise<void>{
+ if(!key.startsWith('sk-')||key.length<16)throw Error('Save a valid OpenAI API key first.');
+ let response:Response;
+ try{response=await fetcher('https://api.openai.com/v1/models/'+OPENAI_MODEL,{
+  method:'GET',headers:{Authorization:'Bearer '+key}
+ })}catch{throw Error('Cannot reach OpenAI. Check your internet connection.');}
+ if(response.status===401)throw Error('OpenAI rejected this API key.');
+ if(response.status===403||response.status===404)throw Error('Your API project cannot use '+OPENAI_MODEL+'. Check project access.');
+ if(response.status===429)throw Error('Your OpenAI project is rate limited. Check API billing.');
+ if(!response.ok)throw Error('OpenAI connection failed (HTTP '+response.status+').');
 }
