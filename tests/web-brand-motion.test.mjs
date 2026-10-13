@@ -71,7 +71,7 @@ test('disabled watermark draws nothing, enabled watermark paints true vector and
  assert.ok(calls.includes('fill'));
 });
 test('preview and MediaRecorder export use same rendered watermark without HTML-only trick',()=>{
- const draw=js.slice(js.indexOf('function drawFrame(){'),js.indexOf('function requestDraw(){'));
+ const draw=js.slice(js.indexOf('function drawFrame('),js.indexOf('function requestDraw(){'));
  const start=js.slice(js.indexOf('async function startExport(){'),js.indexOf('function setTab(',js.indexOf('async function startExport(){')));
  assert.match(draw,/drawBrandWatermark\(ctx,state\.watermark\)/);
  assert.match(start,/canvas\.captureStream\(30\)/);
