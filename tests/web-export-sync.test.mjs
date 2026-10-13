@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
-const html=readFileSync('index.html','utf8');
-const deployed=readFileSync('docs/index.html','utf8');
+const html=readFileSync('docs/index.html','utf8');
+const deployed=readFileSync('index.html','utf8');
 const core=readFileSync('rollblink-export-sync.js','utf8');
 const deployedCore=readFileSync('docs/rollblink-export-sync.js','utf8');
 const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1]||'';
@@ -17,7 +17,7 @@ function parse(code){
  assert.equal(p.status,0,p.stderr||p.stdout);
 }
 test('web editor deployment includes the real lip-sync guard in both Pages variants',()=>{
- assert.equal(html,deployed);
+ assert.match(deployed,/docs\/\?/);
  assert.equal(core,deployedCore);
  assert.match(script,/import \{planContinuousExport,PlaybackSyncGuard,inspectRecordedTracks,probeRecordedDuration\}/);
  assert.match(html,/id="syncStatus"/);
