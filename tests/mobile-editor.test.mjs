@@ -56,3 +56,28 @@ test('mobile controls exist once and connect to operational editor',()=>{
  assert.match(moduleSource,/startExport\(\)/);
  assert.match(moduleSource,/runAutoCaptions\(\)/);
 });
+
+test('pinch scale geometry remains bounded and preserves timestamp coordinate mapping',()=>{
+ const base=timelineGeometry(35,375,1),zoomed=timelineGeometry(35,375,2.5);
+ assert.ok(zoomed.pixelsPerSecond>base.pixelsPerSecond*2);
+ assert.ok(timelineGeometry(35,375,99).pixelsPerSecond<=base.pixelsPerSecond*4.01);
+ assert.ok(timelineGeometry(35,375,.01).pixelsPerSecond>=base.pixelsPerSecond*.49);
+ const seekSeconds=14.7;
+ assert.ok(Math.abs(seekSeconds*zoomed.pixelsPerSecond/zoomed.pixelsPerSecond-seekSeconds)<.001);
+});
+test('mobile-first shell has a fixed playhead, functional history and a font gallery',()=>{
+ for(const id of ['mobileUndo','mobileRedo','mobileFixedPlayhead','mobileAudioWaveform','rb-font-grid']){
+  assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id+' must be unique');
+ }
+ assert.match(html,/rbTravelHistory\('undo'\)/);
+ assert.match(html,/rbTravelHistory\('redo'\)/);
+ assert.match(html,/FONT_CHOICES/);
+ assert.match(html,/projectSnapshot\(state\)/);
+ assert.match(html,/hydrateSnapshot\(snapshot,state.sources,key\)/);
+ assert.match(moduleSource,/prepareWaveform/);
+ assert.match(moduleSource,/\.scrollLeft=x/);
+ assert.match(moduleSource,/addEventListener\('touchmove'/);
+ assert.match(shell,/--rb-bg:#07090D/);
+ assert.match(shell,/mobile-fixed-playhead/);
+ assert.match(shell,/height:calc\(100dvh/);
+});
