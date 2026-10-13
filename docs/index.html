@@ -368,6 +368,25 @@ input[type=range]{accent-color:#afc0ff}
 .rb-publishing .rb-note{font-size:12px;line-height:1.5;color:#b5c0d0;margin:3px 0}
 @media(max-width:520px){.rb-publish-accounts>div{gap:7px}.rb-publishing{padding:12px}}
 </style>
+
+<style>
+.rb-ai-director{border:1px solid rgba(145,191,220,.24);border-radius:17px;background:linear-gradient(130deg,rgba(25,45,65,.65),rgba(22,25,36,.96));padding:16px;display:grid;gap:13px}
+.rb-ai-director [hidden]{display:none!important}
+.rb-ai-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px}
+.rb-ai-head strong{font-size:20px;letter-spacing:-.8px}
+.rb-ai-head span{font-size:12px;color:#b1bccd}
+.rb-ai-director .rb-layout{display:grid;grid-template-columns:minmax(120px,.6fr) minmax(170px,1.4fr);gap:10px}
+.rb-ai-director label{display:grid;gap:7px;font-size:12px}
+.rb-ai-director #rb-ai-results{display:grid;gap:11px}
+.rb-ai-hooks{display:grid;gap:8px}
+.rb-ai-hooks button{border:1px solid #4a6176;border-radius:12px;background:#18283a;color:#e9f2fa;text-align:left;padding:10px 12px;line-height:1.45;font:inherit;white-space:normal}
+.rb-ai-hooks button:hover{border-color:#9bcdef;background:#20334a}
+.rb-ai-idea{background:#15212d;padding:11px 12px;border-radius:11px}
+.rb-ai-idea span{font-size:10px;color:#c3d3e6;text-transform:uppercase;letter-spacing:.6px}
+.rb-ai-idea p{margin:6px 0 0;color:#f0f4fc;font-size:12px;line-height:1.5}
+.rb-ai-director #rb-ai-preview{min-height:115px;max-height:200px;resize:vertical}
+@media(max-width:420px){.rb-ai-director .rb-layout{grid-template-columns:1fr}.rb-ai-director{padding:12px}}
+</style>
 </head>
 <body>
   <header class="topbar">
@@ -441,7 +460,7 @@ input[type=range]{accent-color:#afc0ff}
         <div class="rb-row rb-directions"><button class="rb-s" data-rb-direction="clean" aria-pressed="false">Clean</button><button class="rb-s" data-rb-direction="punchy" aria-pressed="false">Punchy</button><button class="rb-s" data-rb-direction="editorial" aria-pressed="false">Editorial</button></div>
         <div class="rb-row"><button class="rb-p" id="rb-highlight" type="button">Suggest 30s</button><button class="rb-s" id="rb-undo-highlight" type="button" hidden>Undo trim</button></div>
         <div class="rb-layout"><label>Camera motion<select id="rb-camera"><option value="off">Off</option><option value="subtle">Subtle</option><option value="dynamic">Dynamic</option></select></label></div>
-        <div class="rb-layout"><label>Post platform<select id="rb-platform"><option>Instagram</option><option>TikTok</option><option>YouTube Shorts</option><option>LinkedIn</option></select></label></div>
+        <div class="rb-layout"><label>Post platform<select id="rb-platform"><option>Instagram</option><option>TikTok</option><option>YouTube Shorts</option><option>LinkedIn</option><option>Facebook</option></select></label></div>
         <div class="rb-row"><button id="rb-undo-look" class="rb-s" type="button" hidden>Undo style</button><button id="rb-undo-words" class="rb-s" type="button" hidden>Undo word fix</button></div>
         <div class="rb-layout"><div><label for="rb-title">Opening title</label><textarea id="rb-title" maxlength="150"></textarea><button id="rb-add-title" class="rb-s">Add to video</button></div>
           <div><label for="rb-post">Post copy</label><textarea id="rb-post"></textarea><div class="rb-row"><button id="rb-generate" class="rb-p">Generate</button><button id="rb-copy" class="rb-s">Copy</button></div></div></div>
@@ -449,6 +468,23 @@ input[type=range]{accent-color:#afc0ff}
         <label>Server URL<input id="rb-server" type="url" placeholder="https://your-rollblink-api.example" autocomplete="off"></label>
         <label>Session access token<input id="rb-token" type="password" autocomplete="off" placeholder="Not your OpenAI key"></label></details>
         <p id="rb-message" class="rb-note" role="status">Video stays local. Copy drafts use captions unless a protected AI server is connected.</p>
+        <section class="rb-ai-director" aria-label="AI Creator Director">
+          <div class="rb-ai-head"><strong>AI Creator</strong><span>One transcript. Five platform-ready posts.</span></div>
+          <div class="rb-layout">
+            <label for="rb-ai-tone">Voice<select id="rb-ai-tone"><option value="natural">Natural</option><option value="bold">Bold</option><option value="thoughtful">Thoughtful</option><option value="funny">Funny</option><option value="editorial">Editorial</option></select></label>
+            <label for="rb-ai-direction">Creative direction<input id="rb-ai-direction" maxlength="1200" placeholder="What should this post emphasize? (optional)" autocomplete="off"></label>
+          </div>
+          <div class="rb-row"><button id="rb-ai-generate" type="button" class="rb-p">✦ Create everything</button><button id="rb-ai-test" type="button" class="rb-s">Test connection</button></div>
+          <p id="rb-ai-status" role="status" class="rb-note">Add spoken captions, then connect your protected AI server.</p>
+          <div id="rb-ai-results" hidden>
+            <label>Opening hook options</label>
+            <div id="rb-ai-hooks" class="rb-ai-hooks" aria-label="Generated opening hooks"></div>
+            <div class="rb-ai-idea"><span>Editor suggestion</span><p id="rb-ai-edit-suggestion"></p></div>
+            <label for="rb-ai-preview">Preview for selected post platform</label>
+            <textarea id="rb-ai-preview" readonly aria-label="AI platform draft preview"></textarea>
+            <div class="rb-row"><button id="rb-ai-apply-title" type="button" class="rb-s">Use opening title</button><button id="rb-ai-apply-copy" type="button" class="rb-p">Use this post copy</button></div>
+          </div>
+        </section>
         <details id="rb-publish-panel" class="rb-publishing">
           <summary>Publish video · Instagram / YouTube / TikTok</summary>
           <p class="rb-note">Connect a platform, export an MP4, then choose Publish. Nothing is posted without your confirmation. For beta testing, your OpenAI key belongs in the backend <code>OPENAI_API_KEY</code> secret, never here.</p>
@@ -2320,6 +2356,70 @@ $('rb-check-tt').addEventListener('click',async()=>{
  }catch(e){rbPublishMessage(e.message,true)}
  finally{rbPublishButtonsBusy(false)}
 });
+
+/* AI Creator Kit — one high-quality structured generation per finished transcript. */
+let rbAiKit=null,rbAiInFlight=false;
+const RB_AI_PLATFORM={Instagram:'instagram',TikTok:'tiktok','YouTube Shorts':'youtube',LinkedIn:'linkedin',Facebook:'facebook'};
+function rbAiCurrentPlatform(){return RB_AI_PLATFORM[$('rb-platform').value]||'instagram'}
+function rbAiStatus(message,error=false){
+ const target=$('rb-ai-status');target.textContent=message;target.style.color=error?'#ffb5ab':'#a9e0ce';
+}
+function rbAiShowPreview(){
+ if(!rbAiKit)return;
+ $('rb-ai-preview').value=rbAiKit[rbAiCurrentPlatform()]||'';
+}
+$('rb-platform').addEventListener('change',rbAiShowPreview);
+$('rb-ai-test').addEventListener('click',async()=>{
+ $('rb-ai-test').disabled=true;
+ try{
+  const status=await rbApi('/api/ai/status');
+  if(!status.configured)throw Error('Backend connected, but OPENAI_API_KEY has not been set in server secrets.');
+  rbAiStatus('✓ Connected to Rollblink AI ('+status.model+'). Key exists on the server; actual generation requires API credits.');
+ }catch(e){rbAiStatus('Not connected: '+e.message,true)}
+ finally{$('rb-ai-test').disabled=false}
+});
+$('rb-ai-generate').addEventListener('click',async()=>{
+ if(rbAiInFlight)return;
+ const transcript=transcriptText(state.captions);
+ if(!transcript){rbAiStatus('Generate or import timed spoken captions first.',true);return}
+ rbAiInFlight=true;$('rb-ai-generate').disabled=true;
+ rbAiStatus('Creating three hooks, an opening title and five tailored posts…');
+ try{
+  const kit=await rbApi('/api/creator-kit',{method:'POST',data:{
+   transcript,tone:$('rb-ai-tone').value,direction:$('rb-ai-direction').value
+  }});
+  if(!Array.isArray(kit.hooks)||kit.hooks.length!==3||!kit.instagram||!kit.onScreenTitle)throw Error('Incomplete response from AI. No edits were applied.');
+  rbAiKit=kit;
+  const choices=$('rb-ai-hooks');choices.replaceChildren();
+  kit.hooks.forEach((hook,i)=>{
+   const button=document.createElement('button');button.type='button';
+   button.textContent=(i+1)+'. '+hook;
+   button.addEventListener('click',()=>{
+    $('rb-title').value=hook.slice(0,150);
+    rbAiStatus('Hook selected. Tap Add to video to insert it as an opening title.');
+   });
+   choices.appendChild(button);
+  });
+  $('rb-ai-edit-suggestion').textContent=kit.editSuggestion||'Review and tighten the opening.';
+  $('rb-ai-results').hidden=false;
+  rbAiShowPreview();
+  $('rb-title').value=kit.onScreenTitle.slice(0,150);
+  $('rb-post').value=kit[rbAiCurrentPlatform()]||'';
+  rbAiStatus('✓ Creator kit ready. Review your wording; captions have NOT been added to your video.');
+ }catch(e){rbAiStatus('AI generation failed: '+e.message,true)}
+ finally{rbAiInFlight=false;$('rb-ai-generate').disabled=false}
+});
+$('rb-ai-apply-title').addEventListener('click',()=>{
+ if(!rbAiKit)return;
+ $('rb-title').value=rbAiKit.onScreenTitle;
+ rbAiStatus('Opening title loaded. Tap Add to video to apply it.');
+});
+$('rb-ai-apply-copy').addEventListener('click',()=>{
+ if(!rbAiKit)return;
+ $('rb-post').value=rbAiKit[rbAiCurrentPlatform()]||'';
+ rbAiStatus('Platform draft loaded. Edit it before publishing.');
+});
+
 $('rb-open-publish').addEventListener('click',()=>{
  const details=$('rb-publish-panel');details.open=true;
  const nav=document.querySelector('[data-mobile-tool="generate"]');
