@@ -187,14 +187,28 @@ async function publishTikTok(input){
  const a=await validToken('tiktok'),file=await video('tiktok',input);
  const creator=await tiktokCreator();
  if(!creator.privacyOptions.includes(input.privacy))fail('Choose an allowed TikTok audience from the current creator settings.');
+ // FILE_UPLOAD avoids requiring URL ownership verification, and does not expose the video publicly.
+ const chunkSize=file.size<10000000?file.size:10000000;
+ const totalChunks=Math.floor(file.size/chunkSize);
  const d=await requestJson('https://open.tiktokapis.com/v2/post/publish/video/init/',{method:'POST',token:a.access_token,body:{
   post_info:{title:String(input.caption||'').slice(0,2200),privacy_level:input.privacy,
    disable_comment:Boolean(input.disableComments),disable_duet:Boolean(input.disableDuet),disable_stitch:Boolean(input.disableStitch),
    brand_organic_toggle:Boolean(input.ownBrand),is_aigc:Boolean(input.aiGenerated)},
-  source_info:{source:'PULL_FROM_URL',video_url:file.url}
+  source_info:{source:'FILE_UPLOAD',video_size:file.size,chunk_size:chunkSize,total_chunk_count:totalChunks}
  }});
- if(!d.data?.publish_id)fail('TikTok did not accept the posting request.',502);
- return {platform:'tiktok',status:'submitted',publishId:d.data.publish_id,message:'TikTok accepted the upload request. Publication is not yet confirmed.'};
+ if(!d.data?.publish_id||!d.data?.upload_url)fail('TikTok did not return an upload session.',502);
+ const endpoint=new URL(d.data.upload_url);
+ if(endpoint.protocol!=='https:'||!endpoint.hostname.endsWith('.tiktokapis.com'))fail('TikTok returned an unsafe upload URL.',502);
+ for(let i=0;i<totalChunks;i++){
+  const start=i*chunkSize,end=i===totalChunks-1?file.size-1:(i+1)*chunkSize-1;
+  const size=end-start+1;
+  const resp=await fetch(endpoint.href,{method:'PUT',headers:{
+   'Content-Type':'video/mp4','Content-Length':String(size),
+   'Content-Range':'bytes '+start+'-'+end+'/'+file.size
+  },body:createReadStream(file.path,{start,end}),duplex:'half'});
+  if(![201,206].includes(resp.status))fail('TikTok video transfer failed on chunk '+(i+1)+' ('+resp.status+').',502);
+ }
+ return {platform:'tiktok',status:'submitted',publishId:d.data.publish_id,message:'TikTok received the MP4. Use Check TikTok status to confirm publishing.'};
 }
 async function tiktokStatus(input){
  const a=await validToken('tiktok');
