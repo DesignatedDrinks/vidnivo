@@ -4,9 +4,10 @@
 import {createServer} from 'node:http';
 import {timingSafeEqual} from 'node:crypto';
 import {handleSocial} from './social.mjs';
+import {requestCreatorKit} from './creator.mjs';
 
 const PORT=Number(process.env.PORT||8080);
-const MODEL=process.env.OPENAI_MODEL||'gpt-4o-mini';
+const MODEL=process.env.OPENAI_MODEL||'gpt-5.4-mini';
 const OPENAI_KEY=process.env.OPENAI_API_KEY||'';
 const ACCESS_TOKEN=process.env.ROLLBLINK_ACCESS_TOKEN||'';
 const ALLOWED_ORIGINS=(process.env.ALLOWED_ORIGINS||'https://designateddrinks.github.io')
@@ -75,6 +76,23 @@ export const server=createServer(async(req,res)=>{
  }
  if(req.url==='/health'&&req.method==='GET'){respond(res,200,{status:'ok',aiConfigured:Boolean(OPENAI_KEY&&ACCESS_TOKEN)},origin);return}
  if(await handleSocial(req,res,{authorized,readBody,respond,origin}))return;
+ if(req.url==='/api/ai/status'&&req.method==='GET'){
+  if(!authorized(req)){respond(res,401,{error:'Unauthorized.'},origin);return}
+  respond(res,200,{configured:Boolean(OPENAI_KEY),model:MODEL,keyLocation:'server-secret',mode:'beta'},origin);return
+ }
+ if(req.url==='/api/creator-kit'&&req.method==='POST'){
+  if(!authorized(req)){respond(res,401,{error:'Unauthorized.'},origin);return}
+  if(rateExceeded(req)){respond(res,429,{error:'Too many AI requests. Retry after a minute.'},origin);return}
+  try{
+   const input=await readBody(req);
+   const result=await requestCreatorKit(input,{key:OPENAI_KEY,model:MODEL});
+   respond(res,200,result,origin);
+  }catch(e){
+   const status=Number.isInteger(e.status)&&e.status>=400&&e.status<600?e.status:500;
+   respond(res,status,{error:status===500?'AI Creator Kit failed. Try again.':String(e.message)},origin);
+  }
+  return;
+ }
  if(req.url!=='/api/generate'||req.method!=='POST'){respond(res,404,{error:'Not found.'},origin);return}
  if(!authorized(req)){respond(res,401,{error:'Unauthorized.'},origin);return}
  if(!OPENAI_KEY){respond(res,503,{error:'OPENAI_API_KEY is not configured on the server.'},origin);return}
