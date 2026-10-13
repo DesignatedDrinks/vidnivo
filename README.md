@@ -6,9 +6,9 @@
 AI Creator Kit from the video's real spoken captions: three alternative
 hooks, an on-screen opening title, distinct Instagram/TikTok/YouTube/
 Facebook/LinkedIn posts, a YouTube title and one editing suggestion.
-The Expo native Social Studio supports the same backend Creator Kit and
-makes suggested opening titles actual undoable timeline overlays. A
-separate iPhone-only BYOK path remains available for basic post drafts.
+The Expo native Social Studio supports the same complete Creator Kit
+using either its on-device secure OpenAI key or the hosted backend.
+Suggested opening titles become real undoable timeline overlays.
 
 The private backend includes authenticated AI endpoints, OAuth account
 connections and MP4 publishing workflow scaffolding. It **does not
