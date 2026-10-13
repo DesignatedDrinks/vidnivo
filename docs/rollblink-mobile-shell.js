@@ -127,6 +127,21 @@ export function createRollblinkMobileShell(bridge){
    button.querySelector('.mobile-clip-thumbnails')?.remove();
    drawMobileThumbnails(clip,button);
   }
+  // A visible end-of-track import affordance, as in the mobile editor reference.
+  // Recreate safely on every timeline update so it cannot duplicate.
+  byId('timeline').querySelector('.mobile-add-source')?.remove();
+  const add=document.createElement('label');
+  add.className='mobile-add-source';add.htmlFor='videoInput';
+  add.setAttribute('role','button');add.setAttribute('tabindex','0');
+  add.setAttribute('aria-label','Add another video or photo');
+  add.textContent='+';
+  add.onclick=event=>event.stopPropagation();
+  add.onkeydown=event=>{
+   if(event.key==='Enter'||event.key===' '){
+    event.preventDefault();byId('videoInput').click();
+   }
+  };
+  byId('timeline').append(add);
   refreshCaptions();refreshBusy();updatePosition();
  }
  function refreshCaptions(){
@@ -294,7 +309,7 @@ export function createRollblinkMobileShell(bridge){
   };
   const cover=byId('mobileCover');if(cover)cover.onclick=()=>byId('rb-cover').click();
   els.scroller.addEventListener('click',event=>{
-   if(event.target.closest('button'))return;
+   if(event.target.closest('button,label'))return;
    const rect=els.content.getBoundingClientRect();
    const x=event.clientX-rect.left;
    if(x<0||!Number.isFinite(x))return;
