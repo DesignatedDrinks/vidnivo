@@ -12,7 +12,7 @@ export function createRollblinkMobileShell(bridge){
  const {$,state,total,duration,sourceById,setTab,reset,pause,seekTimeline,
   selectCaptionForEditing,renderCaptions,renderTimeline,renderEditor,requestDraw,
   startExport,runAutoCaptions,toast,key,rbSave,applyVoicePolish}=bridge;
- let ready=false,geometry=timelineGeometry(0),lastContext='',currentTool='edit',latestThumbTask=0;
+ let ready=false,geometry=timelineGeometry(0),lastContext='',currentTool='edit';
  const els={};
  const isSmall=()=>window.matchMedia('(max-width:770px)').matches;
  const byId=id=>$(id);
@@ -57,7 +57,9 @@ export function createRollblinkMobileShell(bridge){
  }
  function refreshBusy(){
   if(!ready)return;
-  const busy=!state.clips.length||state.exporting||state.captioning||state.faceLoading||state.creatorBusy;
+  const processing=Boolean(state.exporting||state.captioning||state.faceLoading||state.creatorBusy);
+  const busy=!state.clips.length||processing;
+  document.querySelectorAll('[data-mobile-tool]').forEach(button=>{button.disabled=processing});
   els.export.disabled=busy;
   els.mute.disabled=busy;
   byId('mobileAddCaption').disabled=busy;
@@ -152,7 +154,6 @@ export function createRollblinkMobileShell(bridge){
  async function prepareThumbnails(source){
   if(!source||source.thumbnails||source.thumbnailing)return;
   source.thumbnailing=true;
-  const serial=++latestThumbTask;
   const v=document.createElement('video');v.preload='auto';v.playsInline=true;v.muted=true;
   v.src=source.url;
   try{
@@ -169,7 +170,7 @@ export function createRollblinkMobileShell(bridge){
    const fctx=frame.getContext('2d');
    const previews=[];
    for(let i=0;i<count;i++){
-    if(!state.sources.includes(source)||serial!==latestThumbTask)break;
+    if(!state.sources.includes(source))break;
     const wanted=Math.max(0,Math.min(source.duration-.12,(i+.5)/count*source.duration));
     await new Promise(resolve=>{
      let done=false;
@@ -262,7 +263,7 @@ export function createRollblinkMobileShell(bridge){
   els.audio=byId('mobileAudioPanel');els.muted=byId('mobileAudioMuted');els.polish=byId('mobileVoicePolish');
   if(Object.values(els).some(node=>!node))throw Error('Rollblink mobile editor markup is incomplete.');
   ready=true;
-  byId('mobileClose').onclick=reset;
+  byId('mobileClose').onclick=()=>{closePanels();reset()};
   byId('mobileExport').onclick=()=>{openInspector('export','edit');void startExport()};
   byId('mobileQuality').value=byId('quality').value;
   byId('mobileQuality').onchange=()=>{byId('quality').value=byId('mobileQuality').value};
