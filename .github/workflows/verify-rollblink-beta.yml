@@ -38,6 +38,11 @@ jobs:
           node --check server/social.mjs
       - name: Test auth, input checks, AI structured output, and API wiring
         run: node --test tests/creatorKit.test.mjs tests/socialBeta.test.mjs
+      - name: Verify native TypeScript integration and full local Creator Kit
+        run: |
+          npm install --no-audit --no-fund
+          npm run typecheck
+          npm test
       - name: Validate deployment recipe and Docker build
         run: |
           test -f render.yaml
