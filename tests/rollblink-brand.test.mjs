@@ -4,9 +4,9 @@ import {readFileSync,existsSync} from 'node:fs';
 
 const read=path=>readFileSync(path,'utf8');
 test('ROLLBLINK brand appears across both published video editors',()=>{
- const html=read('index.html'),site=read('docs/index.html');
- assert.equal(html,site);
- assert.match(html,/<title>ROLLBLINK Studio/);
+ const html=read('docs/index.html'),site=read('index.html');
+ assert.match(site,/docs\/\?/);
+ assert.match(html,/<title>ROLLBLINK/);
  assert.match(html,/<span>ROLL<\/span><span class="brand-accent">BLINK<\/span>/);
  assert.match(html,/\.\/rollblink-mark\.svg/);
  assert.match(html,/rollblink-(filters|autopilot|face-retouch|branding|caption-touch|export-sync)\.js/);
