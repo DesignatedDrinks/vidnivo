@@ -763,18 +763,19 @@ function EditorApp() {
       onSeek={seek} onScrubStart={() => setPlaying(false)}
       onAddVideo={importVisual} onAddAudio={importAudio} />
 
-    {selected ? <View style={styles.contextBar}>
-      <Text style={styles.contextTitle}>CLIP  ·  {fmt(clipDurationSafe(selected))}  ·  {selected.speed}× SPEED</Text>
-      <Text style={styles.contextVolume}>{selected.muted ? 'Muted' : 'Volume ' + Math.round(selected.volume * 100) + '%'}</Text>
-      <Slider style={{ height: 20 }} minimumValue={0} maximumValue={1}
+    {selected ? <View style={styles.captionContextCard}>
+      <View style={styles.captionContextHeading}>
+        <Ionicons name="film-outline" size={19} color="#DCE4E9" />
+        <Text style={styles.captionContextText} numberOfLines={1}>
+          CLIP · {fmt(clipDurationSafe(selected))} · {selected.speed.toFixed(2)}×
+        </Text>
+        <Text style={styles.captionContextTime}>{selected.muted ? 'Muted' : Math.round(selected.volume * 100) + '% audio'}</Text>
+      </View>
+      <Slider style={{ height: 19, marginHorizontal: 6 }} minimumValue={0} maximumValue={1}
         step={.05} value={selected.volume} minimumTrackTintColor="#27D3E7"
         maximumTrackTintColor="#575B60" thumbTintColor="#27D3E7"
         onSlidingComplete={volume => apply(p => editClip(p, selected.id, { volume }))} />
-      <Text style={styles.contextVolume}>Playback speed {selected.speed.toFixed(2)}×</Text>
-      <Slider style={{ height: 23 }} minimumValue={.25} maximumValue={4}
-        step={.25} value={selected.speed} minimumTrackTintColor="#27D3E7"
-        maximumTrackTintColor="#575B60" thumbTintColor="#27D3E7"
-        onSlidingComplete={speed => apply(p => rippleSpeedClip(p, selected.id, speed))} />
+      <EditorRail actions={clipActions} compact />
     </View> : null}
     {selectedText ? <View style={styles.captionContextCard}>
       <View style={styles.captionContextHeading}>
@@ -788,7 +789,7 @@ function EditorApp() {
       <Ionicons name="radio-button-on" size={17} color="#FF6875" />
       <Text style={styles.recordingBannerText}>Recording voiceover  {Math.round(recordingState.durationMillis / 1000)}s</Text>
     </View> : null}
-    <EditorRail actions={selected ? clipActions : baseActions} selectedId={selectedText ? "captions" : undefined} />
+    <EditorRail actions={baseActions} selectedId={selectedText ? "captions" : selected ? "edit" : undefined} />
     {lastExport ? <Pressable accessibilityRole="button" onPress={() => shareExport(lastExport).catch(e => Alert.alert('Sharing failed', String(e)))}
       style={styles.shareResult}><Text style={styles.shareResultText}>✓ MP4 ready — Share</Text></Pressable> : null}
 
