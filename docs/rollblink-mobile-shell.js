@@ -336,6 +336,7 @@ export function createRollblinkMobileShell(bridge){
    bridge.drawFrame();
   };
   byId('mobileDrawerBackdrop').onclick=closePanels;
+  byId('rb-tools-close').onclick=closePanels;
   byId('mobileEditSelected').onclick=()=>contextAction('edit');
   document.querySelectorAll('[data-mobile-context]').forEach(button=>
    button.onclick=()=>contextAction(button.dataset.mobileContext));
