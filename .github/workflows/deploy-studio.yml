@@ -50,3 +50,24 @@ jobs:
       - name: Deploy app
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify published editor and assets over HTTPS
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          SITE="${SITE_URL%/}/"
+          for attempt in $(seq 1 12); do
+            if curl -fsSL --max-time 20 "${SITE}?revision=${GITHUB_SHA}" -o /tmp/rollblink-live.html &&
+               grep -q 'rollblink-editor-shell.css?v=20261012-mobilefirst' /tmp/rollblink-live.html &&
+               curl -fsSL --max-time 20 "${SITE}rollblink-editor-shell.css?revision=${GITHUB_SHA}" -o /tmp/rollblink-live.css &&
+               grep -q -- '--rb-bg:#07090D' /tmp/rollblink-live.css &&
+               curl -fsSL --max-time 20 "${SITE}rollblink-mobile-shell.js?revision=${GITHUB_SHA}" -o /tmp/rollblink-live-shell.js &&
+               grep -q 'prepareWaveform' /tmp/rollblink-live-shell.js; then
+              echo "Verified live mobile editor: ${SITE}"
+              exit 0
+            fi
+            echo "Waiting for Pages CDN to serve current assets (attempt ${attempt}/12)"
+            sleep 6
+          done
+          echo 'Deployment reported success but live mobile-first assets could not be verified.'
+          exit 1
