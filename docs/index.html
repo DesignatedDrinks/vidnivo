@@ -461,13 +461,14 @@ input[type=range]{accent-color:#afc0ff}
             <label>Title (YouTube)<input id="rb-publish-title" maxlength="100" placeholder="Clear title"></label>
           </div>
           <label>Caption / description<textarea id="rb-publish-caption" maxlength="5000" placeholder="Write your own or Generate an AI draft above"></textarea></label>
-          <div id="rb-yt-options" class="rb-layout"><label>YouTube visibility<select id="rb-publish-youtube-privacy"><option value="private">Private (beta default)</option><option value="unlisted">Unlisted</option><option value="public">Public</option></select></label></div>
+          <div id="rb-yt-options" class="rb-layout" hidden><label>YouTube visibility<select id="rb-publish-youtube-privacy"><option value="private">Private (beta default)</option><option value="unlisted">Unlisted</option><option value="public">Public</option></select></label></div>
           <div id="rb-tt-options" hidden>
             <div class="rb-layout"><label>TikTok audience<select id="rb-publish-tiktok-privacy"><option value="">Connect TikTok to load allowed audiences</option></select></label></div>
             <label class="rb-check"><input type="checkbox" id="rb-tt-ownbrand"> This post promotes my own business or brand</label>
             <label class="rb-check"><input type="checkbox" id="rb-tt-aigc"> This video is AI-generated</label>
             <p class="rb-note">TikTok private/test posting and public access depend on developer app approval.</p>
           </div>
+          <button id="rb-use-generated" type="button" class="rb-s">Use AI title &amp; caption from Generate</button>
           <label>Finished MP4 (optional — uses the current export if available)<input id="rb-publish-file" type="file" accept="video/mp4,.mp4"></label>
           <div class="rb-row"><button id="rb-refresh-publish" type="button" class="rb-s">Refresh connections</button><button id="rb-send-publish" type="button" class="rb-p">Review &amp; Publish</button></div>
           <div class="rb-row"><button id="rb-complete-ig" type="button" class="rb-s" hidden>Complete Instagram Reel</button><button id="rb-check-tt" type="button" class="rb-s" hidden>Check TikTok status</button></div>
@@ -2234,6 +2235,11 @@ async function rbLoadTikTokOptions(){
   if(!selector.options.length)rbPublishMessage('TikTok has not provided any permitted privacy options.',true);
  }catch(e){rbPublishMessage('TikTok privacy settings: '+e.message,true)}
 }
+$('rb-use-generated').addEventListener('click',()=>{
+ $('rb-publish-title').value=$('rb-title').value.slice(0,100);
+ $('rb-publish-caption').value=$('rb-post').value;
+ rbPublishMessage('Generated copy copied into the publish form. Review it before sending.');
+});
 $('rb-publish-platform').addEventListener('change',()=>{
  const platform=$('rb-publish-platform').value;
  $('rb-yt-options').hidden=platform!=='youtube';
