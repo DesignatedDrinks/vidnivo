@@ -2198,9 +2198,9 @@ let rbPublishedMedia=null,rbTikTokPublishId=null,rbPublishBusy=false;
 function rbApiBase(){
  const raw=$('rb-server').value.trim(),token=$('rb-token').value.trim();
  if(!raw||!token)throw Error('Open AI server connection and enter your HTTPS API URL and beta access token first.');
- const u=new URL(raw.replace(/\\/api\\/generate\\/?$/,'').replace(/\\/$/,''));
+ const u=new URL(raw.replace(/\/api\/generate\/?$/,'').replace(/\/$/,''));
  if(u.protocol!=='https:'&&!(u.protocol==='http:'&&u.hostname==='localhost'))throw Error('Use an HTTPS backend (localhost allowed for testing).');
- return {base:u.origin+u.pathname.replace(/\\/$/,''),token};
+ return {base:u.origin+u.pathname.replace(/\/$/,''),token};
 }
 async function rbApi(path,{method='GET',data=null,blob=null}={}){
  const {base,token}=rbApiBase();
