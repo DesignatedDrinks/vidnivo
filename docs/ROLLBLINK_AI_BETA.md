@@ -9,8 +9,9 @@ Open an exported video project in the **native Expo Rollblink app** →
 
 **Create my content kit** generates distinct captions for Instagram, TikTok,
 YouTube, Facebook, LinkedIn and a YouTube title from timestamped spoken
-captions. This direct-to-OpenAI beta route stores the key in iOS/Android
-secure storage. It is not included in GitHub, cloud project metadata or
+captions. This direct-to-OpenAI beta route also generates three opening hooks,
+a suggested on-screen title and one editing note. It stores the key
+in iOS/Android secure storage. It is not included in GitHub, cloud project metadata or
 an exported video. The native app must be built/installed; a GitHub commit
 does not install the app on your phone.
 
