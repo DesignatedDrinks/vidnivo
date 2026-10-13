@@ -82,10 +82,10 @@ test('hit-testing selects only a visible caption and uses a finger-sized minimum
  assert.equal(layout.pointInCaption({x:95,y:105},tiny,44),true);
 });
 test('exports render saved caption size/location but no touch selection handles',()=>{
- const from=script.indexOf('function drawFrame(){');
+ const from=script.indexOf('function drawFrame(');
  const to=script.indexOf('function requestDraw(){',from);
  const render=script.slice(from,to);
- assert.match(render,/const layout=captionLayout\(ctx,cap,W,H\)/);
+ assert.match(render,/const layout=captionLayout\(ctx,\{\.\.\.cap,fontId:/);
  assert.match(render,/const \{x,y,size,leading,lines,bounds\}=layout/);
  assert.match(render,/ctx\.fillText\(line,x,yy\)/);
  assert.match(render,/!state\.exporting&&state\.editCaptionId===cap\.id/);
