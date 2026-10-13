@@ -49,7 +49,8 @@ try{
  await page.locator('#mobileDrawerBackdrop').click({position:{x:10,y:125}});
  await page.locator('[data-mobile-tool="generate"]').click();
  assert.ok(await page.locator('.rb-tools').isVisible(),'Generate drawer did not open');
- await page.locator('#mobileDrawerBackdrop').click({position:{x:10,y:125}});
+ await page.locator('#rb-tools-close').click();
+ assert.equal(await page.locator('.rb-tools').isVisible(),false,'Generate close control failed');
  await page.locator('#videoInput').setInputFiles('/tmp/rollblink-smoke.webm');
  await page.waitForFunction(()=>document.querySelectorAll('#timeline .clip').length===1,null,{timeout:20000});
  assert.equal(await page.locator('#mobileExport').isEnabled(),true,'Imported video must unlock export');
