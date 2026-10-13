@@ -4,7 +4,7 @@ import {ActivityIndicator,Alert,KeyboardAvoidingView,Modal,Platform,Pressable,Sc
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import type {Project} from '../domain/timeline';
-import {generateSocialPostDraft,testOpenAIKey,OPENAI_MODEL} from '../social/openai';
+import {generateFullCreatorKitFromKey,testOpenAIKey,OPENAI_MODEL} from '../social/openai';
 import {loadOpenAIKey,saveOpenAIKey,removeOpenAIKey} from '../social/secrets';
 import {loadSocialDraft,saveSocialDraft} from '../social/drafts';
 import {SOCIAL_PLATFORMS,SOCIAL_LABELS,EMPTY_SOCIAL_DRAFT,
@@ -121,7 +121,10 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
        facebook:kit.facebook,linkedin:kit.linkedin,youtubeTitle:kit.youtubeTitle};
      }else{
       const key=await loadOpenAIKey();if(!key)throw Error('Your saved OpenAI key is missing.');
-      generated=await generateSocialPostDraft(project,key,directions);setCreatorKit(null);
+      const kit=await generateFullCreatorKitFromKey(project,key,directions,aiTone);
+      setCreatorKit(kit);
+      generated={instagram:kit.instagram,tiktok:kit.tiktok,youtube:kit.youtube,
+       facebook:kit.facebook,linkedin:kit.linkedin,youtubeTitle:kit.youtubeTitle};
      }
      await saveSocialDraft(project.id,project.revision,generated);
      setDraft(generated);setDraftRevision(project.revision);
@@ -314,7 +317,7 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
      <Pressable disabled={busy||(!hasKey&&!betaConfigured)} style={[styles.btn,busy&&styles.dim]} onPress={()=>{void generate();}}>
       <Text style={styles.buttonText}>{busy?'Creating…':'✦ Create my content kit'}</Text>
      </Pressable>
-     <Text style={styles.fine}>Generates five platform-specific posts. When using the hosted AI server, it also creates three hook ideas and an opening title. API credits required.</Text>
+     <Text style={styles.fine}>Generates three opening hooks, an on-screen title and distinct posts for five platforms from your spoken captions. API credits required.</Text>
     </View>
     {draft?<View style={styles.card}>
      <Text style={styles.heading}>3 · Review and edit</Text>
