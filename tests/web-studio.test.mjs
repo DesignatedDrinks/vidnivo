@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
-const root=readFileSync('index.html','utf8');
-const mirror=readFileSync('docs/index.html','utf8');
+const root=readFileSync('docs/index.html','utf8');
+const mirror=readFileSync('index.html','utf8');
 const shader=readFileSync('rollblink-filters.js','utf8');
 const shaderMirror=readFileSync('docs/rollblink-filters.js','utf8');
 const source=root.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1]||'';
@@ -12,7 +12,7 @@ function checkModule(text){
  assert.equal(r.status,0,r.stderr||r.stdout);
 }
 test('website actually serves the standalone editor from both Pages configurations',()=>{
- assert.equal(root,mirror,'Repository-root and /docs GitHub Pages editor must be identical');
+ assert.match(mirror,/docs\/\?/,'Repository root must redirect to the Pages editor');
  assert.equal(shader,shaderMirror,'Root and /docs video shader must be identical');
  assert.match(root,/<canvas id="preview"/);
  assert.match(root,/<button id="autoCaptions"/);
