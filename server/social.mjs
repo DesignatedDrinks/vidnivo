@@ -1,14 +1,14 @@
 /* Rollblink single-owner beta social publishing. Official OAuth and provider APIs.
    Requires one trusted backend instance, persistent volume and secrets; see README. */
-import {randomBytes,randomUUID,createCipheriv,createDecipheriv} from 'node:crypto';
+import {randomBytes,randomUUID,createCipheriv,createDecipheriv,createHash} from 'node:crypto';
 import {createReadStream,createWriteStream} from 'node:fs';
-import {mkdir,readFile,writeFile,rename,stat,unlink,open} from 'node:fs/promises';
+import {mkdir,readFile,writeFile,rename,stat,unlink,open,readdir} from 'node:fs/promises';
 import {pipeline} from 'node:stream/promises';
 import {Transform} from 'node:stream';
 import {join} from 'node:path';
 
 const env=process.env;
-const API_BASE=(env.PUBLIC_BASE_URL||'').replace(/\/$/,'');
+const API_BASE=(env.PUBLIC_BASE_URL||env.RENDER_EXTERNAL_URL||'').replace(/\/$/,'');
 const ORIGIN=(env.ROLLBLINK_EDITOR_ORIGIN||'https://designateddrinks.github.io');
 const MEDIA_DIR=env.MEDIA_DIR||'/tmp/rollblink-media';
 const STORE_FILE=env.SOCIAL_TOKEN_FILE||'/tmp/rollblink-social-tokens.enc';
@@ -17,7 +17,8 @@ const GRAPH='https://graph.instagram.com/'+(env.INSTAGRAM_GRAPH_VERSION||'v25.0'
 const platformNames=['instagram','youtube','tiktok'];
 const pendingStates=new Map();
 let savedTokens=null;
-const encryptionKey=/^[0-9a-fA-F]{64}$/.test(env.ROLLBLINK_TOKEN_ENCRYPTION_KEY||'')?Buffer.from(env.ROLLBLINK_TOKEN_ENCRYPTION_KEY,'hex'):null;
+const privateKeySecret=env.ROLLBLINK_TOKEN_ENCRYPTION_KEY||'';
+const encryptionKey=privateKeySecret.length>=32?createHash('sha256').update(privateKeySecret).digest():null;
 const clients={
  instagram:{id:env.INSTAGRAM_APP_ID,secret:env.INSTAGRAM_APP_SECRET},
  youtube:{id:env.GOOGLE_CLIENT_ID,secret:env.GOOGLE_CLIENT_SECRET},
@@ -122,17 +123,33 @@ async function mediaFile(id){
  if(!s||s.size<32||Date.now()-s.mtimeMs>MEDIA_TTL)fail('Video not available. Upload again.',404);
  return {path,size:s.size};
 }
+/* Remove expired public video URLs and reclaim a bounded private beta disk. */
+export async function cleanupExpiredMedia(){
+ let removed=0;
+ const now=Date.now();
+ let names;
+ try{names=await readdir(MEDIA_DIR)}catch(e){if(e.code==='ENOENT')return 0;throw e}
+ for(const name of names){
+  if(!/^[0-9a-f-]{36}\\.mp4$/.test(name))continue;
+  const path=join(MEDIA_DIR,name);
+  const info=await stat(path).catch(()=>null);
+  if(info&&now-info.mtimeMs>MEDIA_TTL){await unlink(path).catch(()=>{});removed++}
+ }
+ return removed;
+}
+
 async function upload(req){
  if(String(req.headers['content-type']||'').split(';')[0]!=='video/mp4')fail('Only MP4 video uploads are supported.');
  if(!API_BASE.startsWith('https://')&&!API_BASE.startsWith('http://localhost:'))fail('PUBLIC_BASE_URL must be configured.',503);
- const length=Number(req.headers['content-length']||0);
- if(!Number.isSafeInteger(length)||length<32||length>MAX_VIDEO)fail('MP4 must be 32 bytes to 200 MB, with Content-Length.');
+ const rawLength=req.headers['content-length'];
+ const length=rawLength===undefined?null:Number(rawLength);
+ if(length!==null&&(!Number.isSafeInteger(length)||length<32||length>MAX_VIDEO))fail('MP4 must be 32 bytes to 200 MB.');
  await mkdir(MEDIA_DIR,{recursive:true});
  const id=randomUUID(),path=join(MEDIA_DIR,id+'.mp4');
  let count=0;
  try{
-  await pipeline(req,new Transform({transform(chunk,_enc,cb){count+=chunk.length;cb(count>MAX_VIDEO||count>length?Error('Video exceeds declared size.'):null,chunk)}}),createWriteStream(path,{flags:'wx',mode:0o600}));
-  if(count!==length)fail('Video upload incomplete.');
+  await pipeline(req,new Transform({transform(chunk,_enc,cb){count+=chunk.length;cb(count>MAX_VIDEO||(length!==null&&count>length)?Error('Video exceeds maximum or declared size.'):null,chunk)}}),createWriteStream(path,{flags:'wx',mode:0o600}));
+  if(count<32||(length!==null&&count!==length))fail('Video upload incomplete.');
   const handle=await open(path,'r'),header=Buffer.alloc(12);
   try{await handle.read(header,0,12,0)}finally{await handle.close()}
   if(header.toString('ascii',4,8)!=='ftyp')fail('Invalid MP4 file. Export an MP4, not WebM.');
