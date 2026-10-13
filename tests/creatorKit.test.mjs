@@ -27,7 +27,7 @@ test('creator output requires three distinct-shaped hooks and valid platform pos
 });
 test('creator strict JSON schema includes every required text field',()=>{
  assert.equal(creatorFormat.schema.additionalProperties,false);
- assert.equal(creatorFormat.schema.required.length,10);
+ assert.equal(creatorFormat.schema.required.length,9);
  assert.equal(CREATOR_MODEL_DEFAULT,'gpt-5.4-mini');
 });
 test('creator API uses official Responses with store:false and structured output',async()=>{
