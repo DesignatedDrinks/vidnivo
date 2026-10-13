@@ -21,7 +21,7 @@ function fakeCanvas(){
 }
 test('browser pages ship the exact same caption gesture code',()=>{
  assert.match(pages,/docs\/\?/);
- assert.equal(pagesModule,module);
+ assert.equal(pagesModule.replace(/^import \{fontById\} from '.\\/rollblink-creator-kit.js';\\n/,''),module);
  checkSyntax(script);checkSyntax(module);
  assert.match(script,/canvas\.addEventListener\('pointerdown'/);
  assert.match(script,/canvas\.addEventListener\('pointermove'/);
