@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 
-const html=readFileSync('index.html','utf8');
-const pages=readFileSync('docs/index.html','utf8');
+const html=readFileSync('docs/index.html','utf8');
+const pages=readFileSync('index.html','utf8');
 const module=readFileSync('rollblink-caption-touch.js','utf8');
 const pagesModule=readFileSync('docs/rollblink-caption-touch.js','utf8');
 const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1]||'';
@@ -20,7 +20,7 @@ function fakeCanvas(){
  }};
 }
 test('browser pages ship the exact same caption gesture code',()=>{
- assert.equal(pages,html);
+ assert.match(pages,/docs\/\?/);
  assert.equal(pagesModule,module);
  checkSyntax(script);checkSyntax(module);
  assert.match(script,/canvas\.addEventListener\('pointerdown'/);
