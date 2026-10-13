@@ -49,6 +49,7 @@ try{
  await page.locator('#mobileDrawerBackdrop').click({position:{x:10,y:125}});
  await page.locator('[data-mobile-tool="generate"]').click();
  assert.ok(await page.locator('.rb-tools').isVisible(),'Generate drawer did not open');
+ assert.equal(await page.locator('#tab-captions').isVisible(),false,'Caption sheet must close before opening Generate');
  await page.locator('#rb-tools-close').click();
  assert.equal(await page.locator('.rb-tools').isVisible(),false,'Generate close control failed');
  await page.locator('#videoInput').setInputFiles('/tmp/rollblink-smoke.webm');
