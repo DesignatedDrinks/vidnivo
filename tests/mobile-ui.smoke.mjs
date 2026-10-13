@@ -46,10 +46,10 @@ try{
  await page.locator('#rb-font').selectOption('anton');
  const font=await page.locator('#rb-font-preview').evaluate(node=>getComputedStyle(node).fontFamily);
  assert.match(font,/Anton/i);
- await page.locator('#mobileDrawerBackdrop').click({position:{x:10,y:30}});
+ await page.locator('#mobileDrawerBackdrop').click({position:{x:10,y:125}});
  await page.locator('[data-mobile-tool="generate"]').click();
  assert.ok(await page.locator('.rb-tools').isVisible(),'Generate drawer did not open');
- await page.locator('#mobileDrawerBackdrop').click({position:{x:10,y:30}});
+ await page.locator('#mobileDrawerBackdrop').click({position:{x:10,y:125}});
  await page.locator('#videoInput').setInputFiles('/tmp/rollblink-smoke.webm');
  await page.waitForFunction(()=>document.querySelectorAll('#timeline .clip').length===1,null,{timeout:20000});
  assert.equal(await page.locator('#mobileExport').isEnabled(),true,'Imported video must unlock export');
@@ -64,7 +64,7 @@ try{
  assert.equal(await page.locator('#rb-font-grid button').count(),24,'Font gallery needs 24 real buttons');
  await page.locator('#rb-font-grid button[data-font-card="anton"]').click();
  assert.equal(await page.locator('#rb-font').inputValue(),'anton','Font card must change stored selection');
- await page.locator('#mobileDrawerBackdrop').click({position:{x:10,y:30}});
+ await page.locator('#mobileDrawerBackdrop').click({position:{x:10,y:125}});
  await page.screenshot({path:'/tmp/rollblink-mobile-smoke.png'});
  const saved=await page.evaluate(()=>localStorage.getItem('rollblink:metadata-draft:v2'));
  assert.ok(saved&&JSON.parse(saved).captions.length===1,'Timed caption and font must persist to a draft');
