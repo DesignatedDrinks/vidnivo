@@ -37,7 +37,8 @@ test('auto-caption engine uses local soundtrack and true timestamped speech mode
  assert.match(source,/origin:'auto'/);
  assert.match(source,/state\.captions\.filter\(c=>c\.origin!=='auto'\)/);
  assert.match(source,/state\.captioning=true/);
- assert.doesNotMatch(source,/Bearer |OPENAI_API_KEY|api\.openai\.com/);
+ assert.doesNotMatch(source,/OPENAI_API_KEY|api\.openai\.com/);
+ assert.match(source,/Authorization:'Bearer '\+token/,'Client sends session token to a protected server, not an OpenAI secret');
 });
 test('caption mapping rejects missing or invalid timestamps, preserves captions',()=>{
  const start=source.indexOf('function segmentsFromTranscript(result,maximum){');
