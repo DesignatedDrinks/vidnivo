@@ -53,12 +53,6 @@ export function VideoStage({ project, playheadMs, playing, seekVersion, maxHeigh
     onResponderGrant={()=>{clearGesture();}}
     onResponderMove={event=>{
       if(!movable)return;
-      const x=Number(event.nativeEvent.locationX)/previewWidth;
-      const y=Number(event.nativeEvent.locationY)/(previewWidth/aspectRatio);
-      if(Number.isFinite(x)&&Number.isFinite(y)){
-       const next={x:within(x,.1,.9),y:within(y,.12,.88)};
-       placement.current=next;setPreviewAnchor(next);
-      }
       const touches=event.nativeEvent.touches;
       if(touches?.length>=2&&subtitle){
        const [a,b]=touches;
@@ -68,6 +62,13 @@ export function VideoStage({ project, playheadMs, playing, seekVersion, maxHeigh
         const size=within(Math.round(pinch.current.size*distance/pinch.current.distance),14,90);
         resize.current=size;setPreviewSize(size);
        }
+       return; // Pinching changes size, never jumps the subtitles to one finger.
+      }
+      const x=Number(event.nativeEvent.locationX)/previewWidth;
+      const y=Number(event.nativeEvent.locationY)/(previewWidth/aspectRatio);
+      if(Number.isFinite(x)&&Number.isFinite(y)){
+       const next={x:within(x,.1,.9),y:within(y,.12,.88)};
+       placement.current=next;setPreviewAnchor(next);
       }
     }}
     onResponderRelease={()=>{
