@@ -13,7 +13,7 @@ const ORIGIN=(env.ROLLBLINK_EDITOR_ORIGIN||'https://designateddrinks.github.io')
 const MEDIA_DIR=env.MEDIA_DIR||'/tmp/rollblink-media';
 const STORE_FILE=env.SOCIAL_TOKEN_FILE||'/tmp/rollblink-social-tokens.enc';
 const MAX_VIDEO=200*1024*1024,MEDIA_TTL=48*3600*1000;
-const GRAPH='https://graph.instagram.com/v22.0';
+const GRAPH='https://graph.instagram.com/'+(env.INSTAGRAM_GRAPH_VERSION||'v25.0');
 const platformNames=['instagram','youtube','tiktok'];
 const pendingStates=new Map();
 let savedTokens=null;
@@ -164,7 +164,7 @@ async function instagramFinish(account,tokens){
  const status=await requestJson(GRAPH+'/'+encodeURIComponent(id)+'?fields=status_code',{token:account.access_token});
  if(status.status_code==='ERROR'||status.status_code==='EXPIRED')fail('Instagram processing failed: '+status.status_code,502);
  if(status.status_code!=='FINISHED')return {platform:'instagram',status:'processing',message:'Instagram is still processing. Tap Complete Reel again shortly.'};
- const result=await requestJson(GRAPH+'/'+encodeURIComponent(account.user_id)+'/media_publish',{method:'POST',token:account.access_token,body:{creation_id:id}});
+ const result=await requestJson(GRAPH+'/'+encodeURIComponent(account.user_id)+'/media_publish',{method:'POST',token:account.access_token,form:{creation_id:id}});
  const next={...account,pending_container:null};
  await saveTokens({...tokens,instagram:next});
  return {platform:'instagram',status:'published',postId:result.id,message:'Instagram accepted the Reel for publication.'};
@@ -173,7 +173,7 @@ async function publishInstagram(input){
  const tokens=await loadTokens(),account=await validToken('instagram'),file=await video('instagram',input);
  if(account.pending_container)return instagramFinish(account,await loadTokens());
  const caption=String(input.caption||'').slice(0,2200);
- const result=await requestJson(GRAPH+'/'+encodeURIComponent(account.user_id)+'/media',{method:'POST',token:account.access_token,body:{media_type:'REELS',video_url:file.url,caption,share_to_feed:true}});
+ const result=await requestJson(GRAPH+'/'+encodeURIComponent(account.user_id)+'/media',{method:'POST',token:account.access_token,form:{media_type:'REELS',video_url:file.url,caption,share_to_feed:'true'}});
  if(!result.id)fail('Instagram did not create a Reel container.',502);
  await saveTokens({...await loadTokens(),instagram:{...account,pending_container:String(result.id)}});
  return {platform:'instagram',status:'processing',message:'Reel uploaded for Instagram processing. Tap Complete Reel after it finishes.'};
