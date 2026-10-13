@@ -3,7 +3,7 @@
    For multi-user commercial launch, replace shared bearer token with real identity auth. */
 import {createServer} from 'node:http';
 import {timingSafeEqual} from 'node:crypto';
-import {handleSocial} from './social.mjs';
+import {handleSocial,cleanupExpiredMedia} from './social.mjs';
 import {requestCreatorKit} from './creator.mjs';
 
 const PORT=Number(process.env.PORT||8080);
@@ -134,4 +134,8 @@ export const server=createServer(async(req,res)=>{
   respond(res,status,{error:message},origin);
  }
 });
-if(process.env.NODE_ENV!=='test')server.listen(PORT,'0.0.0.0',()=>process.stdout.write('Rollblink AI server listening on '+PORT+'\n'));
+if(process.env.NODE_ENV!=='test'){
+ server.listen(PORT,'0.0.0.0',()=>process.stdout.write('Rollblink AI server listening on '+PORT+'\n'));
+ void cleanupExpiredMedia().catch(()=>{});
+ setInterval(()=>{void cleanupExpiredMedia().catch(()=>{})},60*60*1000).unref();
+}
