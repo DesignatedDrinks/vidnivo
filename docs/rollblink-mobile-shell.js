@@ -31,6 +31,7 @@ export function createRollblinkMobileShell(bridge){
  }
  function closePanels(){
   document.body.classList.remove('mobile-drawer-open');
+  document.querySelectorAll('.inspector .tab-content').forEach(panel=>{panel.hidden=true});
   document.querySelector('.rb-tools')?.classList.remove('rb-open');
   document.querySelector('.autopilot-card')?.classList.remove('rb-open');
   els.audio.classList.remove('rb-open');
