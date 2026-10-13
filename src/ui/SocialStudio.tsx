@@ -4,15 +4,15 @@ import {ActivityIndicator,Alert,KeyboardAvoidingView,Modal,Platform,Pressable,Sc
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import type {Project} from '../domain/timeline';
-import {generateSocialPostDraft} from '../social/openai';
+import {generateSocialPostDraft,testOpenAIKey,OPENAI_MODEL} from '../social/openai';
 import {loadOpenAIKey,saveOpenAIKey,removeOpenAIKey} from '../social/secrets';
 import {loadSocialDraft,saveSocialDraft} from '../social/drafts';
 import {SOCIAL_PLATFORMS,SOCIAL_LABELS,EMPTY_SOCIAL_DRAFT,
-  type SocialPlatform,type SocialPostDraft} from '../social/copy';
+  type SocialPlatform,type SocialPostDraft,transcriptForSocial} from '../social/copy';
 import {uploadVideoToYouTube} from '../social/youtube';
 import {shareExport} from '../export/native';
 import type {YouTubePrivacy} from '../social/youtubeCore';
-import {getBetaConfig,saveBetaConfig,betaAccounts,betaAuthorizationUrl,betaCreatorPrivacy,betaUploadMp4,betaPublish,betaCompleteInstagram,betaTikTokStatus,type BetaAccounts,type BetaPlatform} from '../social/publishingBeta';
+import {getBetaConfig,saveBetaConfig,betaAccounts,betaAuthorizationUrl,betaCreatorPrivacy,betaUploadMp4,betaPublish,betaCompleteInstagram,betaTikTokStatus,betaAiStatus,betaCreatorKit,type BetaCreatorKit,type BetaAccounts,type BetaPlatform} from '../social/publishingBeta';
 
 interface Props {
  visible:boolean;
@@ -23,14 +23,19 @@ interface Props {
  youtubeToken:string|null;
  canConnectYouTube:boolean;
  connectYouTube:()=>void;
+ addOpeningTitle:(title:string)=>void;
 }
 
 export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
-  youtubeToken,canConnectYouTube,connectYouTube}:Props){
+  youtubeToken,canConnectYouTube,connectYouTube,addOpeningTitle}:Props){
  const insets=useSafeAreaInsets();
  const [apiKeyInput,setApiKeyInput]=useState('');
  const [hasKey,setHasKey]=useState(false);
  const [directions,setDirections]=useState('');
+ const [aiTone,setAiTone]=useState<'natural'|'bold'|'thoughtful'|'funny'|'editorial'>('natural');
+ const [creatorKit,setCreatorKit]=useState<BetaCreatorKit|null>(null);
+ const [aiStatus,setAiStatus]=useState('Not connected');
+ const [useBackendAi,setUseBackendAi]=useState(true);
  const [draft,setDraft]=useState<SocialPostDraft|null>(null);
  const [draftRevision,setDraftRevision]=useState<number|null>(null);
  const [selected,setSelected]=useState<SocialPlatform>('instagram');
@@ -86,26 +91,45 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
    }).catch(e=>Alert.alert('Could not remove key',String(e)));}}
   ]);
  };
+
+ const testAi=async()=>{
+  try{
+   setBusy(true);
+   if(betaConfigured&&useBackendAi){
+    const status=await betaAiStatus();
+    if(!status.configured)throw Error('Your server needs an OPENAI_API_KEY environment secret.');
+    setAiStatus('✓ Rollblink AI configured · '+status.model);
+   }else{
+    const key=await loadOpenAIKey();if(!key)throw Error('Save your device OpenAI key first.');
+    await testOpenAIKey(key);setAiStatus('✓ OpenAI connected · '+OPENAI_MODEL);
+   }
+  }catch(e){setAiStatus('Connection failed');Alert.alert('AI connection',String(e instanceof Error?e.message:e))}
+  finally{setBusy(false)}
+ };
  const generate=async()=>{
-  if(!hasKey){Alert.alert('Add an OpenAI key','Save your API key before generating posts.');return;}
-  Alert.alert('Generate five post captions?',
-   'ROLLBLINK will send the spoken subtitle text and your instructions to your OpenAI API account. API charges may apply.',[
-    {text:'Cancel',style:'cancel'},
-    {text:'Generate',onPress:()=>{
-     void (async()=>{
-      try{
-       setBusy(true);
-       const key=await loadOpenAIKey();
-       if(!key)throw Error('Your saved API key was not found.');
-       const generated=await generateSocialPostDraft(project,key,directions);
-       await saveSocialDraft(project.id,project.revision,generated);
-       setDraft(generated);
-       setDraftRevision(project.revision);
-      }catch(e){Alert.alert('Generation failed',e instanceof Error?e.message:String(e));}
-      finally{setBusy(false);}
-     })();
-    }}
-   ]);
+  if(!betaConfigured&&!hasKey){Alert.alert('Connect OpenAI','Save a key on this phone, or configure the private beta server.');return}
+  Alert.alert('Create your AI content kit?','Rollblink sends spoken captions and your directions to OpenAI, not the original video. API charges may apply.',[
+   {text:'Cancel',style:'cancel'},
+   {text:'Generate',onPress:()=>{void (async()=>{
+    try{
+     setBusy(true);setAiStatus('Generating five posts…');
+     let generated:SocialPostDraft;
+     if(betaConfigured&&useBackendAi){
+      const kit=await betaCreatorKit(transcriptForSocial(project),directions,aiTone);
+      setCreatorKit(kit);
+      generated={instagram:kit.instagram,tiktok:kit.tiktok,youtube:kit.youtube,
+       facebook:kit.facebook,linkedin:kit.linkedin,youtubeTitle:kit.youtubeTitle};
+     }else{
+      const key=await loadOpenAIKey();if(!key)throw Error('Your saved OpenAI key is missing.');
+      generated=await generateSocialPostDraft(project,key,directions);setCreatorKit(null);
+     }
+     await saveSocialDraft(project.id,project.revision,generated);
+     setDraft(generated);setDraftRevision(project.revision);
+     setAiStatus('✓ Your content kit is ready. Review before posting.');
+    }catch(e){setAiStatus('Generation failed');Alert.alert('AI generation',String(e instanceof Error?e.message:e))}
+    finally{setBusy(false)}
+   })()}}
+  ]);
  };
  const saveEdits=async()=>{
   if(!draft)return;
