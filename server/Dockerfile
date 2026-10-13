@@ -1,6 +1,6 @@
 FROM node:22-alpine
 WORKDIR /app
-COPY index.mjs ./index.mjs
+COPY index.mjs social.mjs ./
 ENV NODE_ENV=production
 ENV PORT=8080
 USER node
