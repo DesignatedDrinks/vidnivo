@@ -301,11 +301,11 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
       <Pressable onPress={exportVideo} style={[styles.outline,{marginTop:12}]}>
        <Text style={styles.outlineText}>Export MP4 to share with social apps</Text>
       </Pressable>}
-     <Text style={styles.fine}>Instagram, TikTok, Facebook and LinkedIn sharing opens the native share chooser. Posting is completed in that app; no automatic publishing is claimed.</Text>
+     <Text style={styles.fine}>Share MP4 opens your phone's sharing chooser. Instagram and TikTok direct publishing also appears in Connected publishing once you authorize the private beta backend.</Text>
     </View>:null}
     <View style={styles.card}>
      <Text style={styles.heading}>4 · Connected publishing</Text>
-     <Text style={styles.muted}>YouTube: direct authorized upload is available when Google OAuth and YouTube API are configured. Other platforms require separate official app approvals and OAuth integration.</Text>
+     <Text style={styles.muted}>YouTube uses the native Google authorization. Instagram and TikTok use the separate secure beta publishing backend and require platform approval before public posting.</Text>
      <View style={styles.actions}>
       <Pressable style={styles.outline} disabled={busy||!canConnectYouTube} onPress={connectYouTube}>
        <Text style={styles.outlineText}>{youtubeToken?'✓ YouTube authorized':'Connect YouTube'}</Text>
