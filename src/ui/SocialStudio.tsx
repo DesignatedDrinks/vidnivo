@@ -277,8 +277,8 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
    </View>
    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
     <View style={styles.card}>
-     <Text style={styles.heading}>1 · Connect your OpenAI key</Text>
-     <Text style={styles.muted}>{hasKey?'✓ Key saved securely on this device.':'Your key stays on this phone and is sent only to the official OpenAI API.'}</Text>
+     <Text style={styles.heading}>1 · OpenAI setup</Text>
+     <Text style={styles.muted}>{hasKey?'✓ Key saved securely on this device.':'For iPhone beta: paste your OpenAI API key here. It stays in device secure storage and is sent only to OpenAI.'}</Text>
      <TextInput value={apiKeyInput} onChangeText={setApiKeyInput} secureTextEntry
        autoCapitalize="none" autoCorrect={false} placeholder="sk-…"
        placeholderTextColor="#7B8793" style={styles.input}/>
@@ -288,20 +288,50 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
       {hasKey?<Pressable disabled={busy} onPress={deleteKey} style={styles.outline}>
        <Text style={styles.outlineText}>Remove key</Text></Pressable>:null}
      </View>
+     <Text style={styles.fine}>Browser version: put OPENAI_API_KEY in the server hosting secrets. Never enter your OpenAI key as a beta access token.</Text>
+     <View style={styles.actions}>
+      <Pressable disabled={busy||(!hasKey&&!betaConfigured)} onPress={()=>{void testAi()}} style={styles.outline}>
+       <Text style={styles.outlineText}>Test OpenAI connection</Text>
+      </Pressable>
+      {betaConfigured&&hasKey?<Pressable onPress={()=>setUseBackendAi(v=>!v)} style={styles.outline}>
+       <Text style={styles.outlineText}>Use {useBackendAi?'server AI':'this phone key'}</Text>
+      </Pressable>:null}
+     </View>
+     <Text style={styles.fine}>{aiStatus}</Text>
     </View>
     <View style={styles.card}>
-     <Text style={styles.heading}>2 · Generate platform-specific posts</Text>
+     <Text style={styles.heading}>2 · AI Creator</Text>
      <Text style={styles.muted}>Uses spoken captions, not visual analysis. Add or import subtitles before generating. No invented claims or links.</Text>
+     <Text style={styles.fieldLabel}>Tone</Text>
+     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:7}}>
+      {(['natural','bold','thoughtful','funny','editorial'] as const).map(tone=><View key={tone}>
+       {pill(tone[0].toUpperCase()+tone.slice(1),aiTone===tone,()=>setAiTone(tone))}
+      </View>)}
+     </ScrollView>
      <TextInput multiline value={directions} onChangeText={setDirections} maxLength={1200}
        placeholder="Your tone, call to action, website, audience, or campaign notes…"
        placeholderTextColor="#7B8793" textAlignVertical="top" style={[styles.input,{minHeight:70}]}/>
-     <Pressable disabled={busy||!hasKey} style={[styles.btn,busy&&styles.dim]} onPress={()=>{void generate();}}>
-      <Text style={styles.buttonText}>{busy?'Working…':'✦ Generate five post captions'}</Text>
+     <Pressable disabled={busy||(!hasKey&&!betaConfigured)} style={[styles.btn,busy&&styles.dim]} onPress={()=>{void generate();}}>
+      <Text style={styles.buttonText}>{busy?'Creating…':'✦ Create my content kit'}</Text>
      </Pressable>
-     <Text style={styles.fine}>Requires an OpenAI API account with available credits; transcription text and instructions are sent to OpenAI when you tap Generate.</Text>
+     <Text style={styles.fine}>Generates five platform-specific posts. When using the hosted AI server, it also creates three hook ideas and an opening title. API credits required.</Text>
     </View>
     {draft?<View style={styles.card}>
      <Text style={styles.heading}>3 · Review and edit</Text>
+     {creatorKit?<View style={styles.card}>
+      <Text style={styles.fieldLabel}>Opening title</Text>
+      <Text style={styles.muted}>{creatorKit.onScreenTitle}</Text>
+      <Pressable disabled={busy} style={styles.outline} onPress={()=>addOpeningTitle(creatorKit.onScreenTitle)}>
+       <Text style={styles.outlineText}>Add opening title to video</Text>
+      </Pressable>
+      <Text style={styles.fieldLabel}>Three hook options</Text>
+      {creatorKit.hooks.map((hook,i)=><Pressable key={String(i)+hook} style={styles.outline} onPress={()=>addOpeningTitle(hook)}>
+       <Text style={styles.outlineText}>{i+1}. {hook}   + Add</Text>
+      </Pressable>)}
+      <Text style={styles.fieldLabel}>Editing suggestion</Text>
+      <Text style={styles.muted}>{creatorKit.editSuggestion}</Text>
+     </View>:null}
+
      {draftRevision!==null&&draftRevision!==project.revision?<Text style={styles.warning}>Your video has changed since these posts were saved. Regenerate before publishing.</Text>:null}
      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:7,marginVertical:12}}>
       {SOCIAL_PLATFORMS.map(p=><View key={p}>{pill(SOCIAL_LABELS[p],p===selected,()=>setSelected(p))}</View>)}
