@@ -130,7 +130,7 @@ export async function cleanupExpiredMedia(){
  let names;
  try{names=await readdir(MEDIA_DIR)}catch(e){if(e.code==='ENOENT')return 0;throw e}
  for(const name of names){
-  if(!/^[0-9a-f-]{36}\\.mp4$/.test(name))continue;
+  if(!/^[0-9a-f-]{36}\.mp4$/.test(name))continue;
   const path=join(MEDIA_DIR,name);
   const info=await stat(path).catch(()=>null);
   if(info&&now-info.mtimeMs>MEDIA_TTL){await unlink(path).catch(()=>{});removed++}
