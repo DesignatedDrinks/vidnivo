@@ -73,3 +73,23 @@ export async function betaCompleteInstagram(){
 export async function betaTikTokStatus(publishId:string){
  return call('/api/social/tiktok/status',{method:'POST',data:{publishId}});
 }
+
+
+export interface BetaCreatorKit {
+ onScreenTitle:string;
+ hooks:string[];
+ instagram:string;tiktok:string;youtube:string;youtubeTitle:string;
+ facebook:string;linkedin:string;
+ editSuggestion:string;source:'transcript';reviewRequired:boolean;model:string;
+}
+export async function betaAiStatus():Promise<{configured:boolean;model:string}>{
+ const result=await call('/api/ai/status');
+ return {configured:Boolean(result.configured),model:String(result.model||'')};
+}
+export async function betaCreatorKit(transcript:string,direction='',tone='natural'):Promise<BetaCreatorKit>{
+ const result=await call('/api/creator-kit',{method:'POST',data:{transcript,direction,tone}});
+ if(!result||!Array.isArray(result.hooks)||result.hooks.length!==3||!result.youtubeTitle||!result.instagram){
+  throw Error('AI returned an incomplete creator kit.');
+ }
+ return result as BetaCreatorKit;
+}
