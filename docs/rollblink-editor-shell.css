@@ -321,3 +321,14 @@
  .mobile-bottom-nav button.active{color:#1bd7e4}
  .mobile-aspect-ratio{display:block}
 }
+
+
+/* The + tile is a real upload label, not a decorative timeline control. */
+@media(min-width:0px){
+ #timeline .mobile-add-source{flex:0 0 43px!important;display:flex!important;align-items:center;justify-content:center;
+  min-width:43px;min-height:61px;margin:0 4px;
+  background:#f3f5f6;color:#17191c;border-radius:9px;font-size:30px;font-weight:450;
+  cursor:pointer;box-shadow:0 2px 13px #0004;touch-action:manipulation}
+ #timeline .mobile-add-source:focus-visible{outline:2px solid #18d8e8;outline-offset:2px}
+}
+@media(min-width:771px){#timeline .mobile-add-source{min-height:70px}}
