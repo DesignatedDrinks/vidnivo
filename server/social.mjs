@@ -123,8 +123,8 @@ async function mediaFile(id){
  return {path,size:s.size};
 }
 async function upload(req){
- if(!API_BASE.startsWith('https://')&&!API_BASE.startsWith('http://localhost:'))fail('PUBLIC_BASE_URL must be configured.',503);
  if(String(req.headers['content-type']||'').split(';')[0]!=='video/mp4')fail('Only MP4 video uploads are supported.');
+ if(!API_BASE.startsWith('https://')&&!API_BASE.startsWith('http://localhost:'))fail('PUBLIC_BASE_URL must be configured.',503);
  const length=Number(req.headers['content-length']||0);
  if(!Number.isSafeInteger(length)||length<32||length>MAX_VIDEO)fail('MP4 must be 32 bytes to 200 MB, with Content-Length.');
  await mkdir(MEDIA_DIR,{recursive:true});
