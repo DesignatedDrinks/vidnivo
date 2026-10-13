@@ -4,14 +4,15 @@ import {ActivityIndicator,Alert,KeyboardAvoidingView,Modal,Platform,Pressable,Sc
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import type {Project} from '../domain/timeline';
-import {generateSocialPostDraft} from '../social/openai';
+import {generateFullCreatorKitFromKey,testOpenAIKey,OPENAI_MODEL} from '../social/openai';
 import {loadOpenAIKey,saveOpenAIKey,removeOpenAIKey} from '../social/secrets';
 import {loadSocialDraft,saveSocialDraft} from '../social/drafts';
 import {SOCIAL_PLATFORMS,SOCIAL_LABELS,EMPTY_SOCIAL_DRAFT,
-  type SocialPlatform,type SocialPostDraft} from '../social/copy';
+  type SocialPlatform,type SocialPostDraft,transcriptForSocial} from '../social/copy';
 import {uploadVideoToYouTube} from '../social/youtube';
 import {shareExport} from '../export/native';
 import type {YouTubePrivacy} from '../social/youtubeCore';
+import {getBetaConfig,saveBetaConfig,betaAccounts,betaAuthorizationUrl,betaCreatorPrivacy,betaUploadMp4,betaPublish,betaCompleteInstagram,betaTikTokStatus,betaAiStatus,betaCreatorKit,type BetaCreatorKit,type BetaAccounts,type BetaPlatform} from '../social/publishingBeta';
 
 interface Props {
  visible:boolean;
@@ -22,19 +23,35 @@ interface Props {
  youtubeToken:string|null;
  canConnectYouTube:boolean;
  connectYouTube:()=>void;
+ addOpeningTitle:(title:string)=>void;
 }
 
 export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
-  youtubeToken,canConnectYouTube,connectYouTube}:Props){
+  youtubeToken,canConnectYouTube,connectYouTube,addOpeningTitle}:Props){
  const insets=useSafeAreaInsets();
  const [apiKeyInput,setApiKeyInput]=useState('');
  const [hasKey,setHasKey]=useState(false);
  const [directions,setDirections]=useState('');
+ const [aiTone,setAiTone]=useState<'natural'|'bold'|'thoughtful'|'funny'|'editorial'>('natural');
+ const [creatorKit,setCreatorKit]=useState<BetaCreatorKit|null>(null);
+ const [aiStatus,setAiStatus]=useState('Not connected');
+ const [useBackendAi,setUseBackendAi]=useState(true);
  const [draft,setDraft]=useState<SocialPostDraft|null>(null);
  const [draftRevision,setDraftRevision]=useState<number|null>(null);
  const [selected,setSelected]=useState<SocialPlatform>('instagram');
  const [privacy,setPrivacy]=useState<YouTubePrivacy>('private');
  const [busy,setBusy]=useState(false);
+ const [betaUrl,setBetaUrl]=useState('');
+ const [betaAccessToken,setBetaAccessToken]=useState('');
+ const [betaConfigured,setBetaConfigured]=useState(false);
+ const [accounts,setAccounts]=useState<BetaAccounts|null>(null);
+ const [tikTokPrivacyOptions,setTikTokPrivacyOptions]=useState<string[]>([]);
+ const [tikTokPrivacy,setTikTokPrivacy]=useState('');
+ const [ownBrand,setOwnBrand]=useState(false);
+ const [aiGenerated,setAiGenerated]=useState(false);
+ const [pendingInstagram,setPendingInstagram]=useState(false);
+ const [lastTikTokId,setLastTikTokId]=useState<string|null>(null);
+
  useEffect(()=>{
   if(!visible)return;
   let active=true;
@@ -48,6 +65,11 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
    }).catch(e=>{
     if(active)Alert.alert('Social Studio', 'Could not load secure settings or saved posts: '+String(e));
    });
+
+  void getBetaConfig().then(saved=>{
+   if(!active||!saved)return;
+   setBetaConfigured(true);setBetaUrl(saved.url);setBetaAccessToken(saved.accessToken);
+  }).catch(()=>{});
   return ()=>{active=false;};
  },[visible,project.id]);
 
@@ -69,26 +91,48 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
    }).catch(e=>Alert.alert('Could not remove key',String(e)));}}
   ]);
  };
+
+ const testAi=async()=>{
+  try{
+   setBusy(true);
+   if(betaConfigured&&useBackendAi){
+    const status=await betaAiStatus();
+    if(!status.configured)throw Error('Your server needs an OPENAI_API_KEY environment secret.');
+    setAiStatus('✓ Rollblink AI configured · '+status.model);
+   }else{
+    const key=await loadOpenAIKey();if(!key)throw Error('Save your device OpenAI key first.');
+    await testOpenAIKey(key);setAiStatus('✓ OpenAI connected · '+OPENAI_MODEL);
+   }
+  }catch(e){setAiStatus('Connection failed');Alert.alert('AI connection',String(e instanceof Error?e.message:e))}
+  finally{setBusy(false)}
+ };
  const generate=async()=>{
-  if(!hasKey){Alert.alert('Add an OpenAI key','Save your API key before generating posts.');return;}
-  Alert.alert('Generate five post captions?',
-   'ROLLBLINK will send the spoken subtitle text and your instructions to your OpenAI API account. API charges may apply.',[
-    {text:'Cancel',style:'cancel'},
-    {text:'Generate',onPress:()=>{
-     void (async()=>{
-      try{
-       setBusy(true);
-       const key=await loadOpenAIKey();
-       if(!key)throw Error('Your saved API key was not found.');
-       const generated=await generateSocialPostDraft(project,key,directions);
-       await saveSocialDraft(project.id,project.revision,generated);
-       setDraft(generated);
-       setDraftRevision(project.revision);
-      }catch(e){Alert.alert('Generation failed',e instanceof Error?e.message:String(e));}
-      finally{setBusy(false);}
-     })();
-    }}
-   ]);
+  if(!betaConfigured&&!hasKey){Alert.alert('Connect OpenAI','Save a key on this phone, or configure the private beta server.');return}
+  Alert.alert('Create your AI content kit?','Rollblink sends spoken captions and your directions to OpenAI, not the original video. API charges may apply.',[
+   {text:'Cancel',style:'cancel'},
+   {text:'Generate',onPress:()=>{void (async()=>{
+    try{
+     setBusy(true);setAiStatus('Generating five posts…');
+     let generated:SocialPostDraft;
+     if(betaConfigured&&useBackendAi){
+      const kit=await betaCreatorKit(transcriptForSocial(project),directions,aiTone);
+      setCreatorKit(kit);
+      generated={instagram:kit.instagram,tiktok:kit.tiktok,youtube:kit.youtube,
+       facebook:kit.facebook,linkedin:kit.linkedin,youtubeTitle:kit.youtubeTitle};
+     }else{
+      const key=await loadOpenAIKey();if(!key)throw Error('Your saved OpenAI key is missing.');
+      const kit=await generateFullCreatorKitFromKey(project,key,directions,aiTone);
+      setCreatorKit(kit);
+      generated={instagram:kit.instagram,tiktok:kit.tiktok,youtube:kit.youtube,
+       facebook:kit.facebook,linkedin:kit.linkedin,youtubeTitle:kit.youtubeTitle};
+     }
+     await saveSocialDraft(project.id,project.revision,generated);
+     setDraft(generated);setDraftRevision(project.revision);
+     setAiStatus('✓ Your content kit is ready. Review before posting.');
+    }catch(e){setAiStatus('Generation failed');Alert.alert('AI generation',String(e instanceof Error?e.message:e))}
+    finally{setBusy(false)}
+   })()}}
+  ]);
  };
  const saveEdits=async()=>{
   if(!draft)return;
@@ -147,6 +191,80 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
    })();}}
   ]);
  };
+
+ const saveBeta=async()=>{
+  try{
+   setBusy(true);
+   await saveBetaConfig({url:betaUrl,accessToken:betaAccessToken});
+   setBetaConfigured(true);
+   Alert.alert('Beta server saved','Your separate beta access token is secured on this device. The OpenAI key belongs in server secrets.');
+  }catch(e){Alert.alert('Cannot save beta server',String(e instanceof Error?e.message:e))}
+  finally{setBusy(false)}
+ };
+ const refreshBeta=async()=>{
+  try{
+   setBusy(true);
+   const result=await betaAccounts();setAccounts(result);
+   setPendingInstagram(Boolean(result.instagram?.pending));
+   if(result.tiktok?.connected){
+    const options=await betaCreatorPrivacy();
+    setTikTokPrivacyOptions(options);setTikTokPrivacy(existing=>options.includes(existing)?existing:options[0]||'');
+   }
+  }catch(e){Alert.alert('Connection failed',String(e instanceof Error?e.message:e))}
+  finally{setBusy(false)}
+ };
+ const connectBeta=(platform:BetaPlatform)=>{
+  void (async()=>{
+   try{
+    setBusy(true);
+    const url=await betaAuthorizationUrl(platform);
+    await Linking.openURL(url);
+    Alert.alert('Return to Rollblink','Authorize '+platform+' in your browser, then return here and press Refresh accounts.');
+   }catch(e){Alert.alert('Could not connect account',String(e instanceof Error?e.message:e))}
+   finally{setBusy(false)}
+  })();
+ };
+ const publishBetaNow=(platform:BetaPlatform)=>{
+  if(!draft||!exportUri){Alert.alert('Export MP4 first','Create your finished MP4 before sending it to '+platform+'.');return;}
+  if(draftRevision!==project.revision){Alert.alert('Review latest edit','Your video changed after the caption was created. Regenerate or save current copy.');return;}
+  if(platform==='tiktok'&&!tikTokPrivacy){Alert.alert('Choose audience','Refresh TikTok account permissions and choose an allowed privacy level.');return;}
+  Alert.alert('Publish video to '+platform+'?','This uploads your finished MP4 to Rollblink\'s beta backend and then submits it to '+platform+'. You control visibility and account access.',[
+   {text:'Cancel',style:'cancel'},
+   {text:'Publish',onPress:()=>{void (async()=>{
+    try{
+     setBusy(true);
+     const mediaId=await betaUploadMp4(exportUri);
+     const result=await betaPublish(platform,{
+      mediaId,caption:draft[platform],
+      ...(platform==='tiktok'?{privacy:tikTokPrivacy,ownBrand,aiGenerated}:{})
+     });
+     if(platform==='instagram')setPendingInstagram(result.status==='processing');
+     if(platform==='tiktok')setLastTikTokId(result.publishId||null);
+     Alert.alert('Platform result',String(result.message||result.status||'Request accepted. Check platform status.'));
+    }catch(e){Alert.alert('Publishing failed',String(e instanceof Error?e.message:e))}
+    finally{setBusy(false)}
+   })();}}
+  ]);
+ };
+ const finishInstagram=async()=>{
+  try{
+   setBusy(true);
+   const result=await betaCompleteInstagram();
+   setPendingInstagram(result.status!=='published');
+   Alert.alert('Instagram status',String(result.message||result.status));
+  }catch(e){Alert.alert('Instagram failed',String(e instanceof Error?e.message:e))}
+  finally{setBusy(false)}
+ };
+ const checkTikTok=async()=>{
+  if(!lastTikTokId)return;
+  try{
+   setBusy(true);
+   const result=await betaTikTokStatus(lastTikTokId);
+   Alert.alert('TikTok status',String(result.status||'Unknown')+(result.failReason?' — '+result.failReason:''));
+  }catch(e){Alert.alert('TikTok status failed',String(e instanceof Error?e.message:e))}
+  finally{setBusy(false)}
+ };
+
  const pill=(text:string,active:boolean,onPress:()=>void)=>(
   <Pressable onPress={onPress} style={[styles.pill,active&&styles.pillOn]}>
    <Text style={[styles.pillText,active&&styles.pillTextOn]}>{text}</Text>
@@ -162,8 +280,8 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
    </View>
    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
     <View style={styles.card}>
-     <Text style={styles.heading}>1 · Connect your OpenAI key</Text>
-     <Text style={styles.muted}>{hasKey?'✓ Key saved securely on this device.':'Your key stays on this phone and is sent only to the official OpenAI API.'}</Text>
+     <Text style={styles.heading}>1 · OpenAI setup</Text>
+     <Text style={styles.muted}>{hasKey?'✓ Key saved securely on this device.':'For iPhone beta: paste your OpenAI API key here. It stays in device secure storage and is sent only to OpenAI.'}</Text>
      <TextInput value={apiKeyInput} onChangeText={setApiKeyInput} secureTextEntry
        autoCapitalize="none" autoCorrect={false} placeholder="sk-…"
        placeholderTextColor="#7B8793" style={styles.input}/>
@@ -173,20 +291,50 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
       {hasKey?<Pressable disabled={busy} onPress={deleteKey} style={styles.outline}>
        <Text style={styles.outlineText}>Remove key</Text></Pressable>:null}
      </View>
+     <Text style={styles.fine}>Browser version: put OPENAI_API_KEY in the server hosting secrets. Never enter your OpenAI key as a beta access token.</Text>
+     <View style={styles.actions}>
+      <Pressable disabled={busy||(!hasKey&&!betaConfigured)} onPress={()=>{void testAi()}} style={styles.outline}>
+       <Text style={styles.outlineText}>Test OpenAI connection</Text>
+      </Pressable>
+      {betaConfigured&&hasKey?<Pressable onPress={()=>setUseBackendAi(v=>!v)} style={styles.outline}>
+       <Text style={styles.outlineText}>Use {useBackendAi?'server AI':'this phone key'}</Text>
+      </Pressable>:null}
+     </View>
+     <Text style={styles.fine}>{aiStatus}</Text>
     </View>
     <View style={styles.card}>
-     <Text style={styles.heading}>2 · Generate platform-specific posts</Text>
+     <Text style={styles.heading}>2 · AI Creator</Text>
      <Text style={styles.muted}>Uses spoken captions, not visual analysis. Add or import subtitles before generating. No invented claims or links.</Text>
+     <Text style={styles.fieldLabel}>Tone</Text>
+     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:7}}>
+      {(['natural','bold','thoughtful','funny','editorial'] as const).map(tone=><View key={tone}>
+       {pill(tone[0].toUpperCase()+tone.slice(1),aiTone===tone,()=>setAiTone(tone))}
+      </View>)}
+     </ScrollView>
      <TextInput multiline value={directions} onChangeText={setDirections} maxLength={1200}
        placeholder="Your tone, call to action, website, audience, or campaign notes…"
        placeholderTextColor="#7B8793" textAlignVertical="top" style={[styles.input,{minHeight:70}]}/>
-     <Pressable disabled={busy||!hasKey} style={[styles.btn,busy&&styles.dim]} onPress={()=>{void generate();}}>
-      <Text style={styles.buttonText}>{busy?'Working…':'✦ Generate five post captions'}</Text>
+     <Pressable disabled={busy||(!hasKey&&!betaConfigured)} style={[styles.btn,busy&&styles.dim]} onPress={()=>{void generate();}}>
+      <Text style={styles.buttonText}>{busy?'Creating…':'✦ Create my content kit'}</Text>
      </Pressable>
-     <Text style={styles.fine}>Requires an OpenAI API account with available credits; transcription text and instructions are sent to OpenAI when you tap Generate.</Text>
+     <Text style={styles.fine}>Generates three opening hooks, an on-screen title and distinct posts for five platforms from your spoken captions. API credits required.</Text>
     </View>
     {draft?<View style={styles.card}>
      <Text style={styles.heading}>3 · Review and edit</Text>
+     {creatorKit?<View style={styles.card}>
+      <Text style={styles.fieldLabel}>Opening title</Text>
+      <Text style={styles.muted}>{creatorKit.onScreenTitle}</Text>
+      <Pressable disabled={busy} style={styles.outline} onPress={()=>addOpeningTitle(creatorKit.onScreenTitle)}>
+       <Text style={styles.outlineText}>Add opening title to video</Text>
+      </Pressable>
+      <Text style={styles.fieldLabel}>Three hook options</Text>
+      {creatorKit.hooks.map((hook,i)=><Pressable key={String(i)+hook} style={styles.outline} onPress={()=>addOpeningTitle(hook)}>
+       <Text style={styles.outlineText}>{i+1}. {hook}   + Add</Text>
+      </Pressable>)}
+      <Text style={styles.fieldLabel}>Editing suggestion</Text>
+      <Text style={styles.muted}>{creatorKit.editSuggestion}</Text>
+     </View>:null}
+
      {draftRevision!==null&&draftRevision!==project.revision?<Text style={styles.warning}>Your video has changed since these posts were saved. Regenerate before publishing.</Text>:null}
      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:7,marginVertical:12}}>
       {SOCIAL_PLATFORMS.map(p=><View key={p}>{pill(SOCIAL_LABELS[p],p===selected,()=>setSelected(p))}</View>)}
@@ -210,11 +358,11 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
       <Pressable onPress={exportVideo} style={[styles.outline,{marginTop:12}]}>
        <Text style={styles.outlineText}>Export MP4 to share with social apps</Text>
       </Pressable>}
-     <Text style={styles.fine}>Instagram, TikTok, Facebook and LinkedIn sharing opens the native share chooser. Posting is completed in that app; no automatic publishing is claimed.</Text>
+     <Text style={styles.fine}>Share MP4 opens your phone's sharing chooser. Instagram and TikTok direct publishing also appears in Connected publishing once you authorize the private beta backend.</Text>
     </View>:null}
     <View style={styles.card}>
      <Text style={styles.heading}>4 · Connected publishing</Text>
-     <Text style={styles.muted}>YouTube: direct authorized upload is available when Google OAuth and YouTube API are configured. Other platforms require separate official app approvals and OAuth integration.</Text>
+     <Text style={styles.muted}>YouTube uses the native Google authorization. Instagram and TikTok use the separate secure beta publishing backend and require platform approval before public posting.</Text>
      <View style={styles.actions}>
       <Pressable style={styles.outline} disabled={busy||!canConnectYouTube} onPress={connectYouTube}>
        <Text style={styles.outlineText}>{youtubeToken?'✓ YouTube authorized':'Connect YouTube'}</Text>
@@ -231,6 +379,49 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
        <Text style={styles.buttonText}>Upload to YouTube ({privacy})</Text></Pressable>
      </>:null}
      <Text style={styles.fine}>Uploads require explicit confirmation. YouTube access is session-based; reconnect after token expiry. No automatic cross-platform posting occurs without authorization.</Text>
+     <View style={{height:1,backgroundColor:'#46505A',marginVertical:8}}/>
+     <Text style={styles.heading}>Instagram & TikTok · Beta publishing</Text>
+     <Text style={styles.muted}>Secure publishing server. These are not your OpenAI credentials. The API key stays on the backend; the private beta access token is stored on this device.</Text>
+     <Text style={styles.fieldLabel}>Beta API server URL</Text>
+     <TextInput autoCapitalize="none" autoCorrect={false} value={betaUrl} onChangeText={setBetaUrl}
+       placeholder="https://api.your-rollblink-domain.com" placeholderTextColor="#7B8793" style={styles.input}/>
+     <Text style={styles.fieldLabel}>Separate beta access token</Text>
+     <TextInput value={betaAccessToken} onChangeText={setBetaAccessToken} secureTextEntry autoCapitalize="none" autoCorrect={false}
+       placeholder="Your beta token (not sk-…)" placeholderTextColor="#7B8793" style={styles.input}/>
+     <View style={styles.actions}>
+      <Pressable disabled={busy} style={styles.outline} onPress={()=>{void saveBeta()}}><Text style={styles.outlineText}>Save beta connection</Text></Pressable>
+      <Pressable disabled={busy||!betaConfigured} style={[styles.outline,!betaConfigured&&styles.dim]} onPress={()=>{void refreshBeta()}}><Text style={styles.outlineText}>Refresh accounts</Text></Pressable>
+     </View>
+     <View style={styles.actions}>
+      <Pressable disabled={busy||!betaConfigured} style={[styles.outline,!betaConfigured&&styles.dim]} onPress={()=>connectBeta('instagram')}>
+       <Text style={styles.outlineText}>{accounts?.instagram?.connected?'✓ Instagram connected':'Connect Instagram'}</Text>
+      </Pressable>
+      <Pressable disabled={busy||!betaConfigured} style={[styles.outline,!betaConfigured&&styles.dim]} onPress={()=>connectBeta('tiktok')}>
+       <Text style={styles.outlineText}>{accounts?.tiktok?.connected?'✓ TikTok connected':'Connect TikTok'}</Text>
+      </Pressable>
+     </View>
+     {selected==='tiktok'&&accounts?.tiktok?.connected?<View>
+      <Text style={styles.fieldLabel}>TikTok audience</Text>
+      <View style={styles.actions}>{tikTokPrivacyOptions.map(p=><View key={p}>{pill(p.replaceAll('_',' '),tikTokPrivacy===p,()=>setTikTokPrivacy(p))}</View>)}</View>
+      <View style={[styles.actions,{marginTop:12}]}>
+       {pill(ownBrand?'✓ Own-brand promotion':'Own-brand promotion',ownBrand,()=>setOwnBrand(v=>!v))}
+       {pill(aiGenerated?'✓ AI-generated video':'AI-generated video',aiGenerated,()=>setAiGenerated(v=>!v))}
+      </View>
+     </View>:null}
+     {draft&&exportUri&&(selected==='instagram'||selected==='tiktok')?<Pressable
+       disabled={busy||!accounts?.[selected]?.connected}
+       style={[styles.btn,(!accounts?.[selected]?.connected||busy)&&styles.dim]}
+       onPress={()=>publishBetaNow(selected)}>
+       <Text style={styles.buttonText}>Review & publish to {selected==='instagram'?'Instagram Reels':'TikTok'}</Text>
+      </Pressable>:null}
+     {pendingInstagram?<Pressable disabled={busy} style={styles.outline} onPress={()=>{void finishInstagram()}}>
+      <Text style={styles.outlineText}>Complete Instagram Reel after processing</Text>
+     </Pressable>:null}
+     {lastTikTokId?<Pressable disabled={busy} style={styles.outline} onPress={()=>{void checkTikTok()}}>
+      <Text style={styles.outlineText}>Check TikTok publishing status</Text>
+     </Pressable>:null}
+     <Text style={styles.fine}>Direct publishing requires separately deployed, authorized backend accounts and official platform app approval. Instagram needs a professional account. Unreviewed TikTok apps may only post privately. Provider processing is not an instant success signal.</Text>
+
     </View>
    </ScrollView>
    {busy?<View style={styles.loading}><ActivityIndicator color="#27D4E7"/><Text style={styles.muted}>Processing request…</Text></View>:null}

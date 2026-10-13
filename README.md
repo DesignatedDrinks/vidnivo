@@ -1,5 +1,28 @@
 # ROLLBLINK — mobile-first video editor
 
+## AI Creator + social publishing beta (October 2026)
+
+**New:** The browser Generate panel can now produce a complete
+AI Creator Kit from the video's real spoken captions: three alternative
+hooks, an on-screen opening title, distinct Instagram/TikTok/YouTube/
+Facebook/LinkedIn posts, a YouTube title and one editing suggestion.
+The Expo native Social Studio supports the same complete Creator Kit
+using either its on-device secure OpenAI key or the hosted backend.
+Suggested opening titles become real undoable timeline overlays.
+
+The private backend includes authenticated AI endpoints, OAuth account
+connections and MP4 publishing workflow scaffolding. It **does not
+automatically deploy itself or bypass social developer app approval**.
+
+**Start here:** [AI setup, where to enter the OpenAI key, hosting
+instructions and beta readiness checklist](docs/ROLLBLINK_AI_BETA.md).
+The [Render deployment Blueprint](render.yaml) creates a paid,
+single-instance service with persistent storage. Real credentials stay
+in hosting secrets, never in GitHub Pages source.
+
+---
+
+
 ## New mobile editing layout — October 12, 2026
 
 Both the GitHub Pages **browser editor** and the separate **Expo native app** now follow the touch-first editing pattern shown in the Rollblink mobile design reference.

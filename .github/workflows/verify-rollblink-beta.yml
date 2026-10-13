@@ -1,0 +1,60 @@
+name: Verify Rollblink AI Beta
+on:
+  pull_request:
+    paths:
+      - 'server/**'
+      - 'src/social/**'
+      - 'src/ui/SocialStudio.tsx'
+      - 'App.tsx'
+      - 'docs/index.html'
+      - 'render.yaml'
+      - 'tests/creatorKit.test.mjs'
+      - 'tests/socialBeta.test.mjs'
+      - '.github/workflows/verify-rollblink-beta.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - 'src/social/**'
+      - 'src/ui/SocialStudio.tsx'
+      - 'App.tsx'
+      - 'docs/index.html'
+      - 'render.yaml'
+      - '.github/workflows/verify-rollblink-beta.yml'
+jobs:
+  ai-and-social:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate backend syntax
+        run: |
+          node --check server/index.mjs
+          node --check server/creator.mjs
+          node --check server/social.mjs
+      - name: Test auth, input checks, AI structured output, and API wiring
+        run: node --test tests/creatorKit.test.mjs tests/socialBeta.test.mjs
+      - name: Verify native TypeScript integration and full local Creator Kit
+        run: |
+          npm install --no-audit --no-fund
+          npm run typecheck
+          npm test
+      - name: Validate deployment recipe and Docker build
+        run: |
+          test -f render.yaml
+          docker build -f server/Dockerfile -t rollblink-beta-test server
+      - name: Smoke test container without real secrets
+        run: |
+          docker run -d --name rollblink-test -p 18080:8080 \
+            -e ROLLBLINK_ACCESS_TOKEN=test_beta_secret_1234567890123456789012345 \
+            rollblink-beta-test
+          trap 'docker logs rollblink-test; docker rm -f rollblink-test' EXIT
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:18080/health >/tmp/health.json; then break; fi
+            sleep 1
+          done
+          node -e "const a=require('/tmp/health.json');if(a.status!=='ok'||a.aiConfigured!==false)process.exit(1)"
