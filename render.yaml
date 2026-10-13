@@ -1,0 +1,39 @@
+# ROLLBLINK private-owner AI beta. Deploy on Render as a Blueprint after code review.
+# Requires a paid web service + persistent disk. Never enter API keys in Git.
+services:
+  - type: web
+    name: rollblink-ai-beta
+    runtime: docker
+    plan: 0.5c-512mb
+    region: ohio
+    branch: main
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    healthCheckPath: /health
+    numInstances: 1
+    disk:
+      name: rollblink-private-media
+      mountPath: /var/data
+      sizeGB: 2
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: OPENAI_MODEL
+        value: gpt-5.4-mini
+      - key: ALLOWED_ORIGINS
+        value: https://designateddrinks.github.io
+      - key: ROLLBLINK_EDITOR_ORIGIN
+        value: https://designateddrinks.github.io
+      - key: SOCIAL_TOKEN_FILE
+        value: /var/data/social-tokens.enc
+      - key: MEDIA_DIR
+        value: /var/data/media
+      # RENDER_EXTERNAL_URL is injected automatically; no public URL guessing.
+      - key: ROLLBLINK_TOKEN_ENCRYPTION_KEY
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ROLLBLINK_ACCESS_TOKEN
+        sync: false
+      # Social platform client IDs/secrets are added separately in Render's
+      # Environment screen after registering your app callback URLs.
