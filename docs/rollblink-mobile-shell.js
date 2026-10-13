@@ -13,12 +13,13 @@ export function createRollblinkMobileShell(bridge){
   selectCaptionForEditing,renderCaptions,renderTimeline,renderEditor,requestDraw,
   startExport,runAutoCaptions,toast,key,rbSave,applyVoicePolish}=bridge;
  let ready=false,geometry=timelineGeometry(0),lastContext='',currentTool='edit';
+ let zoom=1,syncingScroll=false,scrubUntil=0,scrubFrame=0,pinch=null;
  const els={};
  const isSmall=()=>window.matchMedia('(max-width:770px)').matches;
  const byId=id=>$(id);
  function activeCaption(){
   const editing=state.captions.find(c=>c.id===state.editCaptionId);
-  return editing||captionAtTime(state.captions.filter(isSubtitleCaption),state.position)||captionAtTime(state.captions,state.position);
+  return (editing&&state.position>=editing.start&&state.position<editing.end?editing:null)||captionAtTime(state.captions.filter(isSubtitleCaption),state.position)||captionAtTime(state.captions,state.position);
  }
  function setTool(name){
   currentTool=name;
@@ -30,6 +31,7 @@ export function createRollblinkMobileShell(bridge){
  }
  function closePanels(){
   document.body.classList.remove('mobile-drawer-open');
+  document.querySelectorAll('.inspector .tab-content').forEach(panel=>{panel.hidden=true});
   document.querySelector('.rb-tools')?.classList.remove('rb-open');
   document.querySelector('.autopilot-card')?.classList.remove('rb-open');
   els.audio.classList.remove('rb-open');
@@ -71,6 +73,10 @@ export function createRollblinkMobileShell(bridge){
   const pos=Math.max(0,Math.min(total(),state.position));
   const x=pos*geometry.pixelsPerSecond;
   els.head.style.left=x+'px';
+  if(!syncingScroll&&performance.now()>scrubUntil&&Math.abs(els.scroller.scrollLeft-x)>1.5){
+   syncingScroll=true;els.scroller.scrollLeft=x;
+   requestAnimationFrame(()=>{syncingScroll=false});
+  }
   els.current.textContent=clock(pos);
   els.total.textContent=clock(total());
   if(state.playing&&x>els.scroller.scrollLeft+els.scroller.clientWidth*.72)
@@ -109,10 +115,50 @@ export function createRollblinkMobileShell(bridge){
   }
   button.prepend(track);
  }
+ async function prepareWaveform(source){
+  if(!source?.file||source.waveform||source.waveformBusy)return;
+  const AudioCtor=window.AudioContext||window.webkitAudioContext;
+  if(!AudioCtor||source.file.size>32*1024*1024||source.duration>240)return;
+  source.waveformBusy=true;let context;
+  try{
+   context=new AudioCtor();
+   const audio=await context.decodeAudioData(await source.file.arrayBuffer());
+   const samples=audio.getChannelData(0),count=90;
+   const values=Array.from({length:count},(_,i)=>{
+    const from=Math.floor(i*samples.length/count),to=Math.min(samples.length,Math.floor((i+1)*samples.length/count));
+    let sum=0,n=0;
+    for(let j=from;j<to;j+=Math.max(1,Math.floor((to-from)/300))){sum+=samples[j]*samples[j];n++}
+    return Math.min(1,Math.sqrt(sum/Math.max(1,n))*3.8);
+   });
+   source.waveform=values;
+   if(state.sources[0]===source)renderWaveform(source);
+  }catch{/* A missing decoder must never block timeline editing. */}
+  finally{source.waveformBusy=false;try{await context?.close()}catch{}}
+ }
+ function renderWaveform(source){
+  const holder=byId('mobileAudioWaveform'),status=byId('mobileAudioWaveformStatus');
+  if(!holder||!status)return;
+  holder.replaceChildren();
+  if(!source?.waveform){status.textContent='';return}
+  status.textContent='';
+  for(const value of source.waveform){
+   const bar=document.createElement('i');
+   bar.style.height=Math.max(2,Math.round(3+value*20))+'px';
+   holder.append(bar);
+  }
+ }
  function refreshTimeline(){
   if(!ready)return;
-  geometry=timelineGeometry(total(),Math.max(280,els.scroller.clientWidth-10));
-  els.content.style.width=geometry.width+'px';
+  const currentPosition=state.position;
+  const viewWidth=Math.max(220,els.scroller.clientWidth);
+  const gutter=Math.round(viewWidth/2);
+  geometry=timelineGeometry(total(),Math.max(280,viewWidth-10),zoom);
+  const trackWidth=Math.ceil(geometry.width);
+  els.content.style.width=(trackWidth+viewWidth)+'px';
+  for(const track of [els.ticks,byId('timeline'),els.track,byId('mobileOriginalAudio')]){
+   track.style.marginLeft=gutter+'px';
+   track.style.width=trackWidth+'px';
+  }
   els.ticks.replaceChildren();
   for(const tick of ticksForTimeline(total())){
    const span=document.createElement('span');
@@ -142,6 +188,8 @@ export function createRollblinkMobileShell(bridge){
    }
   };
   byId('timeline').append(add);
+  els.scroller.scrollLeft=currentPosition*geometry.pixelsPerSecond;
+  renderWaveform(sourceById(state.clips[0]?.sourceId));
   refreshCaptions();refreshBusy();updatePosition();
  }
  function refreshCaptions(){
@@ -289,6 +337,7 @@ export function createRollblinkMobileShell(bridge){
    bridge.drawFrame();
   };
   byId('mobileDrawerBackdrop').onclick=closePanels;
+  byId('rb-tools-close').onclick=closePanels;
   byId('mobileEditSelected').onclick=()=>contextAction('edit');
   document.querySelectorAll('[data-mobile-context]').forEach(button=>
    button.onclick=()=>contextAction(button.dataset.mobileContext));
@@ -308,11 +357,42 @@ export function createRollblinkMobileShell(bridge){
    suggest?.scrollIntoView({block:'nearest'});
   };
   const cover=byId('mobileCover');if(cover)cover.onclick=()=>byId('rb-cover').click();
+  els.scroller.addEventListener('pointerdown',()=>{scrubUntil=performance.now()+2000});
+  els.scroller.addEventListener('pointerup',()=>{scrubUntil=performance.now()+280});
+  els.scroller.addEventListener('wheel',()=>{scrubUntil=performance.now()+450},{passive:true});
+  els.scroller.addEventListener('scroll',()=>{
+   if(syncingScroll||pinch||performance.now()>scrubUntil)return;
+   pause();
+   if(scrubFrame)return;
+   scrubFrame=requestAnimationFrame(()=>{
+    scrubFrame=0;
+    const time=Math.max(0,Math.min(total(),els.scroller.scrollLeft/geometry.pixelsPerSecond));
+    if(Math.abs(time-state.position)>.015)void seekTimeline(time);
+   });
+  },{passive:true});
+  els.scroller.addEventListener('touchstart',event=>{
+   if(event.touches.length!==2){pinch=null;return}
+   const [a,b]=event.touches;
+   pinch={distance:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),zoom,position:state.position};
+   pause();
+  },{passive:true});
+  els.scroller.addEventListener('touchmove',event=>{
+   if(!pinch||event.touches.length!==2)return;
+   const [a,b]=event.touches;
+   const distance=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+   if(pinch.distance<12)return;
+   event.preventDefault();
+   const next=Math.max(.5,Math.min(4,pinch.zoom*distance/pinch.distance));
+   if(Math.abs(next-zoom)>.03){zoom=next;refreshTimeline();els.scroller.scrollLeft=pinch.position*geometry.pixelsPerSecond}
+  },{passive:false});
+  els.scroller.addEventListener('touchend',event=>{
+   if(event.touches.length<2&&pinch){pinch=null;scrubUntil=performance.now()+150}
+  },{passive:true});
   els.scroller.addEventListener('click',event=>{
    if(event.target.closest('button,label'))return;
    const rect=els.content.getBoundingClientRect();
-   const x=event.clientX-rect.left;
-   if(x<0||!Number.isFinite(x))return;
+   const x=event.clientX-rect.left-els.scroller.clientWidth/2;
+   if(!Number.isFinite(x))return;
    pause();void seekTimeline(Math.max(0,Math.min(total(),x/geometry.pixelsPerSecond)));
   });
   document.addEventListener('keydown',event=>{
@@ -324,5 +404,5 @@ export function createRollblinkMobileShell(bridge){
   },{passive:true});
   refreshTimeline();updatePosition();
  }
- return {mount,refreshTimeline,refreshCaptions,updatePosition,refreshBusy,prepareThumbnails,closePanels};
+ return {mount,refreshTimeline,refreshCaptions,updatePosition,refreshBusy,prepareThumbnails,prepareWaveform,closePanels};
 }

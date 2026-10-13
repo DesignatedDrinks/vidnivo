@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 
-const html=readFileSync('index.html','utf8');
-const mirror=readFileSync('docs/index.html','utf8');
+const html=readFileSync('docs/index.html','utf8');
+const mirror=readFileSync('index.html','utf8');
 const src=readFileSync('rollblink-face-retouch.js','utf8');
 const deployed=readFileSync('docs/rollblink-face-retouch.js','utf8');
 const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1]||'';
@@ -15,7 +15,7 @@ function checkSyntax(text){
 }
 
 test('both web hosting entrypoints deliver identical retouch-capable editor',()=>{
- assert.equal(html,mirror);
+ assert.match(mirror,/docs\/\?/);
  assert.equal(src,deployed);
  assert.match(html,/id="faceRetouch"/);
  assert.match(html,/id="faceRetouchStatus"/);

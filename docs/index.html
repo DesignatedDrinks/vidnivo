@@ -3,10 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#080D18" />
+  <meta name="theme-color" content="#07090D" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="icon" type="image/svg+xml" href="./rollblink-mark.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Barlow+Condensed:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@400;700&family=DM+Serif+Display&family=IBM+Plex+Mono:wght@400;700&family=Inter:wght@400;700;900&family=Libre+Baskerville:wght@400;700&family=Lora:wght@400;700&family=Manrope:wght@400;700&family=Montserrat:wght@400;700&family=Oswald:wght@400;700&family=Outfit:wght@400;700&family=Playfair+Display:wght@400;700&family=Plus+Jakarta+Sans:wght@400;700&family=Poppins:wght@400;700&family=Raleway:wght@400;700&family=Space+Grotesk:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <meta name="description" content="ROLLBLINK — a private, browser-based video editor. Import, trim, caption and export locally." />
   <title>ROLLBLINK — Video Editor</title>
   <style>:root{color-scheme:dark;--bg:#101116;--panel:#1b1d24;--panel2:#22252c;--line:#333842;--text:#f5f8fc;--muted:#9ba3af;--accent:#27d2e5;--accent-dark:#07363f;--danger:#ed8c89;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#171b23 0,#101116 250px);color:var(--text);font-size:14px}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.42;cursor:not-allowed}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.topbar{height:67px;border-bottom:1px solid #30333b;display:flex;justify-content:space-between;align-items:center;padding:0 clamp(14px,3vw,42px);background:#12151a}.brand{font-size:23px;letter-spacing:-1.5px;font-weight:950;display:flex;align-items:center}.brand-accent{color:var(--accent)}.brand-pill{font-size:9px;letter-spacing:1.5px;margin-left:12px;padding:5px 7px;border:1px solid #536572;border-radius:5px;color:#bdced4}.header-actions{display:flex;align-items:center;gap:18px}.privacy{color:#b6c4c9;font-size:12px}.privacy-dot{display:inline-block;background:#66dcac;width:7px;height:7px;border-radius:50%;margin-right:6px}.app{display:grid;grid-template-columns:minmax(0,1fr) 354px;gap:20px;max-width:1460px;margin:auto;padding:24px clamp(15px,3vw,40px) 45px}.workbench,.inspector{min-width:0}.workbench{display:flex;flex-direction:column;gap:18px}.stage-top{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:3px 0 0}.eyebrow,.section-label{font-size:10px;font-weight:850;letter-spacing:1.8px;color:var(--accent)}h1{font-size:clamp(25px,3vw,38px);margin:9px 0 5px;line-height:1.1;letter-spacing:-1px}h2{font-size:21px;line-height:1.2;margin:7px 0 0;letter-spacing:-.5px}.muted,.subheading,.section-desc{color:var(--muted)}.subheading{margin:0;font-size:13px}.tag{font-size:10px;white-space:nowrap;background:#303238;color:#cdd4da;padding:9px 11px;border-radius:30px;font-weight:700;letter-spacing:.8px}.viewer,.timeline-card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:15px}.viewer{overflow:hidden}.viewer-toolbar{height:52px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #30343c}.ratio-pills{display:flex;gap:6px}.pill{border:1px solid #3d414b;background:#262a31;color:#b5bec9;padding:6px 10px;border-radius:7px;font-size:12px}.pill.active{background:#0f3d47;color:#54e1f1;border-color:#226c77}.preview-wrap{position:relative;background:repeating-linear-gradient(45deg,#101217,#101217 12px,#12141a 12px,#12141a 24px);height:clamp(340px,49vh,510px);display:flex;align-items:center;justify-content:center;padding:15px;overflow:hidden}#preview{height:100%;width:auto;max-width:100%;object-fit:contain;background:#08090d;box-shadow:0 15px 35px #0009;border-radius:4px}.empty-state{position:absolute;inset:0;background:#101218ed;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:25px;gap:11px}.empty-state[hidden]{display:none}.empty-state h2{font-size:23px;margin:5px 0 0}.empty-state p{max-width:260px;color:var(--muted);line-height:1.5;margin:0 0 10px}.empty-symbol{font-size:44px;color:var(--accent);border:1px solid #264e56;border-radius:18px;padding:15px 20px}.tiny{font-size:11px;color:#8a929d}.button{display:inline-flex;justify-content:center;align-items:center;border:1px solid #454b58;padding:11px 14px;border-radius:9px;background:#30353f;color:var(--text);font-weight:700;min-height:40px;white-space:nowrap;text-decoration:none;text-align:center;gap:6px}.button.primary{color:#06232a;background:var(--accent);border-color:var(--accent)}.button.primary:hover{background:#5de4ee}.button.secondary{background:#16424d;border-color:#256c7b;color:#8deaf4}.button.ghost{background:#292d35;color:#d7e1ea}.button.danger{background:#362b33;color:#efb3b3;border-color:#6e454e}.button.small{padding:8px 11px;min-height:34px;font-size:12px}.button.full{width:100%}.transport{display:flex;align-items:center;justify-content:center;gap:13px;height:66px;border-top:1px solid #30343c}.icon-button,.play-button{border:0;background:transparent;color:#e9f0f5;display:flex;gap:3px;align-items:center;justify-content:center}.icon-button span{font-size:11px}.play-button{width:41px;height:41px;background:#2d3640;border-radius:50%;font-size:18px}.timecounter{position:absolute;right:calc(354px + clamp(15px,3vw,40px) + 46px);font-variant-numeric:tabular-nums;font-size:12px;color:#9aabba}.timecounter b{color:white}.timecounter span{margin-left:3px}.timeline-card{padding:19px}.section-head,.section-actions,.button-row,.info-line{display:flex;justify-content:space-between;align-items:center;gap:10px}.section-head{flex-wrap:wrap}.section-desc{font-size:11px;margin:8px 0 0}.section-actions{gap:7px}.timeline-card input[type=range]{width:100%;margin:22px 0 13px}.clip-track{display:flex;gap:5px;overflow:auto;min-height:89px;padding-bottom:7px;border-bottom:1px solid #373c45}.clip{background:#294952;color:#dcf4f6;border:2px solid #346371;border-radius:8px;min-width:70px;min-height:79px;flex:1 0 0;padding:8px;display:flex;flex-direction:column;justify-content:space-between;text-align:left}.clip.selected{border-color:#64e8f4;box-shadow:0 0 0 1px #64e8f4}.clip-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;font-weight:800}.clip-time{font-size:11px;color:#b5dde4}.clip-number{font-size:10px;color:#84e2ed}.blank-track{display:flex;align-items:center;justify-content:center;flex:1;background:#232830;border-radius:8px;color:#919aa7;font-size:12px}.timeline-help{display:flex;justify-content:space-between;font-size:11px;color:#929ba7;margin-top:12px}.inspector{display:flex;flex-direction:column;gap:12px}.panel{padding:20px}.inspector-tabs{display:flex;padding:5px;gap:4px}.inspector-tab{flex:1;border:0;border-radius:9px;background:transparent;color:#9ba5b1;font-weight:700;padding:12px}.inspector-tab.active{background:#33414a;color:#67dfeb}.panel-head{margin-bottom:22px}.hint-block{color:#aebbc6;background:#242a33;line-height:1.7;border-radius:10px;padding:15px}.info-line{color:var(--muted);margin:15px 0;font-size:12px}.info-line strong{color:var(--text);font-size:12px}.field-group{margin:20px 0}.field-group label{display:flex;justify-content:space-between;color:#bfc9d4;font-size:12px}.field-group input{width:100%;margin:15px 0 0}input[type=range]{accent-color:var(--accent);touch-action:pan-y}.button-row{margin:10px 0}.button-row>*{flex:1;min-width:0}.two-cols{align-items:flex-end;gap:11px}.field-label{display:block;color:#c0cbd6;font-size:12px;margin:14px 0 8px}textarea,input[type=number],select{width:100%;border:1px solid #49515c;background:#242831;border-radius:9px;padding:11px;color:var(--text);margin-top:8px;outline:0}textarea{resize:vertical}.fine-print{font-size:11px;color:#9ba6b1;line-height:1.65;margin:16px 0 0}.spacing-top{margin-top:25px}.captions-list{display:flex;flex-direction:column;gap:8px;margin-top:12px;max-height:260px;overflow:auto}.caption-item{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#282d35;border-radius:9px;padding:11px}.caption-item strong{display:block;font-size:12px;font-weight:600;margin-bottom:4px;overflow-wrap:anywhere}.caption-item span{font-size:10px;color:#afbdc7}.caption-item button{background:transparent;border:1px solid #70555c;border-radius:6px;color:#f2b0b0;padding:6px}.export-summary{background:#232c33;border:1px solid #31505b;border-radius:9px;padding:13px;margin:15px 0 19px;line-height:1.8;color:#d4e0e6;font-size:12px}.export-button{min-height:48px}.progress{height:6px;border-radius:8px;overflow:hidden;background:#323b43;margin:14px 0}.progress>div{height:100%;width:0;background:var(--accent);transition:width .2s}.status{line-height:1.6;color:#d3e1e8;font-size:12px;margin-top:12px;min-height:16px}.footer-note{padding:14px;color:#808d9a;font-size:11px;line-height:1.8}.footer-note b{color:#b7c7d2}@media(max-width:1030px){.app{grid-template-columns:minmax(0,1fr) 310px}.timecounter{right:calc(310px + clamp(15px,3vw,40px) + 31px)}}@media(max-width:770px){.app{display:block;padding:15px 12px 50px}.inspector{margin-top:13px}.stage-top{margin-bottom:14px}.viewer{margin-bottom:12px}.preview-wrap{height:44vh;min-height:310px;max-height:540px}.transport{justify-content:flex-start;padding-left:20px}.timecounter{position:static;margin-left:auto;margin-right:16px}.timeline-card{padding:14px;margin-bottom:8px}.panel{padding:16px}.inspector-tabs{padding:5px}.privacy{display:none}.topbar{height:58px;padding:0 14px}.brand{font-size:21px}.tag{font-size:9px}.section-head{align-items:flex-start}h1{font-size:25px}.header-actions{gap:5px}}@media(max-width:360px){.ratio-pills{gap:2px}.pill{padding:5px 6px}.section-actions{width:100%;justify-content:flex-end}.brand-pill{display:none}}
@@ -348,10 +351,14 @@ input[type=range]{accent-color:#afc0ff}
 .rb-caption-font-shortcuts button span{font-size:28px;line-height:1}
 .rb-caption-font-shortcuts button small{font-size:11px;letter-spacing:0;color:#ccd5e1}
 .rb-caption-font-status{font-size:12px;color:#b9c8d5;margin:10px 0 0}
-</style><link rel="stylesheet" href="./rollblink-editor-shell.css?v=20261012-unified" /></head>
+</style><link rel="stylesheet" href="./rollblink-editor-shell.css?v=20261012-mobilefirst" /></head>
 <body>
   <header class="topbar">
-    <button id="mobileClose" class="mobile-top-close" type="button" aria-label="New project">×</button>
+    <button id="mobileClose" class="mobile-top-close" type="button" aria-label="Back or new project">×</button>
+    <div class="mobile-history" role="group" aria-label="Edit history">
+      <button id="mobileUndo" type="button" disabled aria-label="Undo last change"><svg viewBox="0 0 24 24"><path d="M9 6 4 11l5 5M4 11h10a6 6 0 0 1 0 12" transform="translate(0 -2)"/></svg></button>
+      <button id="mobileRedo" type="button" disabled aria-label="Redo last change"><svg viewBox="0 0 24 24"><path d="m15 6 5 5-5 5M20 11H10a6 6 0 0 0 0 12" transform="translate(0 -2)"/></svg></button>
+    </div>
     <div class="brand"><img class="brand-mark" src="./rollblink-mark.svg" alt="ROLLBLINK icon" width="37" height="37" /><span class="wordmark"><span>ROLL</span><span class="brand-accent">BLINK</span></span></div>
     <div class="header-actions"><span class="privacy" title="Videos remain on your device"><span class="privacy-dot"></span> Local</span><button id="resetProject" class="button ghost small" title="Start a new project">New project</button></div>
     <div class="mobile-top-actions"><label class="mobile-quality"><select id="mobileQuality" aria-label="Export resolution"><option value="720">720P</option><option value="1080">1080P</option></select></label><button id="mobileExport" type="button" disabled>Export</button></div>
@@ -408,6 +415,7 @@ input[type=range]{accent-color:#afc0ff}
       </section>
 
       <section class="rb-tools" aria-label="Creator finishing tools">
+        <button id="rb-tools-close" class="rb-tools-close" type="button" aria-label="Close Generate panel">×</button>
         <div class="rb-row"><h2 style="flex:1">Make it yours.</h2><button class="rb-s" id="rb-cover" type="button">Cover PNG</button><button class="rb-s" id="rb-qa-button" type="button">Check video</button></div>
         <div id="rb-qa" aria-live="polite" hidden></div>
         <div class="rb-banner" id="rb-recover" hidden><strong>Previous edit available</strong><p class="rb-note" id="rb-recover-note"></p>
@@ -442,10 +450,11 @@ input[type=range]{accent-color:#afc0ff}
               <div id="mobileTimelineTicks" class="mobile-timeline-ticks" aria-hidden="true"></div>
               <div id="timeline" class="clip-track"><div class="blank-track">Import a video to see your timeline</div></div>
               <div id="mobileCaptionTrack" class="mobile-caption-track" aria-label="Timed captions"></div>
-              <div id="mobileOriginalAudio" class="mobile-original-audio"><span>♫</span> Original audio</div>
+              <div id="mobileOriginalAudio" class="mobile-original-audio"><span>♫</span><span>Audio</span><div id="mobileAudioWaveform" class="audio-waveform" aria-hidden="true"></div><span id="mobileAudioWaveformStatus" class="audio-waveform-status"></span></div>
               <div id="mobilePlayhead" class="mobile-playhead" aria-hidden="true"></div>
             </div>
           </div>
+          <div id="mobileFixedPlayhead" class="mobile-fixed-playhead" aria-hidden="true"></div>
         </div>
         <div class="timeline-help"><span id="clipCount">0 clips</span></div>
       </div>
@@ -476,7 +485,7 @@ input[type=range]{accent-color:#afc0ff}
         <details class="quiet-details"><summary>Caption limits</summary><p>English · up to 2 minutes. First use downloads a speech model. Keep the editor open; older phones may not support local transcription.</p></details>
         <div id="touchCaptionHint" class="touch-caption-hint"><span>Drag one subtitle → move all. Pinch → resize all.</span></div>
         <div class="rb-caption-fonts" aria-label="Subtitle fonts">
-          <div class="rb-caption-font-head"><label for="rb-font">Caption fonts</label><span>24 styles</span></div>
+          <div class="rb-caption-font-head"><label for="rb-font">Caption fonts</label><span>24 styles</span></div><div id="rb-font-grid" class="rb-font-grid" role="group" aria-label="Caption font previews"></div>
           <select id="rb-font" aria-label="Caption font for all subtitles"></select>
           <div id="rb-font-preview" class="rb-caption-font-preview">Make the moment.</div>
           <div class="rb-caption-font-shortcuts" role="group" aria-label="Quick caption fonts">
@@ -604,7 +613,7 @@ import {planContinuousExport,PlaybackSyncGuard,inspectRecordedTracks,probeRecord
 import {fontScale,captionAnchor,captionLayout,clampedCaptionAnchor,pointInCaption,gestureDistance,midpoint,isSubtitleCaption,setSubtitleAnchor,subtitleSafeArea,clampSubtitleAnchor} from './rollblink-caption-touch.js';
 import {STYLES,getStyle,loadStyle,saveStyle,styleCaptions,planSpeechEdgeTrim,shiftTimedCaptions,suggestOpeningHooks} from './rollblink-autopilot.js';
 import {drawBrandWatermark,normalizeWatermark} from './rollblink-branding.js';
-import {createRollblinkMobileShell} from './rollblink-mobile-shell.js?v=20261012-unified';
+import {createRollblinkMobileShell} from './rollblink-mobile-shell.js?v=20261012-mobilefirst';
 import {FONT_CHOICES,fontById,transcriptText,draftSocialCopy,EDIT_DIRECTIONS,applyDirection,inspectEdit,projectSnapshot,canRestoreSnapshot,hydrateSnapshot,selectContinuousHighlight} from './rollblink-creator-kit.js';
 // ROLLBLINK Browser Studio — all source media remains in local object URLs.
 // Exports use the browser's own MediaRecorder; no video is sent to a server.
@@ -654,7 +663,7 @@ const toast=(message,isError=false)=>{ui.status.textContent=message;ui.status.st
 let drawQueued=false;
 let captionHitBoxes=[];
 const touchPointers=new Map();
-let dragAnchor=null,pinchOrigin=null,touchWasEdited=false,subtitleGestureArea=null;
+let dragAnchor=null,pinchOrigin=null,touchWasEdited=false,subtitleGestureArea=null,lastCaptionGestureAt=0;
 const PROCESS_STAGES={
  import:['Read file metadata','Prepare editing timeline'],
  captions:['Prepare audio','Capture soundtrack','Load speech model','Recognize speech','Place timed captions'],
@@ -919,13 +928,13 @@ async function importFile(file){
   if(!Number.isFinite(seconds)||seconds<=MIN_CLIP)throw Error('Video has an invalid or very short duration.');
   if(state.playing)pause();
   showProcessing('import',1,'File length '+fmt(seconds)+' · setting up the local timeline.');
-  const source={id:key(),url,name:file.name,duration:seconds,size:file.size};
+  const source={id:key(),url,name:file.name,duration:seconds,size:file.size,file};
   state.sources.push(source);
   const clip={id:key(),sourceId:source.id,start:0,end:seconds,speed:1};
   const oldTotal=total();state.clips.push(clip);state.selected=clip.id;
   ui.empty.hidden=true;
   renderTimeline();renderEditor();void seekTimeline(oldTotal);
-  toast('Imported '+file.name+'. Select a clip to trim or split.');rbCheckRecovery();void rbMobileShell?.prepareThumbnails(source);
+  toast('Imported '+file.name+'. Select a clip to trim or split.');rbCheckRecovery();void rbMobileShell?.prepareThumbnails(source);void rbMobileShell?.prepareWaveform(source);
  }catch(e){URL.revokeObjectURL(url);toast(e.message||String(e),true)}
  finally{probe.removeAttribute('src');probe.load();hideProcessing('import')}
 }
@@ -1413,7 +1422,7 @@ function reset(){
  if(state.exporting||state.captioning||state.creatorBusy){toast('Finish the current edit before starting a new project.',true);return}
  if(state.clips.length&&!confirm('Start a new project? This removes the current timeline and captions (not the original files).'))return;
  pause();state.pendingSeek++;state.sources.forEach(s=>URL.revokeObjectURL(s.url));state.sources=[];state.clips=[];state.captions=[];$('creatorHookPanel').hidden=true;state.selected=null;state.position=0;state.sourceId=null;state.look='original';state.enhancement=null;state.captionGroupAnchor=null;state.cameraMotion='off';$('rb-camera').value='off';state.faceRetouch=0;state.voicePolish=false;state.sourceMuted=false;video.muted=false;applyVoicePolish();faceTracker.reset();$('faceRetouch').value='0';$('faceRetouchValue').textContent='Off';$('faceRetouchStatus').textContent='Face smoothing off';state.editCaptionId=null;touchPointers.clear();dragAnchor=null;pinchOrigin=null;$('captionFontSize').value='100';$('captionFontSizeLabel').textContent='100%';$('captionTouchStatus').textContent='';$('addCaption').textContent='+ Add timed caption';document.querySelectorAll('[data-look]').forEach(el=>el.classList.toggle('active',el.dataset.look==='original'));$('enhanceStatus').textContent='Auto Enhance is off. Select it to balance the current video.';
- video.removeAttribute('src');video.load();ui.empty.hidden=false;ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();renderEditor();renderCaptions();rbDiscard(false);toast('Ready for a new project.');
+ video.removeAttribute('src');video.load();ui.empty.hidden=false;ui.download.hidden=true;ui.progress.style.width='0';renderTimeline();renderEditor();renderCaptions();rbDiscard(false);rbResetHistory();toast('Ready for a new project.');
 }
 function canvasGesturePoint(event){
  const rect=canvas.getBoundingClientRect();
@@ -1526,6 +1535,7 @@ function finishCaptionPointer(event){
  }else if(touchPointers.size<1){
   dragAnchor=null;pinchOrigin=null;
   if(touchWasEdited){
+   lastCaptionGestureAt=Date.now();
    if(state.captionGroupAnchor){
     const safe=measureGroupGestureArea();
     state.captionGroupAnchor=setSubtitleAnchor(state.captions,clampSubtitleAnchor(state.captionGroupAnchor,safe));
@@ -1540,6 +1550,12 @@ function finishCaptionPointer(event){
 }
 canvas.addEventListener('pointerup',finishCaptionPointer);
 canvas.addEventListener('pointercancel',finishCaptionPointer);
+canvas.addEventListener('click',event=>{
+ if(!state.clips.length||state.exporting||state.captioning||Date.now()-lastCaptionGestureAt<450)return;
+ const point=canvasGesturePoint(event);
+ if(point&&captionHitBoxes.some(box=>pointInCaption(point,box.bounds,28*canvas.width/Math.max(1,canvas.getBoundingClientRect().width))))return;
+ $('play').click();
+});
 canvas.addEventListener('lostpointercapture',event=>{
  if(touchPointers.has(event.pointerId))finishCaptionPointer(event);
 });
@@ -1841,6 +1857,45 @@ ui.download.hidden=true;renderTimeline();renderEditor();renderCaptions();drawFra
 
 const RB_DRAFT='rollblink:metadata-draft:v2';
 let rbPending=null,rbPrevious=null,rbLastFix=null;
+let rbHistoryPrevious=null,rbHistoryUndo=[],rbHistoryRedo=[],rbHistoryApplying=false;
+function rbHistoryButtons(){
+ const busy=state.exporting||state.captioning||state.creatorBusy;
+ $('mobileUndo').disabled=busy||!rbHistoryUndo.length;
+ $('mobileRedo').disabled=busy||!rbHistoryRedo.length;
+}
+function rbResetHistory(){rbHistoryPrevious=null;rbHistoryUndo=[];rbHistoryRedo=[];rbHistoryButtons();}
+function rbRestoreHistory(snapshot){
+ const d=hydrateSnapshot(snapshot,state.sources,key);pause();
+ state.clips=d.clips;state.captions=d.captions;state.selected=d.clips[0].id;state.editCaptionId=null;
+ state.position=0;state.ratio=d.ratio;state.look=d.look;state.voicePolish=d.voicePolish;
+ state.sourceMuted=d.sourceMuted;state.enhancement=d.enhancement;state.cameraMotion=d.cameraMotion;
+ state.captionFontId=d.fontId;state.captionGroupAnchor=d.captionGroupAnchor;
+ state.watermark=normalizeWatermark(d.watermark||state.watermark);
+ $('watermarkEnabled').checked=state.watermark.enabled;$('watermarkPosition').value=state.watermark.position;
+ $('rb-camera').value=d.cameraMotion;$('rb-font').value=d.fontId;
+ if($('mobileRatio'))$('mobileRatio').value=d.ratio;
+ document.querySelectorAll('[data-look]').forEach(b=>b.classList.toggle('active',b.dataset.look===d.look));
+ document.querySelectorAll('[data-ratio]').forEach(b=>b.classList.toggle('active',b.dataset.ratio===d.ratio));
+ video.muted=!state.audioContext&&state.sourceMuted;applyVoicePolish();
+ renderTimeline();renderEditor();renderCaptions();void rbFontReady();void seekTimeline(0);
+}
+function rbTravelHistory(direction){
+ if(state.exporting||state.captioning||state.creatorBusy)return;
+ rbSave();const from=direction==='undo'?rbHistoryUndo:rbHistoryRedo;
+ const to=direction==='undo'?rbHistoryRedo:rbHistoryUndo;
+ if(!from.length)return;
+ const target=from.pop();
+ const present=projectSnapshot(state);present.savedAt=0;
+ try{
+  rbHistoryApplying=true;rbRestoreHistory(target);
+  to.push(present);rbHistoryPrevious={snapshot:target,signature:JSON.stringify(target)};
+  try{localStorage.setItem(RB_DRAFT,JSON.stringify(projectSnapshot(state)))}catch{}
+  rbHistoryButtons();
+ }catch(error){from.push(target);toast('History could not restore this edit: '+(error.message||String(error)),true)}
+ finally{rbHistoryApplying=false}
+}
+$('mobileUndo').onclick=()=>rbTravelHistory('undo');
+$('mobileRedo').onclick=()=>rbTravelHistory('redo');
 try{rbPending=JSON.parse(localStorage.getItem(RB_DRAFT)||'null')}catch{}
 try{state.captionFontId=fontById(localStorage.getItem('rollblink:font')||'inter').id}catch{}
 for(const font of FONT_CHOICES){
@@ -1851,6 +1906,10 @@ for(const font of FONT_CHOICES){
 $('rb-font').value=state.captionFontId;
 function rbUpdateFontPreview(){
  const font=fontById(state.captionFontId);
+ document.querySelectorAll('[data-font-card]').forEach(button=>{
+  const selected=button.dataset.fontCard===font.id;
+  button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
+ });
  const sample=state.captions.find(isSubtitleCaption);
  const preview=$('rb-font-preview');
  preview.style.fontFamily=font.family;
@@ -1884,6 +1943,12 @@ function rbApplyFont(fontId){
  try{localStorage.setItem('rollblink:font',state.captionFontId)}catch{}
  rbUpdateFontPreview();void rbFontReady();rbSave();
 }
+for(const font of FONT_CHOICES){
+ const button=document.createElement('button');button.type='button';button.className='rb-font-card';
+ button.dataset.fontCard=font.id;button.style.fontFamily=font.family;button.textContent=font.name;
+ button.setAttribute('aria-label','Use '+font.name+' for subtitles');
+ button.onclick=()=>rbApplyFont(font.id);$('rb-font-grid').append(button);
+}
 $('rb-font').onchange=()=>rbApplyFont($('rb-font').value);
 document.querySelectorAll('[data-rb-font]').forEach(button=>{
  button.onclick=()=>rbApplyFont(button.dataset.rbFont);
@@ -1904,7 +1969,15 @@ function rbCheckVideo(){
 $('rb-qa-button').onclick=rbCheckVideo;
 function rbSave(){
  if(rbPending||!state.clips.length)return;
- try{localStorage.setItem(RB_DRAFT,JSON.stringify(projectSnapshot(state)))}catch{
+ const snapshot=projectSnapshot(state),stable={...snapshot,savedAt:0};
+ const signature=JSON.stringify(stable);
+ if(!rbHistoryApplying&&rbHistoryPrevious&&rbHistoryPrevious.signature!==signature){
+  rbHistoryUndo.push(rbHistoryPrevious.snapshot);
+  if(rbHistoryUndo.length>60)rbHistoryUndo.shift();
+  rbHistoryRedo=[];rbHistoryButtons();
+ }
+ rbHistoryPrevious={snapshot:stable,signature};
+ try{localStorage.setItem(RB_DRAFT,JSON.stringify(snapshot))}catch{
   $('rb-message').textContent='Draft metadata could not be saved in this browser.';
  }
 }

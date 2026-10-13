@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
-const html=readFileSync('index.html','utf8');
-const pages=readFileSync('docs/index.html','utf8');
+const html=readFileSync('docs/index.html','utf8');
+const pages=readFileSync('index.html','utf8');
 const brandCode=readFileSync('rollblink-branding.js','utf8');
 const deployedBrand=readFileSync('docs/rollblink-branding.js','utf8');
 const mark=readFileSync('rollblink-mark.svg','utf8');
@@ -15,7 +15,7 @@ function checkSyntax(src){
  assert.equal(p.status,0,p.stderr||p.stdout);
 }
 test('premium application and brand assets are identical on both published paths',()=>{
- assert.equal(html,pages);assert.equal(brandCode,deployedBrand);assert.equal(mark,deployedMark);
+ assert.match(pages,/docs\/\?/);assert.equal(brandCode,deployedBrand);assert.equal(mark,deployedMark);
  checkSyntax(js);checkSyntax(brandCode);
  assert.match(mark,/<svg\b/);assert.match(mark,/<title id="title">ROLLBLINK<\/title>/);
  assert.match(mark,/<path\b/);
@@ -71,7 +71,7 @@ test('disabled watermark draws nothing, enabled watermark paints true vector and
  assert.ok(calls.includes('fill'));
 });
 test('preview and MediaRecorder export use same rendered watermark without HTML-only trick',()=>{
- const draw=js.slice(js.indexOf('function drawFrame(){'),js.indexOf('function requestDraw(){'));
+ const draw=js.slice(js.indexOf('function drawFrame('),js.indexOf('function requestDraw(){'));
  const start=js.slice(js.indexOf('async function startExport(){'),js.indexOf('function setTab(',js.indexOf('async function startExport(){')));
  assert.match(draw,/drawBrandWatermark\(ctx,state\.watermark\)/);
  assert.match(start,/canvas\.captureStream\(30\)/);

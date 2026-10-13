@@ -17,9 +17,10 @@ type Props = {
   onAddVideo?: () => void;
   onAddAudio?: () => void;
   zoom?: number;
+  onZoomChange?: (zoom: number) => void;
 };
-const CYAN = '#27D3E7';
-const TRACK_BG = '#222326';
+const CYAN = '#27D7F7';
+const TRACK_BG = '#1A1F27';
 const ROW_VIDEO = 59;
 const ROW_AUDIO = 43;
 const ROW_TEXT = 38;
@@ -27,10 +28,11 @@ const RULER = 25;
 const DURATION_MIN = 2000;
 
 export function Timeline({ project, selectedId, selectedTextId, playheadMs,
-  onSelect, onSelectText, onSeek, onScrubStart, onAddVideo, onAddAudio, zoom = 1 }: Props) {
+  onSelect, onSelectText, onSeek, onScrubStart, onAddVideo, onAddAudio, zoom = 1, onZoomChange }: Props) {
   const pixelsPerSecond = 57 * zoom;
   const [width, setWidth] = useState(360);
   const dragRef = useRef(false);
+  const pinchRef = useRef<{ distance: number; zoom: number } | null>(null);
   const scroll = useRef<ScrollView>(null);
   const lastSyncMs = useRef(0);
   const endMs = Math.max(DURATION_MIN, durationMs(project));
@@ -46,7 +48,7 @@ export function Timeline({ project, selectedId, selectedTextId, playheadMs,
   }, [scrollOffset, pixelsPerSecond, width]);
 
   const seekToOffset = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (!dragRef.current) return;
+    if (!dragRef.current || pinchRef.current) return;
     const x = Math.max(0, event.nativeEvent.contentOffset.x);
     lastSyncMs.current = x;
     onSeek(pixelsToTimeMs(x, pixelsPerSecond, endMs));
@@ -70,7 +72,27 @@ export function Timeline({ project, selectedId, selectedTextId, playheadMs,
     </View>
     <ScrollView horizontal ref={scroll} showsHorizontalScrollIndicator={false}
       scrollEventThrottle={16}
-      onScrollBeginDrag={() => { dragRef.current = true; onScrubStart?.(); }}
+      onTouchStart={event => {
+        const touches = event.nativeEvent.touches;
+        if (touches.length === 2) {
+          pinchRef.current = {
+            distance: Math.hypot(touches[0].pageX - touches[1].pageX, touches[0].pageY - touches[1].pageY),
+            zoom
+          };
+          dragRef.current = false;
+          onScrubStart?.();
+        }
+      }}
+      onTouchMove={event => {
+        const touches = event.nativeEvent.touches;
+        const origin = pinchRef.current;
+        if (touches.length !== 2 || !origin || origin.distance < 10 || !onZoomChange) return;
+        const distance = Math.hypot(touches[0].pageX - touches[1].pageX, touches[0].pageY - touches[1].pageY);
+        const next = Math.max(.5, Math.min(3, origin.zoom * distance / origin.distance));
+        if (Math.abs(zoom - next) > .04) onZoomChange(next);
+      }}
+      onTouchEnd={event => { if (event.nativeEvent.touches.length < 2) pinchRef.current = null; }}
+      onScrollBeginDrag={() => { if (pinchRef.current) return; dragRef.current = true; onScrubStart?.(); }}
       onScroll={seekToOffset}
       onScrollEndDrag={event => {
         seekToOffset(event);
@@ -144,7 +166,7 @@ export function Timeline({ project, selectedId, selectedTextId, playheadMs,
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#18191B', height: 193, borderTopWidth: 1, borderColor: '#26272A' },
+  container: { backgroundColor: '#11141A', height: 193, borderTopWidth: 1, borderColor: '#283241' },
   counter: { paddingHorizontal: 14, paddingTop: 3, height: 29,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   counterText: { color: '#F4F4F6', fontSize: 12, fontVariant: ['tabular-nums'] },
@@ -156,11 +178,11 @@ const styles = StyleSheet.create({
   tickLine: { width: 1, height: 8, backgroundColor: '#595B61', marginTop: 3 },
   lane: { position: 'relative', borderBottomWidth: 3, borderBottomColor: '#151619', backgroundColor: TRACK_BG },
   videoClip: { position: 'absolute', height: ROW_VIDEO-4, top: 0,
-    borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: '#45484A' },
+    borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: '#50647D' },
   audioClip: { position: 'absolute', height: ROW_AUDIO-4, top: 0,
-    backgroundColor: '#285550', borderRadius: 5, overflow: 'hidden', justifyContent: 'center' },
+    backgroundColor: '#16464A', borderRadius: 5, overflow: 'hidden', justifyContent: 'center' },
   textClip: { position: 'absolute', height: ROW_TEXT-5, top: 0,
-    backgroundColor: '#EB7B0B', borderRadius: 4, justifyContent: 'center', paddingHorizontal: 6 },
+    backgroundColor: '#604A88', borderRadius: 4, justifyContent: 'center', paddingHorizontal: 6 },
   captionText: { color: '#FFF7EC', fontSize: 12, fontWeight: '600' },
   selectedClip: { borderWidth: 2.5, borderColor: CYAN },
   emptyAudio: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 7, marginLeft: 12 },

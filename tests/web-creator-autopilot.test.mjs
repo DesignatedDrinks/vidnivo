@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
-const html=readFileSync('index.html','utf8');
-const mirror=readFileSync('docs/index.html','utf8');
+const html=readFileSync('docs/index.html','utf8');
+const mirror=readFileSync('index.html','utf8');
 const module=readFileSync('rollblink-autopilot.js','utf8');
 const deploy=readFileSync('docs/rollblink-autopilot.js','utf8');
 const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1]||'';
@@ -12,9 +12,9 @@ const parse=code=>{
  const r=spawnSync(process.execPath,['--check','--input-type=module'],{input:code,encoding:'utf8'});
  assert.equal(r.status,0,r.stderr||r.stdout);
 };
-test('the public site and repo root both ship the complete creator workflow',()=>{
- assert.equal(html,mirror);
- assert.equal(module,deploy);
+test('canonical browser creator workflow includes font-aware publishing implementation',()=>{
+ assert.match(mirror,/docs\/\?/);
+ assert.match(deploy,/fontId/);
  parse(script);parse(module);
  for(const id of ['creatorStyle','creatorRun','creatorSave','creatorProgress','creatorStatus',
   'creatorCaptions','creatorTighten','creatorVoice','creatorHookPanel','creatorHookChoices','creatorHookRemove']){

@@ -46,13 +46,68 @@ try{
  await page.locator('#rb-font').selectOption('anton');
  const font=await page.locator('#rb-font-preview').evaluate(node=>getComputedStyle(node).fontFamily);
  assert.match(font,/Anton/i);
- await page.locator('#mobileDrawerBackdrop').click({position:{x:10,y:30}});
+ await page.locator('#mobileDrawerBackdrop').click({position:{x:10,y:125}});
  await page.locator('[data-mobile-tool="generate"]').click();
  assert.ok(await page.locator('.rb-tools').isVisible(),'Generate drawer did not open');
- await page.screenshot({path:'/tmp/rollblink-mobile-smoke.png',fullPage:true});
+ assert.equal(await page.locator('#tab-captions').isVisible(),false,'Caption sheet must close before opening Generate');
+ await page.locator('#rb-tools-close').click();
+ assert.equal(await page.locator('.rb-tools').isVisible(),false,'Generate close control failed');
+ await page.locator('#videoInput').setInputFiles('/tmp/rollblink-smoke.webm');
+ await page.waitForFunction(()=>document.querySelectorAll('#timeline .clip').length===1,null,{timeout:20000});
+ assert.equal(await page.locator('#mobileExport').isEnabled(),true,'Imported video must unlock export');
+ assert.equal(await page.locator('#mobileTimelineScroll').isVisible(),true);
+ await page.locator('[data-mobile-tool="captions"]').click();
+ await page.locator('#captionText').fill('Make the moment');
+ await page.locator('#captionStart').fill('0');
+ await page.locator('#captionEnd').fill('1.5');
+ await page.locator('#addCaption').click();
+ await page.waitForFunction(()=>document.querySelectorAll('.mobile-caption-chip').length>0,null,{timeout:10000});
+ assert.match(await page.locator('.mobile-caption-chip').first().textContent(),/Make the moment/);
+ assert.equal(await page.locator('#rb-font-grid button').count(),24,'Font gallery needs 24 real buttons');
+ await page.locator('#rb-font-grid button[data-font-card="anton"]').click();
+ assert.equal(await page.locator('#rb-font').inputValue(),'anton','Font card must change stored selection');
+ await page.locator('#mobileDrawerBackdrop').click({position:{x:10,y:125}});
+ await page.waitForFunction(()=>{
+  const frames=[...document.querySelectorAll('#timeline .mobile-clip-thumbnails img')];
+  return frames.length>=3&&frames.some(img=>img.complete&&img.naturalWidth>0);
+ },null,{timeout:15000});
+ await page.screenshot({path:'/tmp/rollblink-mobile-smoke.png'});
+ const saved=await page.evaluate(()=>localStorage.getItem('rollblink:metadata-draft:v2'));
+ assert.ok(saved&&JSON.parse(saved).captions.length===1,'Timed caption and font must persist to a draft');
+ // Render a real file and verify that the recording contains usable bytes.
+ await page.locator('#mobileExport').click();
+ await page.waitForFunction(()=>{
+  const link=document.querySelector('#download');
+  const status=document.querySelector('#syncStatus')?.textContent||'';
+  return (link&&!link.hidden)||status.includes('Export rejected')||status.includes('Export blocked');
+ },null,{timeout:45000});
+ const status=await page.locator('#syncStatus').textContent();
+ assert.equal(await page.locator('#download').isVisible(),true,'A/V export failed: '+status);
+ assert.match(status,/Audio \+ video checks passed/,'Exporter must verify both tracks');
+ const downloadPromise=page.waitForEvent('download',{timeout:10000});
+ await page.locator('#download').click();
+ const download=await downloadPromise;
+ const exported=await download.path();
+ assert.ok(exported&&(await stat(exported)).size>3000,'Exported file is missing or empty');
  assert.deepEqual(errors,[],'Mobile browser runtime errors');
  process.stdout.write('Mobile editor smoke test passed.\n');
 
+ for(const [name,width,height] of [['small',360,667],['android',412,915],['tablet',820,1180]]){
+  const device=await browser.newPage({viewport:{width,height},deviceScaleFactor:1,isMobile:width<700,hasTouch:width<700});
+  const errorsAtSize=[];device.on('pageerror',error=>errorsAtSize.push(error.message));
+  try{
+   await device.goto(base,{waitUntil:'domcontentloaded'});
+   await device.locator('#mobileBottomNav').waitFor({state:'visible'});
+   const nav=await device.locator('#mobileBottomNav').boundingBox();
+   const stage=await device.locator('#previewWrap').boundingBox();
+   const tracks=await device.locator('#mobileTimelineScroll').boundingBox();
+   assert.ok(nav&&nav.y>=height-100,'Persistent toolbar missing at '+name);
+   assert.ok(stage&&stage.height>145,'Preview collapsed at '+name);
+   assert.ok(tracks&&tracks.y>stage.y,'Timeline obscures preview at '+name);
+   assert.deepEqual(errorsAtSize,[],'Runtime errors at '+name);
+   await device.screenshot({path:'/tmp/rollblink-'+name+'-smoke.png'});
+  }finally{await device.close()}
+ }
  const desktop=await browser.newPage({viewport:{width:1366,height:900},deviceScaleFactor:1});
  const desktopErrors=[];
  desktop.on('pageerror',error=>desktopErrors.push(error.message));

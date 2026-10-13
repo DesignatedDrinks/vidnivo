@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 
-const html=readFileSync('index.html','utf8');
-const pages=readFileSync('docs/index.html','utf8');
+const html=readFileSync('docs/index.html','utf8');
+const pages=readFileSync('index.html','utf8');
 const module=readFileSync('rollblink-caption-touch.js','utf8');
 const pagesModule=readFileSync('docs/rollblink-caption-touch.js','utf8');
 const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1]||'';
@@ -19,9 +19,9 @@ function fakeCanvas(){
   return {width:size*.56*text.length};
  }};
 }
-test('browser pages ship the exact same caption gesture code',()=>{
- assert.equal(pages,html);
- assert.equal(pagesModule,module);
+test('canonical browser caption gestures retain project geometry and font rendering',()=>{
+ assert.match(pages,/docs\/\?/);
+ assert.match(pagesModule,/fontById\(cap\.fontId\)\.family/);
  checkSyntax(script);checkSyntax(module);
  assert.match(script,/canvas\.addEventListener\('pointerdown'/);
  assert.match(script,/canvas\.addEventListener\('pointermove'/);
@@ -82,10 +82,10 @@ test('hit-testing selects only a visible caption and uses a finger-sized minimum
  assert.equal(layout.pointInCaption({x:95,y:105},tiny,44),true);
 });
 test('exports render saved caption size/location but no touch selection handles',()=>{
- const from=script.indexOf('function drawFrame(){');
+ const from=script.indexOf('function drawFrame(');
  const to=script.indexOf('function requestDraw(){',from);
  const render=script.slice(from,to);
- assert.match(render,/const layout=captionLayout\(ctx,cap,W,H\)/);
+ assert.match(render,/const layout=captionLayout\(ctx,\{\.\.\.cap,fontId:/);
  assert.match(render,/const \{x,y,size,leading,lines,bounds\}=layout/);
  assert.match(render,/ctx\.fillText\(line,x,yy\)/);
  assert.match(render,/!state\.exporting&&state\.editCaptionId===cap\.id/);

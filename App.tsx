@@ -654,6 +654,8 @@ function EditorApp() {
   // All visible actions are implemented; avoid exposing placeholders in primary UI.
   const advancedActions: EditorAction[]=[
     {id:'add-media',label:'Import photos/video',icon:'albums-outline',onPress:importVisual},
+    {id:'search',label:'Find clips and text',icon:'search-outline',onPress:()=>{setSearchTerm('');setSearchOpen(true)}},
+    {id:'rename',label:'Rename project',icon:'create-outline',onPress:()=>{setProjectName(project.name);setNamePrompt(true)}},
     {id:'voiceover',label:recordingState.isRecording?'Stop recording':'Record voiceover',
       icon:recordingState.isRecording?'stop-circle-outline':'mic-outline',onPress:toggleVoiceover},
     {id:'ratio',label:'Aspect ratio',icon:'crop-outline',onPress:showRatioMenu},
@@ -669,6 +671,7 @@ function EditorApp() {
   ];
   const baseActions: EditorAction[]=[
     {id:'edit',label:'Edit',icon:'cut-outline',onPress:()=>{
+      setAdvancedToolsOpen(true);
       const clip=activeClip(project,positionMs)||project.clips.find(c=>c.track==='video');
       if(clip)setSelectedId(clip.id);else void importVisual();
     }},
@@ -680,9 +683,7 @@ function EditorApp() {
     {id:'captions',label:'Captions',icon:'chatbox-ellipses-outline',onPress:()=>setCaptionPanelOpen(true)},
     {id:'generate',label:'Generate',icon:'sparkles-outline',
       onPress:()=>{setPlaying(false);setSocialOpen(true);}},
-    {id:'more',label:'More',icon:'ellipsis-horizontal-circle-outline',
-      onPress:()=>setAdvancedToolsOpen(true)}
-  ];
+   ];
   const captionQuickActions: EditorAction[]=selectedText?[
     {id:'style',label:'Style',icon:'color-palette-outline',onPress:()=>setCaptionStylesOpen(true)},
     {id:'edit',label:'Edit text',icon:'create-outline',
@@ -704,13 +705,13 @@ function EditorApp() {
         disabled={recordingState.isRecording}
         onPress={() => { setEditingId(null); setPlaying(false); }}
         style={styles.headerIcon}><Ionicons name="close" size={29} color="#EBEDF0" /></Pressable>
-      <Pressable accessibilityLabel="Search clips and text" accessibilityRole="button"
-        onPress={() => { setSearchTerm(''); setSearchOpen(true); }} style={styles.headerIcon}>
-        <Ionicons name="search-outline" size={25} color="#E9EBED" /></Pressable>
-      <Pressable style={styles.headerProject} onPress={() => { setProjectName(project.name); setNamePrompt(true); }}>
-        <Text style={styles.headerProjectBrand}>Roll<Text style={{color:'#1CDAE9'}}>blink</Text></Text>
-        <Text style={styles.headerProjectText} numberOfLines={1}>{project.name}</Text>
-      </Pressable>
+      <Pressable onPress={undoAction} accessibilityRole="button" accessibilityLabel="Undo"
+        disabled={!undo.current.length} style={[styles.headerIcon,{opacity:undo.current.length?1:.3}]}>
+        <Ionicons name="arrow-undo-outline" size={22} color="#D5E2F0" /></Pressable>
+      <Pressable onPress={redoAction} accessibilityRole="button" accessibilityLabel="Redo"
+        disabled={!redo.current.length} style={[styles.headerIcon,{opacity:redo.current.length?1:.3}]}>
+        <Ionicons name="arrow-redo-outline" size={22} color="#D5E2F0" /></Pressable>
+      <View style={{flex:1}} />
       <Pressable style={styles.qualityButton} accessibilityRole="button"
         accessibilityLabel="Choose export quality" onPress={showExportMenu}>
         <Text style={styles.qualityLabel}>{exportQuality}P</Text>
@@ -746,12 +747,7 @@ function EditorApp() {
         <Ionicons name={playing ? 'pause' : 'play-outline'} size={30} color="#E8E9EA" />
       </Pressable>
       <View style={styles.transportRight}>
-        <Pressable onPress={undoAction} accessibilityLabel="Undo" disabled={!undo.current.length}
-          style={{ opacity: undo.current.length ? 1 : .3 }}>
-          <Ionicons name="arrow-undo-outline" size={25} color="#C9CACD" /></Pressable>
-        <Pressable onPress={redoAction} accessibilityLabel="Redo" disabled={!redo.current.length}
-          style={{ opacity: redo.current.length ? 1 : .3 }}>
-          <Ionicons name="arrow-redo-outline" size={25} color="#C9CACD" /></Pressable>
+        <Text style={{color:'#9AAABD',fontSize:11,fontVariant:['tabular-nums']}}>{fmt(positionMs)} / {fmt(total)}</Text>
       </View>
     </View>
 
@@ -764,7 +760,7 @@ function EditorApp() {
       }}
       onSelectText={(id, at) => { setSelectedTextId(id); setSelectedId(null); seek(at); }}
       onSeek={seek} onScrubStart={() => setPlaying(false)}
-      onAddVideo={importVisual} onAddAudio={importAudio} />
+      onAddVideo={importVisual} onAddAudio={importAudio} onZoomChange={setTimelineZoom} />
 
     {selected ? <View style={styles.captionContextCard}>
       <View style={styles.captionContextHeading}>
@@ -1193,27 +1189,27 @@ const styles = StyleSheet.create({
     minHeight: 60, borderBottomWidth: 1, borderBottomColor: '#34373B' },
   captionChoiceLabel: { color: '#F4F6F8', fontSize: 15, fontWeight: '600' },
   captionChoiceSub: { color: '#8B939C', fontSize: 11, marginTop: 3 },
-  editorScreen: { flex: 1, backgroundColor: '#111214' },
-  mobileHeader: { height: 57, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center',
-    gap: 7, backgroundColor: '#111214' },
-  headerIcon: { width: 36, height: 42, alignItems: 'center', justifyContent: 'center' },
+  editorScreen: { flex: 1, backgroundColor: '#07090D' },
+  mobileHeader: { height: 56, paddingHorizontal: 7, flexDirection: 'row', alignItems: 'center',
+    gap: 3, backgroundColor: '#07090D' },
+  headerIcon: { width: 38, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerProject: { flex: 1, justifyContent: 'center', minWidth: 30 },
   headerProjectBrand: { color: '#F3F6F8', fontSize: 17, fontWeight: '800', letterSpacing: -0.8 },
   headerProjectText: { color: '#818891', fontSize: 9 },
   qualityButton: { height: 39, minWidth: 81, paddingHorizontal: 9, borderRadius: 10,
-    backgroundColor: '#292B2F', flexDirection: 'row', justifyContent: 'center',
+    backgroundColor: '#1A1F27', flexDirection: 'row', justifyContent: 'center',
     alignItems: 'center', gap: 5 },
   qualityLabel: { color: '#F8F9FA', fontSize: 15, fontWeight: '600' },
   exportButton: { height: 39, minWidth: 80, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#22D1E7', borderRadius: 9, paddingHorizontal: 13 },
+    backgroundColor: '#27D7F7', borderRadius: 12, paddingHorizontal: 13 },
   exportText: { color: '#0A1A22', fontSize: 16, fontWeight: '700' },
-  mobileCanvas: { flex: 1, minHeight: 105, backgroundColor: '#111214', justifyContent: 'center', alignItems: 'center' },
+  mobileCanvas: { flex: 1, minHeight: 105, backgroundColor: '#07090D', justifyContent: 'center', alignItems: 'center' },
   canvasCenter: { width: '100%', flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  mobileTransport: { height: 49, paddingHorizontal: 14, backgroundColor: '#111214',
+  mobileTransport: { height: 45, paddingHorizontal: 14, backgroundColor: '#07090D',
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   transportSide: { width: 65, alignItems: 'flex-start', justifyContent: 'center' },
   playControl: { height: 46, width: 76, alignItems: 'center', justifyContent: 'center' },
-  transportRight: { width: 100, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
+  transportRight: { minWidth: 105, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' },
   captionContextCard: { backgroundColor: '#1D1F22', paddingHorizontal: 8, paddingTop: 6, paddingBottom: 0,
     borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   captionContextHeading: { flexDirection: 'row', gap: 9, alignItems: 'center', backgroundColor:'#282A2D',

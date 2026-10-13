@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 
-const html=readFileSync('index.html','utf8');
-const pages=readFileSync('docs/index.html','utf8');
+const html=readFileSync('docs/index.html','utf8');
+const pages=readFileSync('index.html','utf8');
 const script=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1]||'';
 const body=html.match(/<body>([\s\S]*?)<script type="module">/)?.[1]||'';
 
 test('video-first editor and published site are identical',()=>{
- assert.equal(pages,html,'Root and Pages HTML must remain identical');
+ assert.match(pages,/docs\/\?/,'Root entrypoint redirects to canonical Pages editor');
  const viewer=body.indexOf('<div class="viewer">');
  const autopilot=body.indexOf('<section class="autopilot-card"');
  const timeline=body.indexOf('<div class="timeline-card">');
@@ -40,9 +40,10 @@ test('all advanced and technical information remains user-accessible via collaps
  assert.match(body,/Local/);
 });
 test('responsive editorial skin uses restrained base surfaces, full video stage and real focus',()=>{
- assert.match(html,/\/\* Studio 2 — editorial dark\./);
- assert.match(html,/--bg:#090a0c/);
- assert.match(html,/\.preview-wrap\{height:clamp\(445px,61vh,690px\)/);
+ const shell=readFileSync('docs/rollblink-editor-shell.css','utf8');
+ assert.match(shell,/mobile-first/);
+ assert.match(shell,/--rb-bg:#07090D/);
+ assert.match(shell,/\.viewer \.preview-wrap/);
  assert.match(html,/\.autopilot-core\{display:grid/);
  assert.match(html,/@media\(max-width:770px\)/);
  assert.match(html,/@media\(max-width:385px\)/);

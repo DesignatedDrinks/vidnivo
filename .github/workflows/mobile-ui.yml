@@ -33,6 +33,11 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Unit tests
         run: npm test
+      - name: Install FFmpeg for media integration test
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Generate real video and audio fixture
+        run: |
+          ffmpeg -hide_banner -loglevel error -y -f lavfi -i testsrc2=size=360x640:rate=20 -f lavfi -i sine=frequency=440:sample_rate=48000 -t 4 -c:v libvpx -deadline realtime -cpu-used 8 -b:v 600k -c:a libvorbis -shortest /tmp/rollblink-smoke.webm
       - name: Mobile editor Chromium smoke
         run: node tests/mobile-ui.smoke.mjs
       - name: Upload mobile screenshot
@@ -40,5 +45,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rollblink-mobile-editor-screenshot
-          path: /tmp/rollblink-mobile-smoke.png
+          path: /tmp/rollblink-*-smoke.png
           if-no-files-found: ignore

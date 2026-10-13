@@ -1,8 +1,9 @@
 /** Mobile editing viewport helpers. Pure functions, safe in Node tests. */
-export function timelineGeometry(duration, viewportWidth=400){
+export function timelineGeometry(duration, viewportWidth=400, zoom=1){
  const safeDuration=Math.max(0,Number(duration)||0);
  const safeViewport=Math.max(200,Number(viewportWidth)||400);
- const pixelsPerSecond=safeDuration<=90?46:safeDuration<=300?26:Math.max(10,Math.min(26,7800/safeDuration));
+ const base=safeDuration<=90?46:safeDuration<=300?26:Math.max(10,Math.min(26,7800/safeDuration));
+ const pixelsPerSecond=base*Math.max(.5,Math.min(4,Number(zoom)||1));
  const width=Math.min(9000,Math.max(safeViewport,safeDuration*pixelsPerSecond));
  return {width,pixelsPerSecond:safeDuration>0?width/safeDuration:46,duration:safeDuration};
 }
