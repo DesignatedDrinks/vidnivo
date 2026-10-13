@@ -8,9 +8,9 @@ export interface BetaConfig{url:string;accessToken:string}
 const KEY_URL='rollblink-beta-api-url',KEY_TOKEN='rollblink-beta-api-token';
 
 function normalizeUrl(value:string){
- const u=new URL(value.trim().replace(/\\/api\\/generate\\/?$/,''));
+ const u=new URL(value.trim().replace(/\/api\/generate\/?$/,''));
  if(u.protocol!=='https:'&&!(u.protocol==='http:'&&u.hostname==='localhost'))throw Error('Use an HTTPS backend URL.');
- return u.origin+u.pathname.replace(/\\/$/,'');
+ return u.origin+u.pathname.replace(/\/$/,'');
 }
 export async function getBetaConfig():Promise<BetaConfig|null>{
  const [url,accessToken]=await Promise.all([SecureStore.getItemAsync(KEY_URL),SecureStore.getItemAsync(KEY_TOKEN)]);
