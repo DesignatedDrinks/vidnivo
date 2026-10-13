@@ -927,13 +927,13 @@ async function importFile(file){
   if(!Number.isFinite(seconds)||seconds<=MIN_CLIP)throw Error('Video has an invalid or very short duration.');
   if(state.playing)pause();
   showProcessing('import',1,'File length '+fmt(seconds)+' · setting up the local timeline.');
-  const source={id:key(),url,name:file.name,duration:seconds,size:file.size};
+  const source={id:key(),url,name:file.name,duration:seconds,size:file.size,file};
   state.sources.push(source);
   const clip={id:key(),sourceId:source.id,start:0,end:seconds,speed:1};
   const oldTotal=total();state.clips.push(clip);state.selected=clip.id;
   ui.empty.hidden=true;
   renderTimeline();renderEditor();void seekTimeline(oldTotal);
-  toast('Imported '+file.name+'. Select a clip to trim or split.');rbCheckRecovery();void rbMobileShell?.prepareThumbnails(source);
+  toast('Imported '+file.name+'. Select a clip to trim or split.');rbCheckRecovery();void rbMobileShell?.prepareThumbnails(source);void rbMobileShell?.prepareWaveform(source);
  }catch(e){URL.revokeObjectURL(url);toast(e.message||String(e),true)}
  finally{probe.removeAttribute('src');probe.load();hideProcessing('import')}
 }
