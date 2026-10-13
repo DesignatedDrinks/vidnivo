@@ -2,7 +2,7 @@
    Requires one trusted backend instance, persistent volume and secrets; see README. */
 import {randomBytes,randomUUID,createCipheriv,createDecipheriv} from 'node:crypto';
 import {createReadStream,createWriteStream} from 'node:fs';
-import {mkdir,readFile,writeFile,rename,stat,unlink,readdir} from 'node:fs/promises';
+import {mkdir,readFile,writeFile,rename,stat,unlink,open} from 'node:fs/promises';
 import {pipeline} from 'node:stream/promises';
 import {Transform} from 'node:stream';
 import {join} from 'node:path';
@@ -133,8 +133,9 @@ async function upload(req){
  try{
   await pipeline(req,new Transform({transform(chunk,_enc,cb){count+=chunk.length;cb(count>MAX_VIDEO||count>length?Error('Video exceeds declared size.'):null,chunk)}}),createWriteStream(path,{flags:'wx',mode:0o600}));
   if(count!==length)fail('Video upload incomplete.');
-  const handle=await readFile(path,{flag:'r'});
-  if(handle.toString('ascii',4,8)!=='ftyp')fail('Invalid MP4 file. Export an MP4, not WebM.');
+  const handle=await open(path,'r'),header=Buffer.alloc(12);
+  try{await handle.read(header,0,12,0)}finally{await handle.close()}
+  if(header.toString('ascii',4,8)!=='ftyp')fail('Invalid MP4 file. Export an MP4, not WebM.');
   return {mediaId:id,videoUrl:API_BASE+'/media/'+id+'.mp4',bytes:count};
  }catch(e){await unlink(path).catch(()=>{});throw e}
 }
