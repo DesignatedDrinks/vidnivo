@@ -27,6 +27,7 @@ import {StoryFinderSheet} from './src/ui/StoryFinderSheet';
 import {proposeStoryMoments,createStoryShort,type StoryMoment} from './src/domain/storyMoments';
 import { splitCaption, mergeCaptionWithNext, nudgeCaption, shiftAllCaptions,
   fixSentenceCase } from './src/domain/captionEditing';
+import { applyCaptionPlacement } from './src/domain/captionPlacement';
 import { replaceCaptionPhrase } from './src/domain/captionReplace';
 import { canExportNatively, exportMp4, shareExport } from './src/export/native';
 import { addAsset, addText, activeClip, createProject, durationMs, editClip, makeId, moveClip, Project, removeClip, removeText, reorderClip, splitClip, rippleTrimClip, rippleDeleteClip, restoreHistorySnapshot, editTextLayer, rippleSpeedClip, duplicateProject, duplicateClip, setClipSourceEdge } from './src/domain/timeline';
@@ -728,7 +729,9 @@ function EditorApp() {
 
     <View style={styles.mobileCanvas} onLayout={e => setCanvasHeight(e.nativeEvent.layout.height)}>
       <View style={styles.canvasCenter}>
-        <VideoStage project={project} playheadMs={positionMs} playing={playing} seekVersion={seekVersion} maxHeight={Math.max(110, canvasHeight - 8)} />
+        <VideoStage project={project} playheadMs={positionMs} playing={playing} seekVersion={seekVersion}
+          maxHeight={Math.max(110, canvasHeight - 8)}
+          onCaptionPlacement={placement=>{setPlaying(false);apply(p=>applyCaptionPlacement(p,placement));}} />
         <AudioStage project={project} playheadMs={positionMs} playing={playing} seekVersion={seekVersion} />
       </View>
     </View>
