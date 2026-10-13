@@ -351,7 +351,23 @@ input[type=range]{accent-color:#afc0ff}
 .rb-caption-font-shortcuts button span{font-size:28px;line-height:1}
 .rb-caption-font-shortcuts button small{font-size:11px;letter-spacing:0;color:#ccd5e1}
 .rb-caption-font-status{font-size:12px;color:#b9c8d5;margin:10px 0 0}
-</style><link rel="stylesheet" href="./rollblink-editor-shell.css?v=20261012-mobilefirst" /></head>
+</style><link rel="stylesheet" href="./rollblink-editor-shell.css?v=20261012-mobilefirst" /><style>
+.rb-publishing{border:1px solid rgba(165,183,208,.28);border-radius:14px;padding:14px;background:#151a24;color:#f5f7fc}
+.rb-publishing>summary{cursor:pointer;font-weight:800;font-size:14px;letter-spacing:-.2px}
+.rb-publishing[open]{display:grid;gap:12px}
+.rb-publish-accounts{display:grid;gap:8px}
+.rb-publish-accounts>div{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px;border:1px solid #343d4a;border-radius:10px}
+.rb-publish-accounts strong{flex:1;min-width:95px}
+.rb-publish-accounts span{font-size:11px;color:#afbfcd}
+.rb-publishing label{display:grid;gap:7px;font-size:12px;color:#d2dce8}
+.rb-publishing .rb-layout{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.rb-publishing .rb-check{display:flex;align-items:center;gap:8px}
+.rb-publishing .rb-check input{width:auto}
+.rb-publishing textarea{min-height:95px}
+.rb-publishing .rb-note{font-size:12px;line-height:1.5;color:#b5c0d0;margin:3px 0}
+@media(max-width:520px){.rb-publish-accounts>div{gap:7px}.rb-publishing{padding:12px}}
+</style>
+</head>
 <body>
   <header class="topbar">
     <button id="mobileClose" class="mobile-top-close" type="button" aria-label="Back or new project">×</button>
@@ -432,6 +448,32 @@ input[type=range]{accent-color:#afc0ff}
         <label>Server URL<input id="rb-server" type="url" placeholder="https://your-rollblink-api.example" autocomplete="off"></label>
         <label>Session access token<input id="rb-token" type="password" autocomplete="off" placeholder="Not your OpenAI key"></label></details>
         <p id="rb-message" class="rb-note" role="status">Video stays local. Copy drafts use captions unless a protected AI server is connected.</p>
+        <details id="rb-publish-panel" class="rb-publishing">
+          <summary>Publish video · Instagram / YouTube / TikTok</summary>
+          <p class="rb-note">Connect a platform, export an MP4, then choose Publish. Nothing is posted without your confirmation. For beta testing, your OpenAI key belongs in the backend <code>OPENAI_API_KEY</code> secret, never here.</p>
+          <div class="rb-publish-accounts">
+            <div><strong>Instagram Reels</strong><span id="rb-status-instagram">Not connected</span><button class="rb-s" type="button" data-rb-connect="instagram">Connect</button></div>
+            <div><strong>YouTube Shorts</strong><span id="rb-status-youtube">Not connected</span><button class="rb-s" type="button" data-rb-connect="youtube">Connect</button></div>
+            <div><strong>TikTok</strong><span id="rb-status-tiktok">Not connected</span><button class="rb-s" type="button" data-rb-connect="tiktok">Connect</button></div>
+          </div>
+          <div class="rb-layout">
+            <label>Destination<select id="rb-publish-platform"><option value="instagram">Instagram Reels</option><option value="youtube">YouTube Shorts</option><option value="tiktok">TikTok</option></select></label>
+            <label>Title (YouTube)<input id="rb-publish-title" maxlength="100" placeholder="Clear title"></label>
+          </div>
+          <label>Caption / description<textarea id="rb-publish-caption" maxlength="5000" placeholder="Write your own or Generate an AI draft above"></textarea></label>
+          <div id="rb-yt-options" class="rb-layout"><label>YouTube visibility<select id="rb-publish-youtube-privacy"><option value="private">Private (beta default)</option><option value="unlisted">Unlisted</option><option value="public">Public</option></select></label></div>
+          <div id="rb-tt-options" hidden>
+            <div class="rb-layout"><label>TikTok audience<select id="rb-publish-tiktok-privacy"><option value="">Connect TikTok to load allowed audiences</option></select></label></div>
+            <label class="rb-check"><input type="checkbox" id="rb-tt-ownbrand"> This post promotes my own business or brand</label>
+            <label class="rb-check"><input type="checkbox" id="rb-tt-aigc"> This video is AI-generated</label>
+            <p class="rb-note">TikTok private/test posting and public access depend on developer app approval.</p>
+          </div>
+          <label>Finished MP4 (optional — uses the current export if available)<input id="rb-publish-file" type="file" accept="video/mp4,.mp4"></label>
+          <div class="rb-row"><button id="rb-refresh-publish" type="button" class="rb-s">Refresh connections</button><button id="rb-send-publish" type="button" class="rb-p">Review &amp; Publish</button></div>
+          <div class="rb-row"><button id="rb-complete-ig" type="button" class="rb-s" hidden>Complete Instagram Reel</button><button id="rb-check-tt" type="button" class="rb-s" hidden>Check TikTok status</button></div>
+          <p id="rb-publish-message" class="rb-note" role="status" aria-live="polite">Connect your secure beta backend above to enable publishing.</p>
+        </details>
+
       </section>
       <div class="timeline-card">
         <div class="section-head"><div><h2 class="timeline-title">Timeline</h2></div><div class="section-actions"><label for="videoInput" class="button ghost small">+ Import</label><button id="split" class="button secondary small" disabled>✂ Split</button></div></div>
@@ -555,6 +597,7 @@ input[type=range]{accent-color:#afc0ff}
         <div id="exportStatus" class="status" role="status" aria-live="polite"></div>
         <div class="progress"><div id="exportProgress"></div></div>
         <a id="download" class="button secondary full" hidden download>↓ Download video</a>
+        <button id="rb-open-publish" type="button" class="button secondary full">Publish to social platforms ↗</button>
         <details class="quiet-details"><summary>Export requirements</summary><p>Browser export supports continuous footage at 1× speed. Cut gaps, reordered clips and speed changes need a native build. Keep ROLLBLINK open while exporting and check the result before posting.</p></details>
       </div>
       <div class="footer-note"><img src="./rollblink-mark.svg" width="17" height="17" alt="" /> Private, on-device editing <span class="footer-beta">· Web beta</span></div>
@@ -2149,6 +2192,134 @@ rbMobileShell=createRollblinkMobileShell({
  selectCaptionForEditing,renderCaptions,renderTimeline,renderEditor,requestDraw,
  startExport,runAutoCaptions,toast,key,rbSave,applyVoicePolish,setRatio,drawFrame
 });
+
+/* Beta cross-platform publishing. Credentials and OAuth tokens never live in this page. */
+let rbPublishedMedia=null,rbTikTokPublishId=null,rbPublishBusy=false;
+function rbApiBase(){
+ const raw=$('rb-server').value.trim(),token=$('rb-token').value.trim();
+ if(!raw||!token)throw Error('Open AI server connection and enter your HTTPS API URL and beta access token first.');
+ const u=new URL(raw.replace(/\\/api\\/generate\\/?$/,'').replace(/\\/$/,''));
+ if(u.protocol!=='https:'&&!(u.protocol==='http:'&&u.hostname==='localhost'))throw Error('Use an HTTPS backend (localhost allowed for testing).');
+ return {base:u.origin+u.pathname.replace(/\\/$/,''),token};
+}
+async function rbApi(path,{method='GET',data=null,blob=null}={}){
+ const {base,token}=rbApiBase();
+ const response=await fetch(base+path,{method,headers:{
+  'Authorization':'Bearer '+token,...(blob?{'Content-Type':'video/mp4'}:data?{'Content-Type':'application/json'}:{})
+ },...(blob?{body:blob}:data?{body:JSON.stringify(data)}:{})});
+ const result=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(result.error||'Server returned '+response.status);
+ return result;
+}
+function rbPublishMessage(value,error=false){const el=$('rb-publish-message');el.textContent=value;el.style.color=error?'#ffb5ab':'#b3e5d4'}
+function rbPublishButtonsBusy(busy){rbPublishBusy=busy;document.querySelectorAll('[data-rb-connect],#rb-send-publish,#rb-refresh-publish,#rb-complete-ig,#rb-check-tt').forEach(x=>x.disabled=busy)}
+async function rbRefreshConnections(){
+ const data=await rbApi('/api/social/status');
+ for(const p of ['instagram','youtube','tiktok']){
+  const status=data.platforms?.[p]||{};
+  $('rb-status-'+p).textContent=status.connected?'✓ '+(status.label||'Connected'):status.configured?'Not connected':'App credentials required';
+ }
+ $('rb-complete-ig').hidden=!data.platforms?.instagram?.pending;
+ rbPublishMessage('Accounts refreshed. Publishing needs a supported MP4 and your confirmation.');
+ if(data.platforms?.tiktok?.connected)await rbLoadTikTokOptions();
+}
+async function rbLoadTikTokOptions(){
+ const selector=$('rb-publish-tiktok-privacy');
+ try{
+  const d=await rbApi('/api/social/tiktok/creator');
+  selector.replaceChildren();
+  for(const value of d.privacyOptions||[]){
+   const opt=document.createElement('option');opt.value=value;opt.textContent=value.replaceAll('_',' ').toLowerCase();selector.appendChild(opt);
+  }
+  if(!selector.options.length)rbPublishMessage('TikTok has not provided any permitted privacy options.',true);
+ }catch(e){rbPublishMessage('TikTok privacy settings: '+e.message,true)}
+}
+$('rb-publish-platform').addEventListener('change',()=>{
+ const platform=$('rb-publish-platform').value;
+ $('rb-yt-options').hidden=platform!=='youtube';
+ $('rb-tt-options').hidden=platform!=='tiktok';
+ const target=platform==='youtube'?'YouTube Shorts':platform==='tiktok'?'TikTok':'Instagram';
+ if($('rb-platform').value===target){
+  $('rb-publish-title').value=$('rb-title').value.slice(0,100);
+  $('rb-publish-caption').value=$('rb-post').value;
+ }
+});
+document.querySelectorAll('[data-rb-connect]').forEach(button=>button.addEventListener('click',async()=>{
+ const popup=window.open('','rollblink-social-connect','width=560,height=700');
+ if(!popup){rbPublishMessage('Allow popups for Rollblink to connect your account.',true);return}
+ popup.document.body.textContent='Opening secure platform authorization…';
+ rbPublishButtonsBusy(true);
+ try{
+  const result=await rbApi('/api/social/connect',{method:'POST',data:{platform:button.dataset.rbConnect}});
+  popup.location.assign(result.url);
+  rbPublishMessage('Authorize in the new window, then refresh connections.');
+ }catch(e){popup.close();rbPublishMessage(e.message,true)}
+ finally{rbPublishButtonsBusy(false)}
+}));
+window.addEventListener('message',async event=>{
+ let api;
+ try{api=rbApiBase()}catch{return}
+ if(event.origin!==new URL(api.base).origin||event.data?.type!=='rollblink-social-oauth')return;
+ try{await rbRefreshConnections()}catch(e){rbPublishMessage(e.message,true)}
+});
+$('rb-refresh-publish').addEventListener('click',async()=>{
+ rbPublishButtonsBusy(true);
+ try{await rbRefreshConnections()}catch(e){rbPublishMessage(e.message,true)}
+ finally{rbPublishButtonsBusy(false)}
+});
+$('rb-send-publish').addEventListener('click',async()=>{
+ if(rbPublishBusy)return;
+ const platform=$('rb-publish-platform').value,title=$('rb-publish-title').value.trim(),caption=$('rb-publish-caption').value.trim();
+ if(platform==='youtube'&&!title){rbPublishMessage('Enter a YouTube title before publishing.',true);return}
+ if(!confirm('Send this video to '+platform+' now? You are authorizing a real upload to your connected account.'))return;
+ rbPublishButtonsBusy(true);
+ try{
+  let blob=$('rb-publish-file').files?.[0];
+  if(!blob){
+   if(ui.download.hidden||!ui.download.href)throw Error('Export an MP4 first, or choose a finished MP4 file.');
+   blob=await fetch(ui.download.href).then(r=>r.blob());
+  }
+  if((blob.type&&!blob.type.toLowerCase().includes('mp4'))||!blob.size||blob.size>200*1024*1024)throw Error('Choose an MP4 video under 200 MB. Browser WebM export cannot post directly.');
+  rbPublishMessage('Uploading '+(blob.size/1048576).toFixed(1)+' MB to your beta publishing server…');
+  const file=await rbApi('/api/media',{method:'PUT',blob});
+  rbPublishedMedia=file.mediaId;
+  rbPublishMessage('Video received. Submitting to '+platform+'…');
+  const result=await rbApi('/api/social/publish',{method:'POST',data:{
+   platform,mediaId:rbPublishedMedia,title,caption,
+   privacy:platform==='youtube'?$('rb-publish-youtube-privacy').value:platform==='tiktok'?$('rb-publish-tiktok-privacy').value:undefined,
+   ownBrand:$('rb-tt-ownbrand').checked,aiGenerated:$('rb-tt-aigc').checked
+  }});
+  if(platform==='instagram')$('rb-complete-ig').hidden=result.status!=='processing';
+  if(platform==='tiktok'){rbTikTokPublishId=result.publishId;$('rb-check-tt').hidden=!rbTikTokPublishId}
+  rbPublishMessage(result.message||('Platform status: '+result.status));
+  if(result.url)rbPublishMessage('Upload accepted. Open video: '+result.url);
+ }catch(e){rbPublishMessage('Publish failed: '+e.message,true)}
+ finally{rbPublishButtonsBusy(false)}
+});
+$('rb-complete-ig').addEventListener('click',async()=>{
+ rbPublishButtonsBusy(true);
+ try{
+  const result=await rbApi('/api/social/instagram/complete',{method:'POST',data:{}});
+  $('rb-complete-ig').hidden=result.status==='published';rbPublishMessage(result.message||result.status);
+ }catch(e){rbPublishMessage(e.message,true)}
+ finally{rbPublishButtonsBusy(false)}
+});
+$('rb-check-tt').addEventListener('click',async()=>{
+ rbPublishButtonsBusy(true);
+ try{
+  const r=await rbApi('/api/social/tiktok/status',{method:'POST',data:{publishId:rbTikTokPublishId}});
+  rbPublishMessage('TikTok: '+r.status+(r.failReason?' — '+r.failReason:''));
+  if(r.status==='PUBLISH_COMPLETE'||r.status==='FAILED')$('rb-check-tt').hidden=true;
+ }catch(e){rbPublishMessage(e.message,true)}
+ finally{rbPublishButtonsBusy(false)}
+});
+$('rb-open-publish').addEventListener('click',()=>{
+ const details=$('rb-publish-panel');details.open=true;
+ const nav=document.querySelector('[data-mobile-tool="generate"]');
+ if(window.matchMedia('(max-width:770px)').matches&&nav)nav.click();
+ details.scrollIntoView({behavior:'smooth',block:'center'});
+});
+
 rbMobileShell.mount();
 
 </script>
