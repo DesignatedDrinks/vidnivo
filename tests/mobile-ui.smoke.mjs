@@ -50,8 +50,32 @@ try{
  await page.locator('[data-mobile-tool="generate"]').click();
  assert.ok(await page.locator('.rb-tools').isVisible(),'Generate drawer did not open');
  await page.screenshot({path:'/tmp/rollblink-mobile-smoke.png',fullPage:true});
- assert.deepEqual(errors,[],'Browser runtime errors');
+ assert.deepEqual(errors,[],'Mobile browser runtime errors');
  process.stdout.write('Mobile editor smoke test passed.\n');
+
+ const desktop=await browser.newPage({viewport:{width:1366,height:900},deviceScaleFactor:1});
+ const desktopErrors=[];
+ desktop.on('pageerror',error=>desktopErrors.push(error.message));
+ try{
+  await desktop.goto(base,{waitUntil:'domcontentloaded'});
+  await desktop.locator('#mobileBottomNav').waitFor({state:'visible'});
+  await desktop.locator('#mobileTimelineScroll').waitFor({state:'visible'});
+  const appDisplay=await desktop.locator('.app').evaluate(el=>getComputedStyle(el).display);
+  assert.equal(appDisplay,'flex','Desktop must use redesigned stacked editing shell');
+  const dPreview=await desktop.locator('#previewWrap').boundingBox();
+  const dTimeline=await desktop.locator('#mobileTimelineScroll').boundingBox();
+  const dNav=await desktop.locator('#mobileBottomNav').boundingBox();
+  assert.ok(dPreview&&dPreview.height>300,'Desktop must feature portrait preview');
+  assert.ok(dTimeline&&dTimeline.y>dPreview.y,'Desktop timeline should be below preview');
+  assert.ok(dNav&&dNav.y>800,'Desktop bottom editing toolbar must be visible');
+  await desktop.locator('[data-mobile-tool="captions"]').click();
+  await desktop.locator('#rb-font').waitFor({state:'visible'});
+  assert.equal(await desktop.locator('#rb-font option').count(),24);
+  await desktop.screenshot({path:'/tmp/rollblink-desktop-smoke.png',fullPage:true});
+  assert.deepEqual(desktopErrors,[],'Desktop browser runtime errors');
+  process.stdout.write('Desktop editor smoke test passed.\n');
+ }finally{await desktop.close()}
+
 }finally{
  await browser.close();
  await new Promise(resolve=>server.close(resolve));
