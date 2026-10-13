@@ -2373,7 +2373,7 @@ $('rb-ai-test').addEventListener('click',async()=>{
  $('rb-ai-test').disabled=true;
  try{
   const status=await rbApi('/api/ai/status');
-  if(!status.configured)throw Error('Backend connected, but OPENAI_API_KEY has not been set in server secrets.');
+  if(!status.configured)throw Error('Backend connected, but its private OpenAI key has not been configured.');
   rbAiStatus('✓ Connected to Rollblink AI ('+status.model+'). Key exists on the server; actual generation requires API credits.');
  }catch(e){rbAiStatus('Not connected: '+e.message,true)}
  finally{$('rb-ai-test').disabled=false}
