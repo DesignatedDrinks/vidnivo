@@ -12,7 +12,7 @@ const OPENAI_KEY=process.env.OPENAI_API_KEY||'';
 const ACCESS_TOKEN=process.env.ROLLBLINK_ACCESS_TOKEN||'';
 const ALLOWED_ORIGINS=(process.env.ALLOWED_ORIGINS||'https://designateddrinks.github.io')
  .split(',').map(v=>v.trim()).filter(Boolean);
-const allowedPlatforms=new Set(['Instagram','TikTok','YouTube Shorts','LinkedIn']);
+const allowedPlatforms=new Set(['Instagram','TikTok','YouTube Shorts','LinkedIn','Facebook']);
 const attempts=new Map();
 const MAX_PER_MINUTE=12;
 
