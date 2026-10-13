@@ -74,6 +74,21 @@ try{
  await page.screenshot({path:'/tmp/rollblink-mobile-smoke.png'});
  const saved=await page.evaluate(()=>localStorage.getItem('rollblink:metadata-draft:v2'));
  assert.ok(saved&&JSON.parse(saved).captions.length===1,'Timed caption and font must persist to a draft');
+ // Render a real file and verify that the recording contains usable bytes.
+ await page.locator('#mobileExport').click();
+ await page.waitForFunction(()=>{
+  const link=document.querySelector('#download');
+  const status=document.querySelector('#syncStatus')?.textContent||'';
+  return (link&&!link.hidden)||status.includes('Export rejected')||status.includes('Export blocked');
+ },null,{timeout:45000});
+ const status=await page.locator('#syncStatus').textContent();
+ assert.equal(await page.locator('#download').isVisible(),true,'A/V export failed: '+status);
+ assert.match(status,/Audio \+ video checks passed/,'Exporter must verify both tracks');
+ const downloadPromise=page.waitForEvent('download',{timeout:10000});
+ await page.locator('#download').click();
+ const download=await downloadPromise;
+ const exported=await download.path();
+ assert.ok(exported&&(await stat(exported)).size>3000,'Exported file is missing or empty');
  assert.deepEqual(errors,[],'Mobile browser runtime errors');
  process.stdout.write('Mobile editor smoke test passed.\n');
 
