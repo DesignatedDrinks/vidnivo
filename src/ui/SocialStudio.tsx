@@ -12,6 +12,7 @@ import {SOCIAL_PLATFORMS,SOCIAL_LABELS,EMPTY_SOCIAL_DRAFT,
 import {uploadVideoToYouTube} from '../social/youtube';
 import {shareExport} from '../export/native';
 import type {YouTubePrivacy} from '../social/youtubeCore';
+import {getBetaConfig,saveBetaConfig,betaAccounts,betaAuthorizationUrl,betaCreatorPrivacy,betaUploadMp4,betaPublish,betaCompleteInstagram,betaTikTokStatus,type BetaAccounts,type BetaPlatform} from '../social/publishingBeta';
 
 interface Props {
  visible:boolean;
@@ -35,6 +36,17 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
  const [selected,setSelected]=useState<SocialPlatform>('instagram');
  const [privacy,setPrivacy]=useState<YouTubePrivacy>('private');
  const [busy,setBusy]=useState(false);
+ const [betaUrl,setBetaUrl]=useState('');
+ const [betaAccessToken,setBetaAccessToken]=useState('');
+ const [betaConfigured,setBetaConfigured]=useState(false);
+ const [accounts,setAccounts]=useState<BetaAccounts|null>(null);
+ const [tikTokPrivacyOptions,setTikTokPrivacyOptions]=useState<string[]>([]);
+ const [tikTokPrivacy,setTikTokPrivacy]=useState('');
+ const [ownBrand,setOwnBrand]=useState(false);
+ const [aiGenerated,setAiGenerated]=useState(false);
+ const [pendingInstagram,setPendingInstagram]=useState(false);
+ const [lastTikTokId,setLastTikTokId]=useState<string|null>(null);
+
  useEffect(()=>{
   if(!visible)return;
   let active=true;
@@ -48,6 +60,11 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
    }).catch(e=>{
     if(active)Alert.alert('Social Studio', 'Could not load secure settings or saved posts: '+String(e));
    });
+
+  void getBetaConfig().then(saved=>{
+   if(!active||!saved)return;
+   setBetaConfigured(true);setBetaUrl(saved.url);setBetaAccessToken(saved.accessToken);
+  }).catch(()=>{});
   return ()=>{active=false;};
  },[visible,project.id]);
 
@@ -147,6 +164,80 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
    })();}}
   ]);
  };
+
+ const saveBeta=async()=>{
+  try{
+   setBusy(true);
+   await saveBetaConfig({url:betaUrl,accessToken:betaAccessToken});
+   setBetaConfigured(true);
+   Alert.alert('Beta server saved','Your separate beta access token is secured on this device. The OpenAI key belongs in server secrets.');
+  }catch(e){Alert.alert('Cannot save beta server',String(e instanceof Error?e.message:e))}
+  finally{setBusy(false)}
+ };
+ const refreshBeta=async()=>{
+  try{
+   setBusy(true);
+   const result=await betaAccounts();setAccounts(result);
+   setPendingInstagram(Boolean(result.instagram?.pending));
+   if(result.tiktok?.connected){
+    const options=await betaCreatorPrivacy();
+    setTikTokPrivacyOptions(options);setTikTokPrivacy(existing=>options.includes(existing)?existing:options[0]||'');
+   }
+  }catch(e){Alert.alert('Connection failed',String(e instanceof Error?e.message:e))}
+  finally{setBusy(false)}
+ };
+ const connectBeta=(platform:BetaPlatform)=>{
+  void (async()=>{
+   try{
+    setBusy(true);
+    const url=await betaAuthorizationUrl(platform);
+    await Linking.openURL(url);
+    Alert.alert('Return to Rollblink','Authorize '+platform+' in your browser, then return here and press Refresh accounts.');
+   }catch(e){Alert.alert('Could not connect account',String(e instanceof Error?e.message:e))}
+   finally{setBusy(false)}
+  })();
+ };
+ const publishBetaNow=(platform:BetaPlatform)=>{
+  if(!draft||!exportUri){Alert.alert('Export MP4 first','Create your finished MP4 before sending it to '+platform+'.');return;}
+  if(draftRevision!==project.revision){Alert.alert('Review latest edit','Your video changed after the caption was created. Regenerate or save current copy.');return;}
+  if(platform==='tiktok'&&!tikTokPrivacy){Alert.alert('Choose audience','Refresh TikTok account permissions and choose an allowed privacy level.');return;}
+  Alert.alert('Publish video to '+platform+'?','This uploads your finished MP4 to Rollblink\'s beta backend and then submits it to '+platform+'. You control visibility and account access.',[
+   {text:'Cancel',style:'cancel'},
+   {text:'Publish',onPress:()=>{void (async()=>{
+    try{
+     setBusy(true);
+     const mediaId=await betaUploadMp4(exportUri);
+     const result=await betaPublish(platform,{
+      mediaId,caption:draft[platform],
+      ...(platform==='tiktok'?{privacy:tikTokPrivacy,ownBrand,aiGenerated}:{})
+     });
+     if(platform==='instagram')setPendingInstagram(result.status==='processing');
+     if(platform==='tiktok')setLastTikTokId(result.publishId||null);
+     Alert.alert('Platform result',String(result.message||result.status||'Request accepted. Check platform status.'));
+    }catch(e){Alert.alert('Publishing failed',String(e instanceof Error?e.message:e))}
+    finally{setBusy(false)}
+   })();}}
+  ]);
+ };
+ const finishInstagram=async()=>{
+  try{
+   setBusy(true);
+   const result=await betaCompleteInstagram();
+   setPendingInstagram(result.status!=='published');
+   Alert.alert('Instagram status',String(result.message||result.status));
+  }catch(e){Alert.alert('Instagram failed',String(e instanceof Error?e.message:e))}
+  finally{setBusy(false)}
+ };
+ const checkTikTok=async()=>{
+  if(!lastTikTokId)return;
+  try{
+   setBusy(true);
+   const result=await betaTikTokStatus(lastTikTokId);
+   Alert.alert('TikTok status',String(result.status||'Unknown')+(result.failReason?' — '+result.failReason:''));
+  }catch(e){Alert.alert('TikTok status failed',String(e instanceof Error?e.message:e))}
+  finally{setBusy(false)}
+ };
+
  const pill=(text:string,active:boolean,onPress:()=>void)=>(
   <Pressable onPress={onPress} style={[styles.pill,active&&styles.pillOn]}>
    <Text style={[styles.pillText,active&&styles.pillTextOn]}>{text}</Text>
@@ -231,6 +322,49 @@ export function SocialStudio({visible,project,onClose,exportUri,exportVideo,
        <Text style={styles.buttonText}>Upload to YouTube ({privacy})</Text></Pressable>
      </>:null}
      <Text style={styles.fine}>Uploads require explicit confirmation. YouTube access is session-based; reconnect after token expiry. No automatic cross-platform posting occurs without authorization.</Text>
+     <View style={{height:1,backgroundColor:'#46505A',marginVertical:8}}/>
+     <Text style={styles.heading}>Instagram & TikTok · Beta publishing</Text>
+     <Text style={styles.muted}>Secure publishing server. These are not your OpenAI credentials. The API key stays on the backend; the private beta access token is stored on this device.</Text>
+     <Text style={styles.fieldLabel}>Beta API server URL</Text>
+     <TextInput autoCapitalize="none" autoCorrect={false} value={betaUrl} onChangeText={setBetaUrl}
+       placeholder="https://api.your-rollblink-domain.com" placeholderTextColor="#7B8793" style={styles.input}/>
+     <Text style={styles.fieldLabel}>Separate beta access token</Text>
+     <TextInput value={betaAccessToken} onChangeText={setBetaAccessToken} secureTextEntry autoCapitalize="none" autoCorrect={false}
+       placeholder="Your beta token (not sk-…)" placeholderTextColor="#7B8793" style={styles.input}/>
+     <View style={styles.actions}>
+      <Pressable disabled={busy} style={styles.outline} onPress={()=>{void saveBeta()}}><Text style={styles.outlineText}>Save beta connection</Text></Pressable>
+      <Pressable disabled={busy||!betaConfigured} style={[styles.outline,!betaConfigured&&styles.dim]} onPress={()=>{void refreshBeta()}}><Text style={styles.outlineText}>Refresh accounts</Text></Pressable>
+     </View>
+     <View style={styles.actions}>
+      <Pressable disabled={busy||!betaConfigured} style={[styles.outline,!betaConfigured&&styles.dim]} onPress={()=>connectBeta('instagram')}>
+       <Text style={styles.outlineText}>{accounts?.instagram?.connected?'✓ Instagram connected':'Connect Instagram'}</Text>
+      </Pressable>
+      <Pressable disabled={busy||!betaConfigured} style={[styles.outline,!betaConfigured&&styles.dim]} onPress={()=>connectBeta('tiktok')}>
+       <Text style={styles.outlineText}>{accounts?.tiktok?.connected?'✓ TikTok connected':'Connect TikTok'}</Text>
+      </Pressable>
+     </View>
+     {selected==='tiktok'&&accounts?.tiktok?.connected?<View>
+      <Text style={styles.fieldLabel}>TikTok audience</Text>
+      <View style={styles.actions}>{tikTokPrivacyOptions.map(p=><View key={p}>{pill(p.replaceAll('_',' '),tikTokPrivacy===p,()=>setTikTokPrivacy(p))}</View>)}</View>
+      <View style={[styles.actions,{marginTop:12}]}>
+       {pill(ownBrand?'✓ Own-brand promotion':'Own-brand promotion',ownBrand,()=>setOwnBrand(v=>!v))}
+       {pill(aiGenerated?'✓ AI-generated video':'AI-generated video',aiGenerated,()=>setAiGenerated(v=>!v))}
+      </View>
+     </View>:null}
+     {draft&&exportUri&&(selected==='instagram'||selected==='tiktok')?<Pressable
+       disabled={busy||!accounts?.[selected]?.connected}
+       style={[styles.btn,(!accounts?.[selected]?.connected||busy)&&styles.dim]}
+       onPress={()=>publishBetaNow(selected)}>
+       <Text style={styles.buttonText}>Review & publish to {selected==='instagram'?'Instagram Reels':'TikTok'}</Text>
+      </Pressable>:null}
+     {pendingInstagram?<Pressable disabled={busy} style={styles.outline} onPress={()=>{void finishInstagram()}}>
+      <Text style={styles.outlineText}>Complete Instagram Reel after processing</Text>
+     </Pressable>:null}
+     {lastTikTokId?<Pressable disabled={busy} style={styles.outline} onPress={()=>{void checkTikTok()}}>
+      <Text style={styles.outlineText}>Check TikTok publishing status</Text>
+     </Pressable>:null}
+     <Text style={styles.fine}>Direct publishing requires separately deployed, authorized backend accounts and official platform app approval. Instagram needs a professional account. Unreviewed TikTok apps may only post privately. Provider processing is not an instant success signal.</Text>
+
     </View>
    </ScrollView>
    {busy?<View style={styles.loading}><ActivityIndicator color="#27D4E7"/><Text style={styles.muted}>Processing request…</Text></View>:null}
