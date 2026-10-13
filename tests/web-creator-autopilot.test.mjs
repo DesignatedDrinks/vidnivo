@@ -14,7 +14,8 @@ const parse=code=>{
 };
 test('the public site and repo root both ship the complete creator workflow',()=>{
  assert.match(mirror,/docs\/\?/);
- assert.equal(module,deploy);
+ assert.equal(deploy.replace(/^import \{fontById\} from '.\\/rollblink-creator-kit.js';\\n/,''),module,
+  'Published module differs only by its required local font dependency');
  parse(script);parse(module);
  for(const id of ['creatorStyle','creatorRun','creatorSave','creatorProgress','creatorStatus',
   'creatorCaptions','creatorTighten','creatorVoice','creatorHookPanel','creatorHookChoices','creatorHookRemove']){
