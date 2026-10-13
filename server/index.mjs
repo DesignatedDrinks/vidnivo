@@ -3,6 +3,7 @@
    For multi-user commercial launch, replace shared bearer token with real identity auth. */
 import {createServer} from 'node:http';
 import {timingSafeEqual} from 'node:crypto';
+import {handleSocial} from './social.mjs';
 
 const PORT=Number(process.env.PORT||8080);
 const MODEL=process.env.OPENAI_MODEL||'gpt-4o-mini';
@@ -69,10 +70,11 @@ export const server=createServer(async(req,res)=>{
  if(!permitted(req)){respond(res,403,{error:'Origin not allowed.'});return}
  if(req.method==='OPTIONS'){
   if(origin){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin')}
-  res.writeHead(204,{'Access-Control-Allow-Methods':'POST, OPTIONS',
+  res.writeHead(204,{'Access-Control-Allow-Methods':'GET, POST, PUT, OPTIONS',
    'Access-Control-Allow-Headers':'Content-Type, Authorization','Access-Control-Max-Age':'1800'});res.end();return;
  }
  if(req.url==='/health'&&req.method==='GET'){respond(res,200,{status:'ok',aiConfigured:Boolean(OPENAI_KEY&&ACCESS_TOKEN)},origin);return}
+ if(await handleSocial(req,res,{authorized,readBody,respond,origin}))return;
  if(req.url!=='/api/generate'||req.method!=='POST'){respond(res,404,{error:'Not found.'},origin);return}
  if(!authorized(req)){respond(res,401,{error:'Unauthorized.'},origin);return}
  if(!OPENAI_KEY){respond(res,503,{error:'OPENAI_API_KEY is not configured on the server.'},origin);return}
