@@ -847,6 +847,13 @@ function EditorApp() {
     <SocialStudio visible={socialOpen} project={project} onClose={() => setSocialOpen(false)}
       exportUri={lastExport} exportVideo={() => { setSocialOpen(false); void renderVideo(); }}
       youtubeToken={youtubeToken} canConnectYouTube={configured}
+      addOpeningTitle={(text) => {
+        if (!text.trim() || !project) return;
+        apply(p => addText(p,text,0,Math.min(3000,Math.max(800,total))));
+        setSocialOpen(false);
+        setPositionMs(0);
+        Alert.alert('Title added','Your opening title is on the timeline. Preview it and adjust placement before exporting.');
+      }}
       connectYouTube={() => {
         if (!configured) {
           Alert.alert('Google OAuth setup needed','Configure Google OAuth client IDs and enable YouTube Data API v3.');
