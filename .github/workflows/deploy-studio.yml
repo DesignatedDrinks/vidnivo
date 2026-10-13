@@ -4,6 +4,10 @@ on:
     branches: [main]
     paths:
       - 'docs/index.html'
+      - 'docs/rollblink-editor-shell.css'
+      - 'docs/rollblink-mobile-shell.js'
+      - 'docs/rollblink-mobile-timeline.js'
+      - 'docs/rollblink-creator-kit.js'
       - 'docs/rollblink-filters.js'
       - 'docs/rollblink-face-retouch.js'
       - 'docs/rollblink-export-sync.js'
