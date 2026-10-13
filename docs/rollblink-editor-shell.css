@@ -186,3 +186,9 @@
  .mobile-context-actions button{min-height:55px;gap:3px}
  .mobile-context-actions .mobile-icon{font-size:20px}
 }
+
+@media(max-width:770px){
+ /* Transport arrows seek five seconds. Keep the labels visible: they are not undo/redo. */
+ .transport .icon-button{font-size:14px;gap:2px}
+ .transport .icon-button span{display:inline!important;font-size:10px}
+}
